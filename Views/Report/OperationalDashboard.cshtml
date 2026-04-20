@@ -1,0 +1,787 @@
+@model SlotAd_Globe.Models.OperationalDashboardViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Operational Dashboard";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+    ViewData["ActiveTab"] = "operational";
+}
+
+<style>
+    :root[data-theme="dark"] {
+        --op-card-bg: rgba(22, 22, 42, 0.8);
+        --op-card-border: #2a2a4a;
+        --op-text: #f0f0f8;
+        --op-text-dim: #c8c8e0;
+        --op-text-muted: #8a8ab0;
+        --op-pill-bg: rgba(255, 255, 255, 0.04);
+        --op-badge-bg: rgba(99, 102, 241, 0.12);
+        --op-badge-color: #a5b4fc;
+    }
+
+    :root[data-theme="light"] {
+        --op-card-bg: #ffffff;
+        --op-card-border: #d8deea;
+        --op-text: #15192d;
+        --op-text-dim: #2e3550;
+        --op-text-muted: #556084;
+        --op-pill-bg: rgba(30, 41, 59, 0.06);
+        --op-badge-bg: rgba(79, 70, 229, 0.10);
+        --op-badge-color: #4f46e5;
+    }
+
+    .op-card {
+        background: var(--op-card-bg);
+        border: 1px solid var(--op-card-border);
+        border-radius: 16px;
+        padding: 24px;
+    }
+    .op-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 10px;
+        border: 1px solid var(--op-card-border);
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--op-text-dim);
+        background: var(--op-pill-bg);
+        cursor: pointer;
+    }
+    .op-chart-wrap {
+        position: relative;
+        width: 100%;
+        min-height: 300px;
+    }
+    .op-empty {
+        border: 1px dashed var(--op-card-border);
+        border-radius: 14px;
+        padding: 26px;
+        text-align: center;
+        color: var(--op-text-muted);
+    }
+    .op-subpanel {
+        border: 1px solid var(--op-card-border);
+        border-radius: 14px;
+        padding: 18px;
+        background: var(--op-pill-bg);
+    }
+    .op-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 10, 22, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 60;
+    }
+    .op-modal-backdrop.active { display: flex; }
+    .op-modal {
+        width: min(940px, 94vw);
+        max-height: 88vh;
+        overflow: auto;
+        border-radius: 14px;
+        border: 1px solid var(--op-card-border);
+        background: var(--op-card-bg);
+        padding: 18px;
+    }
+
+    .op-card h2, .op-card h3 {
+        color: var(--op-text);
+    }
+
+    .op-card p, .op-card span {
+        color: var(--op-text-muted);
+    }
+
+    .op-stat-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--op-text-muted);
+    }
+
+    .op-stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--op-text);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .op-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 9999px;
+        background: var(--op-badge-bg);
+        color: var(--op-badge-color);
+    }
+
+    .op-divider {
+        border: none;
+        border-top: 1px solid var(--op-card-border);
+        margin: 20px 0;
+    }
+
+    .op-placeholder-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background: var(--op-badge-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--op-badge-color);
+    }
+</style>
+
+<header class="text-center mb-10 slide-up">
+    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3" style="color: var(--op-text);">
+        Operational Dashboard
+    </h1>
+    <p class="text-base sm:text-lg max-w-lg mx-auto" style="color: var(--op-text-muted);">
+        Real-time operational metrics and field activity overview
+    </p>
+</header>
+
+@if (TempData["Error"] is string errorMsg)
+{
+    <div class="mb-6 fade-in rounded-xl px-4 py-3 flex items-center gap-2 text-sm font-medium"
+         style="background: #7f1d1d; border: 1px solid #ef4444; color: #fff;">
+        <i data-lucide="alert-circle" style="width:16px; height:16px; flex-shrink:0;"></i>
+        <span>@errorMsg</span>
+    </div>
+}
+
+@{
+    ViewData["OperationalDashboardParent"] = Model;
+}
+@if (Model.OperationAging is not null)
+{
+    @await Html.PartialAsync("_OperationAgingReport", Model.OperationAging)
+}
+else
+{
+    <div class="op-card fade-in mb-6">
+        <h2 class="text-lg font-semibold mb-2" style="color: var(--op-text);">Operation Aging</h2>
+        <p class="text-sm" style="color: var(--op-text-muted);">
+            No active report with CSV data. Upload a file from the KPI flow or ensure your latest upload still has data on disk to view Operation Aging.
+        </p>
+    </div>
+}
+
+<div class="op-card fade-in mb-6">
+    <div class="flex flex-wrap items-start justify-between gap-3 mb-5">
+        <div>
+            <h2 class="text-lg font-semibold">Traffic Analysis Reports</h2>
+            <p class="text-sm" style="color: var(--op-text-muted);">
+                10-minute interval analytics for Alarm History and Performance History shown together.
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <form asp-controller="Report" asp-action="UploadOperational" method="post" enctype="multipart/form-data" id="operational-upload-form">
+                @Html.AntiForgeryToken()
+                <input type="file" name="csvFile" id="operational-file-input" accept=".csv,.xlsx" class="hidden" />
+                <button type="button" id="operational-upload-btn" class="op-action-btn">
+                    <i data-lucide="upload" style="width:14px;height:14px;"></i> Upload
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 gap-6 fade-in">
+    <div class="op-subpanel">
+        @{
+            var perfStartDateLabel = Model.PerformanceReport.IntervalLabels.Count > 0
+                ? Model.PerformanceReport.IntervalLabels[0].Substring(0, Math.Min(10, Model.PerformanceReport.IntervalLabels[0].Length))
+                : string.Empty;
+            var perfEndDateLabel = Model.PerformanceReport.IntervalLabels.Count > 0
+                ? Model.PerformanceReport.IntervalLabels[^1].Substring(0, Math.Min(10, Model.PerformanceReport.IntervalLabels[^1].Length))
+                : string.Empty;
+            var perfDateCaption = string.Empty;
+            if (!string.IsNullOrWhiteSpace(perfStartDateLabel))
+            {
+                perfDateCaption = perfStartDateLabel == perfEndDateLabel
+                    ? $"Date: {perfStartDateLabel}"
+                    : $"Dates: {perfStartDateLabel} to {perfEndDateLabel}";
+            }
+        }
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+                <h3 class="text-base font-semibold">Performance History Report</h3>
+                @if (Model.PerformanceReport.HasReport)
+                {
+                    <p class="text-xs mt-1" style="color: var(--op-text-muted);">
+                        Source: <span style="color: var(--op-text-dim);">@Model.PerformanceReport.SourceFileName</span>
+                    </p>
+                }
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="op-badge"><i data-lucide="activity" style="width:11px;height:11px;"></i> Per occurrence</span>
+                <form asp-controller="Report" asp-action="OperationalDashboard" method="get">
+                    <input type="hidden" name="group" value="@Model.PerformanceReport.SelectedPerformanceGroup" />
+                    <input type="hidden" name="alarmPeriod" value="@Model.AlarmReport.SelectedPeriod" />
+                    <input type="hidden" name="alarmMode" value="@Model.AlarmReport.DateFilterMode" />
+                    <input type="hidden" name="alarmDate" value="@Model.AlarmReport.SelectedDate" />
+                    <input type="hidden" name="alarmStart" value="@Model.AlarmReport.DateRangeStart" />
+                    <input type="hidden" name="alarmEnd" value="@Model.AlarmReport.DateRangeEnd" />
+                    <input type="hidden" name="perfMode" value="@Model.PerformanceReport.DateFilterMode" />
+                    <input type="hidden" name="perfDate" value="@Model.PerformanceReport.SelectedDate" />
+                    <input type="hidden" name="perfStart" value="@Model.PerformanceReport.DateRangeStart" />
+                    <input type="hidden" name="perfEnd" value="@Model.PerformanceReport.DateRangeEnd" />
+                    <select name="perfPeriod" class="op-action-btn" onchange="this.form.submit()">
+                        @if (Model.PerformanceReport.SelectedPeriod == "10min") { <option value="10min" selected>10 min</option> } else { <option value="10min">10 min</option> }
+                        @if (Model.PerformanceReport.SelectedPeriod == "30min") { <option value="30min" selected>30 min</option> } else { <option value="30min">30 min</option> }
+                        @if (Model.PerformanceReport.SelectedPeriod == "1hour") { <option value="1hour" selected>1 hour</option> } else { <option value="1hour">1 hour</option> }
+                        @if (Model.PerformanceReport.SelectedPeriod == "3hour") { <option value="3hour" selected>3 hours</option> } else { <option value="3hour">3 hours</option> }
+                        @if (Model.PerformanceReport.SelectedPeriod == "6hour") { <option value="6hour" selected>6 hours</option> } else { <option value="6hour">6 hours</option> }
+                        @if (Model.PerformanceReport.SelectedPeriod == "12hour") { <option value="12hour" selected>12 hours</option> } else { <option value="12hour">12 hours</option> }
+                        @if (Model.PerformanceReport.SelectedPeriod == "1day") { <option value="1day" selected>1 day</option> } else { <option value="1day">1 day</option> }
+                        @if (Model.PerformanceReport.SelectedPeriod == "week") { <option value="week" selected>Week</option> } else { <option value="week">Week</option> }
+                        @if (Model.PerformanceReport.SelectedPeriod == "month") { <option value="month" selected>Month</option> } else { <option value="month">Month</option> }
+                    </select>
+                </form>
+                <button type="button" class="op-action-btn" id="open-performance-filter">
+                    <i data-lucide="filter" style="width:14px;height:14px;"></i> Filter
+                </button>
+            </div>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(perfDateCaption))
+        {
+            <p class="text-xs mb-3" style="color: var(--op-text-muted);">@perfDateCaption</p>
+        }
+
+        @if (Model.PerformanceReport.HasReport)
+        {
+            <div class="op-chart-wrap">
+                <canvas id="performance-chart"></canvas>
+            </div>
+            @if (Model.PerformanceReport.SecondaryIntervalLabels.Count > 0)
+            {
+                <div class="op-chart-wrap mt-5">
+                    <canvas id="performance-secondary-chart"></canvas>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="op-empty">
+                <p class="text-sm">No Performance History report uploaded yet.</p>
+            </div>
+        }
+    </div>
+
+    <div class="op-subpanel">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+                <h3 class="text-base font-semibold">Alarm History Report</h3>
+                @if (Model.AlarmReport.HasReport)
+                {
+                    <p class="text-xs mt-1" style="color: var(--op-text-muted);">
+                        Source: <span style="color: var(--op-text-dim);">@Model.AlarmReport.SourceFileName</span>
+                    </p>
+                }
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="op-badge"><i data-lucide="alarm-clock" style="width:11px;height:11px;"></i> 10-min interval</span>
+                <form asp-controller="Report" asp-action="OperationalDashboard" method="get">
+                    <input type="hidden" name="group" value="@Model.PerformanceReport.SelectedPerformanceGroup" />
+                    <input type="hidden" name="alarmMode" value="@Model.AlarmReport.DateFilterMode" />
+                    <input type="hidden" name="alarmDate" value="@Model.AlarmReport.SelectedDate" />
+                    <input type="hidden" name="alarmStart" value="@Model.AlarmReport.DateRangeStart" />
+                    <input type="hidden" name="alarmEnd" value="@Model.AlarmReport.DateRangeEnd" />
+                    <input type="hidden" name="perfPeriod" value="@Model.PerformanceReport.SelectedPeriod" />
+                    <input type="hidden" name="perfMode" value="@Model.PerformanceReport.DateFilterMode" />
+                    <input type="hidden" name="perfDate" value="@Model.PerformanceReport.SelectedDate" />
+                    <input type="hidden" name="perfStart" value="@Model.PerformanceReport.DateRangeStart" />
+                    <input type="hidden" name="perfEnd" value="@Model.PerformanceReport.DateRangeEnd" />
+                    <select name="alarmPeriod" class="op-action-btn" onchange="this.form.submit()">
+                        @if (Model.AlarmReport.SelectedPeriod == "10min") { <option value="10min" selected>10 min</option> } else { <option value="10min">10 min</option> }
+                        @if (Model.AlarmReport.SelectedPeriod == "30min") { <option value="30min" selected>30 min</option> } else { <option value="30min">30 min</option> }
+                        @if (Model.AlarmReport.SelectedPeriod == "1hour") { <option value="1hour" selected>1 hour</option> } else { <option value="1hour">1 hour</option> }
+                        @if (Model.AlarmReport.SelectedPeriod == "3hour") { <option value="3hour" selected>3 hours</option> } else { <option value="3hour">3 hours</option> }
+                        @if (Model.AlarmReport.SelectedPeriod == "6hour") { <option value="6hour" selected>6 hours</option> } else { <option value="6hour">6 hours</option> }
+                        @if (Model.AlarmReport.SelectedPeriod == "12hour") { <option value="12hour" selected>12 hours</option> } else { <option value="12hour">12 hours</option> }
+                        @if (Model.AlarmReport.SelectedPeriod == "1day") { <option value="1day" selected>1 day</option> } else { <option value="1day">1 day</option> }
+                        @if (Model.AlarmReport.SelectedPeriod == "week") { <option value="week" selected>Week</option> } else { <option value="week">Week</option> }
+                        @if (Model.AlarmReport.SelectedPeriod == "month") { <option value="month" selected>Month</option> } else { <option value="month">Month</option> }
+                    </select>
+                </form>
+                <button type="button" class="op-action-btn" id="open-alarm-filter">
+                    <i data-lucide="filter" style="width:14px;height:14px;"></i> Filter
+                </button>
+            </div>
+        </div>
+        @if (Model.AlarmReport.HasReport)
+        {
+            <div class="op-chart-wrap">
+                <canvas id="alarm-chart"></canvas>
+            </div>
+        }
+        else
+        {
+            <div class="op-empty">
+                <p class="text-sm">No Alarm History report uploaded yet.</p>
+            </div>
+        }
+    </div>
+</div>
+</div>
+
+<div class="op-modal-backdrop" id="alarm-filter-modal">
+    <div class="op-modal">
+        <div class="flex items-center justify-between mb-3">
+            <h4 class="text-base font-semibold">Alarm Report Filter</h4>
+            <button type="button" class="op-action-btn" data-close-modal="alarm-filter-modal">Close</button>
+        </div>
+        <form asp-controller="Report" asp-action="OperationalDashboard" method="get" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+            <input type="hidden" name="group" value="@Model.PerformanceReport.SelectedPerformanceGroup" />
+            <input type="hidden" name="perfPeriod" value="@Model.PerformanceReport.SelectedPeriod" />
+            <input type="hidden" name="perfMode" value="@Model.PerformanceReport.DateFilterMode" />
+            <input type="hidden" name="perfDate" value="@Model.PerformanceReport.SelectedDate" />
+            <input type="hidden" name="perfStart" value="@Model.PerformanceReport.DateRangeStart" />
+            <input type="hidden" name="perfEnd" value="@Model.PerformanceReport.DateRangeEnd" />
+            <div>
+                <label class="text-xs font-medium" style="color: var(--op-text-dim);">Mode</label>
+                <select name="alarmMode" class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--op-pill-bg); color: var(--op-text); border: 1px solid var(--op-card-border);">
+                    @if (Model.AlarmReport.DateFilterMode == "all") { <option value="all" selected>All</option> } else { <option value="all">All</option> }
+                    @if (Model.AlarmReport.DateFilterMode == "single") { <option value="single" selected>Specific date</option> } else { <option value="single">Specific date</option> }
+                    @if (Model.AlarmReport.DateFilterMode == "range") { <option value="range" selected>Date range</option> } else { <option value="range">Date range</option> }
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-medium" style="color: var(--op-text-dim);">Date</label>
+                <input type="date" name="alarmDate" value="@Model.AlarmReport.SelectedDate" class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--op-pill-bg); color: var(--op-text); border: 1px solid var(--op-card-border);" />
+            </div>
+            <div>
+                <label class="text-xs font-medium" style="color: var(--op-text-dim);">From</label>
+                <input type="date" name="alarmStart" value="@Model.AlarmReport.DateRangeStart" class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--op-pill-bg); color: var(--op-text); border: 1px solid var(--op-card-border);" />
+            </div>
+            <div>
+                <label class="text-xs font-medium" style="color: var(--op-text-dim);">To</label>
+                <input type="date" name="alarmEnd" value="@Model.AlarmReport.DateRangeEnd" class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--op-pill-bg); color: var(--op-text); border: 1px solid var(--op-card-border);" />
+            </div>
+            <button type="submit" class="op-action-btn h-[38px]"><i data-lucide="filter" style="width:14px;height:14px;"></i> Apply</button>
+        </form>
+    </div>
+</div>
+
+<div class="op-modal-backdrop" id="performance-filter-modal">
+    <div class="op-modal">
+        <div class="flex items-center justify-between mb-3">
+            <h4 class="text-base font-semibold">Performance Report Filter</h4>
+            <button type="button" class="op-action-btn" data-close-modal="performance-filter-modal">Close</button>
+        </div>
+        <form asp-controller="Report" asp-action="OperationalDashboard" method="get" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+            <input type="hidden" name="alarmPeriod" value="@Model.AlarmReport.SelectedPeriod" />
+            <input type="hidden" name="alarmMode" value="@Model.AlarmReport.DateFilterMode" />
+            <input type="hidden" name="alarmDate" value="@Model.AlarmReport.SelectedDate" />
+            <input type="hidden" name="alarmStart" value="@Model.AlarmReport.DateRangeStart" />
+            <input type="hidden" name="alarmEnd" value="@Model.AlarmReport.DateRangeEnd" />
+            <div>
+                <label class="text-xs font-medium" style="color: var(--op-text-dim);">Performance Group</label>
+                <select name="group" class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--op-pill-bg); color: var(--op-text); border: 1px solid var(--op-card-border);">
+                @foreach (var option in Model.PerformanceReport.AvailablePerformanceGroups)
+                {
+                    if (string.Equals(option, Model.PerformanceReport.SelectedPerformanceGroup, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@option" selected>@option</option>
+                    }
+                    else
+                    {
+                        <option value="@option">@option</option>
+                    }
+                }
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-medium" style="color: var(--op-text-dim);">Date</label>
+                <input type="date" name="perfDate" value="@Model.PerformanceReport.SelectedDate" class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--op-pill-bg); color: var(--op-text); border: 1px solid var(--op-card-border);" />
+            </div>
+            <div>
+                <label class="text-xs font-medium" style="color: var(--op-text-dim);">From</label>
+                <input type="date" name="perfStart" value="@Model.PerformanceReport.DateRangeStart" class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--op-pill-bg); color: var(--op-text); border: 1px solid var(--op-card-border);" />
+            </div>
+            <div>
+                <label class="text-xs font-medium" style="color: var(--op-text-dim);">To</label>
+                <input type="date" name="perfEnd" value="@Model.PerformanceReport.DateRangeEnd" class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--op-pill-bg); color: var(--op-text); border: 1px solid var(--op-card-border);" />
+            </div>
+            <button type="submit" class="op-action-btn h-[38px]"><i data-lucide="filter" style="width:14px;height:14px;"></i> Apply</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            var uploadButton = document.getElementById('operational-upload-btn');
+            var fileInput = document.getElementById('operational-file-input');
+            var uploadForm = document.getElementById('operational-upload-form');
+
+            if (uploadButton && fileInput && uploadForm) {
+                uploadButton.addEventListener('click', function () { fileInput.click(); });
+                fileInput.addEventListener('change', function () {
+                    if (fileInput.files && fileInput.files.length > 0) {
+                        uploadForm.submit();
+                    }
+                });
+            }
+            bindModal('open-alarm-filter', 'alarm-filter-modal');
+            bindModal('open-performance-filter', 'performance-filter-modal');
+
+            var alarmLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AlarmReport.IntervalLabels));
+            var alarmValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AlarmReport.IntervalValues));
+            var perfLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerformanceReport.IntervalLabels));
+            var perfValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerformanceReport.IntervalValues));
+            var perfSecondaryLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerformanceReport.SecondaryIntervalLabels));
+            var perfSecondaryValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerformanceReport.SecondaryIntervalValues));
+            var perfPrimaryMetricLabel = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerformanceReport.PrimaryMetricLabel));
+            var perfSecondaryMetricLabel = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PerformanceReport.SecondaryMetricLabel));
+
+            if (Array.isArray(perfLabels) && perfLabels.length > 0) {
+                var performanceCanvas = document.getElementById('performance-chart');
+                if (performanceCanvas) {
+                    var perfScale = buildPerformanceScale(perfValues);
+                    new Chart(performanceCanvas, {
+                        type: 'line',
+                        data: {
+                            labels: perfLabels,
+                            datasets: [{
+                                label: perfPrimaryMetricLabel || 'Performance Value',
+                                data: perfValues,
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99,102,241,0.22)',
+                                borderWidth: 2.5,
+                                pointRadius: 3,
+                                tension: 0.24,
+                                fill: true
+                            }]
+                        },
+                        options: chartOptions(perfScale, false)
+                    });
+                }
+            }
+
+            if (Array.isArray(perfSecondaryLabels) && perfSecondaryLabels.length > 0) {
+                var performanceSecondaryCanvas = document.getElementById('performance-secondary-chart');
+                if (performanceSecondaryCanvas) {
+                    var secondaryScale = buildPerformanceScale(perfSecondaryValues);
+                    new Chart(performanceSecondaryCanvas, {
+                        type: 'line',
+                        data: {
+                            labels: perfSecondaryLabels,
+                            datasets: [{
+                                label: perfSecondaryMetricLabel || 'Secondary Metric',
+                                data: perfSecondaryValues,
+                                borderColor: '#0ea5e9',
+                                backgroundColor: 'rgba(14,165,233,0.18)',
+                                borderWidth: 2.5,
+                                pointRadius: 3,
+                                tension: 0.24,
+                                fill: true
+                            }]
+                        },
+                        options: chartOptions(secondaryScale, false)
+                    });
+                }
+            }
+
+            if (Array.isArray(alarmLabels) && alarmLabels.length > 0) {
+                var alarmCanvas = document.getElementById('alarm-chart');
+                if (alarmCanvas) {
+                    new Chart(alarmCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: alarmLabels,
+                            datasets: [{
+                                label: 'Alarm Count',
+                                data: alarmValues,
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99,102,241,0.6)',
+                                borderWidth: 2,
+                                pointRadius: 0
+                            }]
+                        },
+                        options: chartOptions({ min: 0, max: null }, true)
+                    });
+                }
+            }
+
+            function chartOptions(scale, beginAtZero) {
+                return {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#8a8ab0',
+                                maxRotation: 45,
+                                minRotation: 45,
+                                callback: function (value) {
+                                    var label = this.getLabelForValue(value) || '';
+                                    var parts = label.split(' - ');
+                                    if (parts.length > 1) {
+                                        var datePart = parts[0].substring(0, 10);
+                                        return [parts[1], datePart];
+                                    }
+                                    return label;
+                                }
+                            },
+                            grid: { color: 'rgba(138,138,176,0.12)' }
+                        },
+                        y: {
+                            beginAtZero: beginAtZero,
+                            min: scale.min,
+                            max: scale.max,
+                            ticks: { color: '#8a8ab0' },
+                            grid: { color: 'rgba(138,138,176,0.12)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#c8c8e0' } },
+                        tooltip: {
+                            callbacks: {
+                                title: function (items) {
+                                    if (!items || items.length === 0) return '';
+                                    return '10-min bucket: ' + items[0].label;
+                                }
+                            }
+                        }
+                    }
+                };
+            }
+
+            function buildScaleLimits(values) {
+                if (!Array.isArray(values) || values.length === 0) return { min: null, max: null };
+                var nums = values.filter(function (v) { return typeof v === 'number' && !Number.isNaN(v); });
+                if (nums.length === 0) return { min: null, max: null };
+                var min = Math.min.apply(null, nums);
+                var max = Math.max.apply(null, nums);
+                var span = Math.max(0.5, Math.abs(max - min));
+                var pad = span * 0.15;
+                return { min: min - pad, max: max + pad };
+            }
+
+            function buildPerformanceScale(values) {
+                if (!Array.isArray(values) || values.length === 0) return { min: -1, max: 1 };
+                var nums = values.filter(function (v) { return typeof v === 'number' && !Number.isNaN(v); });
+                if (nums.length === 0) return { min: -1, max: 1 };
+                var min = Math.floor(Math.min.apply(null, nums));
+                var max = Math.ceil(Math.max.apply(null, nums));
+                min = Math.min(min - 1, 0);
+                max = Math.max(max + 1, 0);
+                if (max <= min) max = min + 1;
+                return { min: min, max: max };
+            }
+
+            function bindModal(openButtonId, modalId) {
+                var openButton = document.getElementById(openButtonId);
+                var modal = document.getElementById(modalId);
+                if (!openButton || !modal) return;
+                openButton.addEventListener('click', function () { modal.classList.add('active'); });
+                modal.addEventListener('click', function (event) {
+                    if (event.target === modal) modal.classList.remove('active');
+                });
+                var closeButton = modal.querySelector('[data-close-modal]');
+                if (closeButton) {
+                    closeButton.addEventListener('click', function () { modal.classList.remove('active'); });
+                }
+            }
+        })();
+    </script>
+    @if (Model.OperationAging is not null)
+    {
+        var agingVm = Model.OperationAging;
+        var agingBucketLabelsJson = JsonSerializer.Serialize(agingVm.BucketLabels);
+        var agingMatrixRowsJson = JsonSerializer.Serialize(agingVm.BucketMatrixRows);
+        var agingDonutLabelsJson = JsonSerializer.Serialize(agingVm.DonutLabels);
+        <script>
+            (function () {
+                var donutLabels = @Html.Raw(agingDonutLabelsJson);
+                var bucketLabels = @Html.Raw(agingBucketLabelsJson);
+                var matrixRows = @Html.Raw(agingMatrixRowsJson);
+                var muted = 'rgba(148, 163, 184, 0.85)';
+
+                function rowByKey(key) {
+                    if (!Array.isArray(matrixRows)) return null;
+                    for (var i = 0; i < matrixRows.length; i++) {
+                        if (String(matrixRows[i].RowKey || '').toLowerCase() === key) return matrixRows[i];
+                    }
+                    return null;
+                }
+
+                if (typeof Chart !== 'undefined' && document.getElementById('aging-donut')) {
+                    var repairDonut = rowByKey('repair');
+                    new Chart(document.getElementById('aging-donut'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: donutLabels,
+                            datasets: [{
+                                data: repairDonut ? (repairDonut.BucketCounts || []) : [],
+                                backgroundColor: ['#22d3ee', '#38bdf8', '#6366f1', '#a78bfa', '#f472b6', '#fb7185'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'bottom', labels: { color: muted, boxWidth: 12 } } }
+                        }
+                    });
+                }
+                if (typeof Chart !== 'undefined' && document.getElementById('aging-stacked')) {
+                    var repair = rowByKey('repair');
+                    new Chart(document.getElementById('aging-stacked'), {
+                        type: 'bar',
+                        data: {
+                            labels: bucketLabels,
+                            datasets: [
+                                {
+                                    label: 'Repair',
+                                    data: repair ? (repair.BucketCounts || []) : [],
+                                    backgroundColor: '#22c55e',
+                                    borderRadius: 6,
+                                    borderSkipped: false
+                                }
+                            ]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { beginAtZero: true, ticks: { color: muted, precision: 0 }, grid: { color: 'rgba(148,163,184,0.15)' } },
+                                y: { ticks: { color: muted }, grid: { display: false } }
+                            },
+                            plugins: {
+                                legend: { position: 'bottom', labels: { color: muted, boxWidth: 12 } },
+                                tooltip: { enabled: true }
+                            }
+                        }
+                    });
+                }
+
+                function applySkillFilter() {
+                    var cbs = document.querySelectorAll('.aging-skill-cb');
+                    var on = {};
+                    cbs.forEach(function (cb) { on[cb.getAttribute('data-skill')] = cb.checked; });
+                    document.querySelectorAll('.aging-detail-row').forEach(function (tr) {
+                        var sk = tr.getAttribute('data-skill');
+                        tr.classList.toggle('is-hidden', !on[sk]);
+                    });
+                }
+                document.querySelectorAll('.aging-skill-cb').forEach(function (cb) {
+                    cb.addEventListener('change', applySkillFilter);
+                });
+                applySkillFilter();
+
+                function applyDayMetricFilter() {
+                    var cbs = document.querySelectorAll('.aging-day-metric-cb');
+                    var on = {};
+                    cbs.forEach(function (cb) { on[cb.getAttribute('data-metric')] = cb.checked; });
+                    document.querySelectorAll('.aging-day-metric-row').forEach(function (tr) {
+                        var k = tr.getAttribute('data-metric');
+                        tr.classList.toggle('is-hidden', !on[k]);
+                    });
+                }
+                document.querySelectorAll('.aging-day-metric-cb').forEach(function (cb) {
+                    cb.addEventListener('change', applyDayMetricFilter);
+                });
+                applyDayMetricFilter();
+
+                function bindDetailAjax() {
+                    var detailSection = document.getElementById('aging-detail-section');
+                    if (!detailSection) return;
+
+                    async function loadDetailSection(url, shouldPushState) {
+                        if (!url) return;
+                        detailSection.classList.add('is-loading');
+                        try {
+                            var response = await fetch(url, {
+                                method: 'GET',
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            });
+                            if (!response.ok) throw new Error('Failed request: ' + response.status);
+                            var html = await response.text();
+                            var parser = new DOMParser();
+                            var nextDoc = parser.parseFromString(html, 'text/html');
+                            var nextSection = nextDoc.getElementById('aging-detail-section');
+                            if (!nextSection) {
+                                window.location.href = url;
+                                return;
+                            }
+                            detailSection.outerHTML = nextSection.outerHTML;
+                            if (shouldPushState) {
+                                window.history.pushState({ agingDetailUrl: url }, '', url);
+                            }
+                            bindDetailAjax();
+                        } catch (error) {
+                            window.location.href = url;
+                        } finally {
+                            var refreshedSection = document.getElementById('aging-detail-section');
+                            if (refreshedSection) {
+                                refreshedSection.classList.remove('is-loading');
+                            }
+                        }
+                    }
+
+                    detailSection.querySelectorAll('a[data-ajax-detail-link="true"]').forEach(function (link) {
+                        link.addEventListener('click', function (event) {
+                            if (link.style.pointerEvents === 'none' || link.classList.contains('disabled')) return;
+                            event.preventDefault();
+                            loadDetailSection(link.href, true);
+                        });
+                    });
+
+                    detailSection.querySelectorAll('form[data-ajax-detail="true"]').forEach(function (form) {
+                        form.addEventListener('submit', function (event) {
+                            event.preventDefault();
+                            var params = new URLSearchParams(new FormData(form));
+                            var action = form.getAttribute('action') || window.location.pathname;
+                            var requestUrl = action + '?' + params.toString();
+                            loadDetailSection(requestUrl, true);
+                        });
+                    });
+                }
+                bindDetailAjax();
+
+                window.addEventListener('popstate', function () {
+                    bindDetailAjax();
+                });
+
+                var dayTable = document.querySelector('.aging-day-table');
+                if (dayTable) {
+                    function clearColumnHover() {
+                        dayTable.querySelectorAll('.is-col-hover').forEach(function (el) {
+                            el.classList.remove('is-col-hover');
+                        });
+                    }
+
+                    function setColumnHover(colIdx) {
+                        clearColumnHover();
+                        if (colIdx === null || colIdx === undefined) return;
+                        dayTable.querySelectorAll('[data-col-idx="' + colIdx + '"]').forEach(function (el) {
+                            el.classList.add('is-col-hover');
+                        });
+                    }
+
+                    dayTable.addEventListener('mouseover', function (event) {
+                        var target = event.target.closest('[data-col-idx]');
+                        if (!target) return;
+                        setColumnHover(target.getAttribute('data-col-idx'));
+                    });
+
+                    dayTable.addEventListener('mouseleave', function () {
+                        clearColumnHover();
+                    });
+                }
+            })();
+        </script>
+    }
+}

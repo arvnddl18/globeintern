@@ -1,0 +1,53 @@
+@model SlotAd_Globe.Models.AdminCreateUserViewModel
+@{
+    ViewData["Title"] = "Admin — Create user";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+}
+
+<header class="text-center mb-10 slide-up">
+    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-3" style="color: #f0f0f8;">Create user</h1>
+    <p class="text-sm max-w-lg mx-auto" style="color: #7a7a9e;">
+        Passwords are stored as <span class="font-mono" style="color: #a5b4fc;">SHA-256</span> with a random salt per user.
+    </p>
+</header>
+
+@if (TempData["Success"] is string ok)
+{
+    <div class="mb-6 fade-in rounded-xl px-4 py-3 text-sm font-medium max-w-md mx-auto"
+         style="background: #065f46; border: 1px solid #10b981; color: #fff;">
+        @ok
+    </div>
+}
+
+<div class="max-w-md mx-auto rounded-xl p-6 fade-in" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+    <form asp-action="CreateUser" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="mb-4 text-sm rounded-lg px-3 py-2" style="background: #7f1d1d; border: 1px solid #ef4444; color: #fff;"></div>
+        <div class="mb-4">
+            <label asp-for="UserName" class="block text-xs font-medium mb-1" style="color: #8a8ab0;"></label>
+            <input asp-for="UserName" class="w-full rounded-lg px-3 py-2 text-sm" style="background: #0d0d1a; border: 1px solid #2a2a4a; color: #c8c8e0;" autocomplete="off" />
+            <span asp-validation-for="UserName" class="text-xs" style="color: #f87171;"></span>
+        </div>
+        <div class="mb-4">
+            <label asp-for="Password" class="block text-xs font-medium mb-1" style="color: #8a8ab0;"></label>
+            <input asp-for="Password" class="w-full rounded-lg px-3 py-2 text-sm" style="background: #0d0d1a; border: 1px solid #2a2a4a; color: #c8c8e0;" autocomplete="new-password" />
+            <span asp-validation-for="Password" class="text-xs" style="color: #f87171;"></span>
+        </div>
+        <div class="mb-4">
+            <label asp-for="ConfirmPassword" class="block text-xs font-medium mb-1" style="color: #8a8ab0;"></label>
+            <input asp-for="ConfirmPassword" class="w-full rounded-lg px-3 py-2 text-sm" style="background: #0d0d1a; border: 1px solid #2a2a4a; color: #c8c8e0;" autocomplete="new-password" />
+            <span asp-validation-for="ConfirmPassword" class="text-xs" style="color: #f87171;"></span>
+        </div>
+        <div class="mb-6 flex items-center gap-2">
+            <input asp-for="GrantAdmin" class="checkbox-accent rounded" style="width:16px; height:16px;" />
+            <label asp-for="GrantAdmin" class="text-sm" style="color: #c8c8e0;"></label>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer" style="background: #6366f1; color: #fff; border: none;">
+            Create user
+        </button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

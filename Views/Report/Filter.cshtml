@@ -1,0 +1,378 @@
+@model SlotAd_Globe.Models.FilterOptionsViewModel
+@{
+    ViewData["Title"] = "Filter & Generate Report";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+}
+
+<style>
+    :root[data-theme="light"] [style*="background: rgba(22, 22, 42, 0.8)"] {
+        background: #ffffff !important;
+    }
+    :root[data-theme="light"] [style*="border: 1px solid #2a2a4a"],
+    :root[data-theme="light"] [style*="border-bottom: 1px solid #2a2a4a"],
+    :root[data-theme="light"] [style*="border-top: 1px solid #2a2a4a"] {
+        border-color: #cbd5e1 !important;
+    }
+    :root[data-theme="light"] h1,
+    :root[data-theme="light"] p,
+    :root[data-theme="light"] span,
+    :root[data-theme="light"] label,
+    :root[data-theme="light"] .text-xs,
+    :root[data-theme="light"] .text-sm,
+    :root[data-theme="light"] .text-base,
+    :root[data-theme="light"] .text-lg {
+        color: #334155 !important;
+    }
+    :root[data-theme="light"] [style*="color: #f0f0f8"],
+    :root[data-theme="light"] [style*="color:#f0f0f8"],
+    :root[data-theme="light"] [style*="color: #e0e0f0"],
+    :root[data-theme="light"] [style*="color:#e0e0f0"],
+    :root[data-theme="light"] [style*="color: #c8c8e0"],
+    :root[data-theme="light"] [style*="color:#c8c8e0"],
+    :root[data-theme="light"] [style*="color: #8a8ab0"],
+    :root[data-theme="light"] [style*="color:#8a8ab0"],
+    :root[data-theme="light"] [style*="color: #7a7a9e"],
+    :root[data-theme="light"] [style*="color:#7a7a9e"],
+    :root[data-theme="light"] [style*="color: #6a6a8e"],
+    :root[data-theme="light"] [style*="color:#6a6a8e"],
+    :root[data-theme="light"] [style*="color: #5a5a7e"] {
+        color: #334155 !important;
+    }
+    :root[data-theme="light"] #filter-report-magic-link,
+    :root[data-theme="light"] #SelectedDate,
+    :root[data-theme="light"] #DateRangeStart,
+    :root[data-theme="light"] #DateRangeEnd {
+        background: #f8fafc !important;
+        color: #1f2937 !important;
+        border-color: #cbd5e1 !important;
+    }
+    :root[data-theme="light"] #DateRangeStart,
+    :root[data-theme="light"] #DateRangeEnd {
+        color-scheme: light !important;
+    }
+    :root[data-theme="light"] .select-toggle[data-action="all"] {
+        background: rgba(79, 70, 229, 0.12) !important;
+        color: #4338ca !important;
+    }
+    :root[data-theme="light"] .select-toggle[data-action="none"] {
+        background: #f1f5f9 !important;
+        color: #475569 !important;
+    }
+    :root[data-theme="light"] #filter-copy-report-link {
+        background: #4f46e5 !important;
+        color: #ffffff !important;
+        border-color: #4f46e5 !important;
+    }
+    :root[data-theme="light"] #generate-btn {
+        background: #16a34a !important;
+        color: #ffffff !important;
+    }
+</style>
+
+<header class="text-center mb-10 slide-up">
+    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3" style="color: #f0f0f8;">
+        Filter &amp; Generate
+    </h1>
+    <p class="text-base sm:text-lg max-w-lg mx-auto" style="color: #7a7a9e;">
+        Select date range and filters, then generate your XLSX report.
+    </p>
+    @if (ViewBag.CsvSourceKind is SlotAd_Globe.Models.CsvSourceKind sk)
+    {
+        <p class="mt-3 text-xs font-mono inline-block px-3 py-1.5 rounded-lg" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.35);">
+            Detected file: @(sk == SlotAd_Globe.Models.CsvSourceKind.AllStatus ? "All Status" : "All Pending")
+        </p>
+    }
+</header>
+
+<section class="mb-6 slide-up" style="animation-delay: 0.05s;">
+    <div class="rounded-xl p-4 flex flex-wrap items-center justify-between gap-3"
+         style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                 style="background: rgba(99, 102, 241, 0.12);">
+                <i data-lucide="database" style="width:18px; height:18px; color: #6366f1;"></i>
+            </div>
+            <div>
+                <p class="text-sm font-semibold" style="color: #e0e0f0;">
+                    @Model.AvailableDates.Count date(s) found in CSV
+                </p>
+                <p class="text-xs" style="color: #6a6a8e;">Data ready for filtering and report generation</p>
+            </div>
+        </div>
+        <a asp-action="Upload" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+           style="color: #a5b4fc; background: rgba(99, 102, 241, 0.1);">
+            <i data-lucide="arrow-left" style="width:12px; height:12px;"></i> Re-upload
+        </a>
+    </div>
+</section>
+
+<section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 fade-in" style="animation-delay: 0.1s;">
+    <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <p class="text-xs mb-1" style="color: #6a6a8e;">Dates</p>
+        <p class="text-xl font-bold font-mono" style="color: #f0f0f8;">@Model.AvailableDates.Count</p>
+    </div>
+    <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <p class="text-xs mb-1" style="color: #6a6a8e;">Territories</p>
+        <p class="text-xl font-bold font-mono" style="color: #f0f0f8;">@Model.AvailableTerritories.Count</p>
+    </div>
+    <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <p class="text-xs mb-1" style="color: #6a6a8e;">Statuses</p>
+        <p class="text-xl font-bold font-mono" style="color: #f0f0f8;">@Model.AvailableStatuses.Count</p>
+    </div>
+    <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <p class="text-xs mb-1" style="color: #6a6a8e;">SubStatuses</p>
+        <p class="text-xl font-bold font-mono" style="color: #f0f0f8;">@Model.AvailableSubStatuses.Count</p>
+    </div>
+    <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <p class="text-xs mb-1" style="color: #6a6a8e;">Skillsets</p>
+        <p class="text-xl font-bold font-mono" style="color: #f0f0f8;">@Model.AvailableSkillsets.Count</p>
+    </div>
+    <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <p class="text-xs mb-1" style="color: #6a6a8e;">Order Dates</p>
+        <p class="text-xl font-bold font-mono" style="color: #f0f0f8;">@Model.AvailableOrderCreateDates.Count</p>
+    </div>
+</section>
+
+<section class="mb-6 fade-in" style="animation-delay: 0.12s;">
+    <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <p class="text-xs mb-2" style="color: #8a8ab0;">
+            You can open or bookmark this private link anytime to return to the KPI dashboard with the same uploaded file and saved filters (upload a new file to start over).
+        </p>
+        <div class="flex flex-wrap gap-2 items-stretch sm:items-center">
+            <input type="text" readonly id="filter-report-magic-link"
+                   class="flex-1 min-w-[12rem] rounded-lg px-3 py-2 text-xs font-mono"
+                   style="background: #0d0d1a; border: 1px solid #2a2a4a; color: #c8c8e0;"
+                   value="@(Url.Action("Dashboard", "Report", new { token = Model.ReportToken, view = Model.ActiveDashboardView }, Context.Request.Scheme) ?? "")" />
+            <button type="button" id="filter-copy-report-link"
+                    class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                    style="color: #f0f0f8; background: rgba(99, 102, 241, 0.25); border: 1px solid #6366f1;">
+                <i data-lucide="link" style="width:14px; height:14px;"></i> Copy link
+            </button>
+        </div>
+    </div>
+</section>
+
+@{
+    var dateMode = Model.DateFilterMode ?? "all";
+}
+<form asp-action="Dashboard" asp-controller="Report" method="post" id="filterForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ReportToken" />
+    <input type="hidden" asp-for="ActiveDashboardView" />
+
+    <section class="mb-6 fade-in" style="animation-delay: 0.15s;">
+        <div class="rounded-xl overflow-hidden" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+            <div class="flex items-center gap-2 px-4 py-3" style="border-bottom: 1px solid #2a2a4a;">
+                <i data-lucide="calendar-range" style="width:14px; height:14px; color: #6366f1;"></i>
+                <span class="text-sm font-semibold" style="color: #c8c8e0;">Date Filter</span>
+            </div>
+            <div class="p-4 space-y-4">
+                <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors"
+                           style="background: rgba(99, 102, 241, 0.12); border: 1px solid #3a3a5a;"
+                           onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#3a3a5a'">
+                        <input type="radio" name="DateFilterMode" value="all" @(dateMode == "all" ? "checked" : "")
+                               onchange="toggleDateInputs()" style="accent-color:#6366f1;" />
+                        <span class="text-sm" style="color: #c8c8e0;">All Dates</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors"
+                           style="background: rgba(99, 102, 241, 0.12); border: 1px solid #3a3a5a;"
+                           onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#3a3a5a'">
+                        <input type="radio" name="DateFilterMode" value="single" @(dateMode == "single" ? "checked" : "")
+                               onchange="toggleDateInputs()" style="accent-color:#6366f1;" />
+                        <span class="text-sm" style="color: #c8c8e0;">Specific Date</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors"
+                           style="background: rgba(99, 102, 241, 0.12); border: 1px solid #3a3a5a;"
+                           onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#3a3a5a'">
+                        <input type="radio" name="DateFilterMode" value="range" @(dateMode == "range" ? "checked" : "")
+                               onchange="toggleDateInputs()" style="accent-color:#6366f1;" />
+                        <span class="text-sm" style="color: #c8c8e0;">Date Range</span>
+                    </label>
+                </div>
+
+                <div id="single-date-section" class="@(dateMode == "single" ? "" : "hidden")">
+                    <label class="text-xs font-medium block mb-1.5" style="color: #8a8ab0;">Select Date</label>
+                    <select name="SelectedDate" id="SelectedDate"
+                            class="w-full sm:w-64 rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
+                            style="background: #1a1a32; border: 1px solid #2a2a4a; color: #e0e0f0;">
+                        <option value="">-- Choose a date --</option>
+                        @foreach (var d in Model.AvailableDates)
+                        {
+                            if (string.Equals(d, Model.SelectedDate, StringComparison.Ordinal))
+                            {
+                                <option value="@d" selected>@d</option>
+                            }
+                            else
+                            {
+                                <option value="@d">@d</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div id="range-date-section" class="@(dateMode == "range" ? "" : "hidden")">
+                    <div class="flex flex-wrap gap-4">
+                        <div>
+                            <label class="text-xs font-medium block mb-1.5" style="color: #8a8ab0;">From</label>
+                            <input type="date" name="DateRangeStart" id="DateRangeStart" value="@Model.DateRangeStart"
+                                   class="rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
+                                   style="background: #1a1a32; border: 1px solid #2a2a4a; color: #e0e0f0;" />
+                        </div>
+                        <div class="flex items-end pb-2.5">
+                            <span class="text-sm" style="color: #5a5a7e;">to</span>
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium block mb-1.5" style="color: #8a8ab0;">To</label>
+                            <input type="date" name="DateRangeEnd" id="DateRangeEnd" value="@Model.DateRangeEnd"
+                                   class="rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
+                                   style="background: #1a1a32; border: 1px solid #2a2a4a; color: #e0e0f0;" />
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-xs" style="color: #5a5a7e;">
+                    Found <span class="font-mono font-bold" style="color: #a5b4fc;">@Model.AvailableDates.Count</span>
+                    unique date(s) in the CSV
+                    @if (Model.AvailableDates.Count > 0)
+                    {
+                        <span>&mdash; from <span class="font-mono">@Model.AvailableDates.Last()</span> to <span class="font-mono">@Model.AvailableDates.First()</span></span>
+                    }
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 fade-in" style="animation-delay: 0.2s;">
+        @if (ViewBag.CsvSourceKind is SlotAd_Globe.Models.CsvSourceKind skTerr && skTerr == SlotAd_Globe.Models.CsvSourceKind.AllStatus)
+        {
+            foreach (var t in Model.SelectedTerritories ?? [])
+            {
+                <input type="hidden" name="SelectedTerritories" value="@t" />
+            }
+        }
+        else
+        {
+            RenderFilterPanel("Territory", "SelectedTerritories", Model.AvailableTerritories, Model.SelectedTerritories);
+        }
+        @{ RenderFilterPanel("Status", "SelectedStatuses", Model.AvailableStatuses, Model.SelectedStatuses); }
+        @{ RenderFilterPanel("SubStatus", "SelectedSubStatuses", Model.AvailableSubStatuses, Model.SelectedSubStatuses); }
+    </section>
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mb-8 fade-in" style="animation-delay: 0.25s;">
+    @{ RenderFilterPanel("Skillset", "SelectedSkillsets", Model.AvailableSkillsets, Model.SelectedSkillsets); }
+</section>
+
+    <section class="text-center fade-in" style="animation-delay: 0.3s;">
+        <button type="submit" id="generate-btn"
+                class="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 pulse-glow cursor-pointer"
+                style="background: #22c55e; color: #fff;">
+            <i data-lucide="bar-chart-3" style="width:18px; height:18px;"></i>
+            <span id="generate-btn-text">View KPI Dashboard</span>
+        </button>
+        <p class="text-xs mt-3" style="color: #5a5a7e;">
+            Leave a filter group empty to include all values for that group.
+        </p>
+    </section>
+</form>
+
+@functions {
+    void RenderFilterPanel(string label, string fieldName, List<string> options, List<string> selected)
+    {
+        var selectedSet = new HashSet<string>(selected ?? [], StringComparer.OrdinalIgnoreCase);
+        <div class="rounded-xl overflow-hidden" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+            <div class="flex items-center justify-between px-4 py-3" style="border-bottom: 1px solid #2a2a4a;">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="filter" style="width:14px; height:14px; color: #6366f1;"></i>
+                    <span class="text-sm font-semibold" style="color: #c8c8e0;">@label</span>
+                </div>
+                <div class="flex gap-1">
+                    <button type="button"
+                            class="select-toggle px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer"
+                            data-target="@fieldName" data-action="all"
+                            style="color: #a5b4fc; background: rgba(99, 102, 241, 0.1);">
+                        All
+                    </button>
+                    <button type="button"
+                            class="select-toggle px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer"
+                            data-target="@fieldName" data-action="none"
+                            style="color: #8a8ab0; background: rgba(255,255,255,0.04);">
+                        Clear
+                    </button>
+                </div>
+            </div>
+            <div class="filter-scroll p-3 space-y-1" style="max-height: 220px; overflow-y: auto;">
+                @if (options.Count == 0)
+                {
+                    <p class="text-xs italic py-2 text-center" style="color: #5a5a7e;">No values found</p>
+                }
+                else
+                {
+                    @foreach (var opt in options)
+                    {
+                        var cbId = $"{fieldName}_{opt.GetHashCode():X}";
+                        <label for="@cbId" class="flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-pointer transition-colors"
+                               style="color: #c8c8e0;"
+                               onmouseover="this.style.background='rgba(255,255,255,0.04)'"
+                               onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" name="@fieldName" value="@opt" id="@cbId"
+                                   class="rounded checkbox-accent flex-shrink-0"
+                                   style="width:16px; height:16px; accent-color:#6366f1;"
+                                   @(selectedSet.Contains(opt) ? "checked" : "") />
+                            <span class="text-xs truncate">@opt</span>
+                        </label>
+                    }
+                }
+            </div>
+            <div class="px-4 py-2 text-center" style="border-top: 1px solid #2a2a4a;">
+                <span class="text-xs font-mono" style="color: #5a5a7e;">@options.Count value(s)</span>
+            </div>
+        </div>
+    }
+}
+
+@section Scripts {
+    <script>
+        function toggleDateInputs() {
+            var mode = document.querySelector('input[name="DateFilterMode"]:checked').value;
+            document.getElementById('single-date-section').classList.toggle('hidden', mode !== 'single');
+            document.getElementById('range-date-section').classList.toggle('hidden', mode !== 'range');
+        }
+
+        document.querySelectorAll('.select-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var target = this.dataset.target;
+                var action = this.dataset.action;
+                document.querySelectorAll('input[name="' + target + '"]').forEach(function (cb) {
+                    cb.checked = (action === 'all');
+                });
+            });
+        });
+
+        document.getElementById('filterForm').addEventListener('submit', function () {
+            var btn = document.getElementById('generate-btn');
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            document.getElementById('generate-btn-text').innerHTML = '<span class="spinner"></span> Loading dashboard...';
+        });
+
+        toggleDateInputs();
+
+        (function () {
+            var copyBtn = document.getElementById('filter-copy-report-link');
+            var input = document.getElementById('filter-report-magic-link');
+            if (copyBtn && input) {
+                copyBtn.addEventListener('click', function () {
+                    input.select();
+                    input.setSelectionRange(0, 99999);
+                    navigator.clipboard.writeText(input.value).then(function () {
+                        if (typeof showToast === 'function') showToast('Report link copied', 'success');
+                    }).catch(function () {
+                        if (typeof showToast === 'function') showToast('Could not copy automatically; select the link and copy.', 'info');
+                    });
+                });
+            }
+        })();
+
+        lucide.createIcons();
+    </script>
+}

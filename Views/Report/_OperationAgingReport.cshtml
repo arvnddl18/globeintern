@@ -1,0 +1,697 @@
+@model SlotAd_Globe.Models.OperationAgingViewModel
+@{
+    var od = ViewData["OperationalDashboardParent"] as OperationalDashboardViewModel;
+}
+
+<div class="aging-card rounded-3xl p-4 sm:p-6 fade-in">
+<header class="mb-4 slide-up">
+    <div class="flex flex-col gap-2 text-center">
+        <div>
+            <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-1" style="color: var(--theme-text);">Operation Aging</h1>
+            <p class="text-sm" style="color: var(--theme-text-muted);">
+                Track repair order aging and daily status progress.
+            </p>
+            <p class="text-xs mt-2" style="color: var(--theme-text-muted);">
+                Data period in file:
+                <span style="color: var(--theme-text);">@Model.CsvStartMonthYear to @Model.CsvEndMonthYear</span>
+            </p>
+        </div>
+    </div>
+</header>
+
+<style>
+    :root[data-theme="dark"] .aging-card {
+        background: rgba(22, 22, 42, 0.85);
+        border: 1px solid var(--theme-surface-border, #2a2a4a);
+    }
+    :root[data-theme="light"] .aging-card {
+        background: #ffffff;
+        border: 1px solid #d8deea;
+    }
+    .aging-sticky-metric {
+        position: sticky;
+        left: 0;
+        z-index: 40;
+        min-width: 10.5rem;
+        box-shadow: 10px 0 14px -10px rgba(0, 0, 0, 0.45);
+        background-clip: padding-box;
+        text-align: center;
+    }
+    :root[data-theme="light"] .aging-sticky-metric {
+        background: #f8fafc !important;
+    }
+    :root[data-theme="dark"] .aging-sticky-metric {
+        background: #15162b !important;
+    }
+    .aging-scroll-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .aging-detail-row.is-hidden { display: none !important; }
+    .aging-day-metric-row.is-hidden { display: none !important; }
+    .aging-detail-section {
+        transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+    .aging-detail-section.is-loading {
+        opacity: 0.45;
+        transform: translateY(2px);
+        pointer-events: none;
+    }
+    .aging-day-table th,
+    .aging-day-table td {
+        transition: background-color 0.15s ease;
+    }
+    .aging-day-table th[data-col-idx],
+    .aging-day-table td[data-col-idx] {
+        min-width: 72px;
+    }
+    .aging-day-table th.aging-total-col,
+    .aging-day-table td.aging-total-col {
+        min-width: 88px;
+    }
+    .aging-day-table th[data-col-idx],
+    .aging-day-table td[data-col-idx] {
+        cursor: default;
+    }
+    :root[data-theme="dark"] .aging-day-table .is-col-hover {
+        background: rgba(129, 140, 248, 0.16);
+    }
+    :root[data-theme="light"] .aging-day-table .is-col-hover {
+        background: rgba(79, 70, 229, 0.10);
+    }
+    .aging-day-table thead th {
+        background: rgba(17, 24, 39, 0.85);
+        color: #cbd5e1 !important;
+        border-bottom: 1px solid rgba(99, 102, 241, 0.28);
+    }
+    .aging-day-table thead .aging-sticky-metric {
+        z-index: 50;
+    }
+    .aging-day-table thead th[data-col-idx] {
+        font-size: 0.95rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        padding-top: 0.7rem;
+        padding-bottom: 0.7rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    .aging-day-table thead th.aging-total-col {
+        font-size: 0.95rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        padding-top: 0.7rem;
+        padding-bottom: 0.7rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    .aging-day-table tbody td[data-col-idx] {
+        font-size: 0.98rem;
+        font-weight: 500;
+        padding-top: 0.65rem;
+        padding-bottom: 0.65rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    .aging-day-table tbody td.aging-total-col {
+        font-size: 0.98rem;
+        font-weight: 500;
+        padding-top: 0.65rem;
+        padding-bottom: 0.65rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    .aging-day-table tbody tr.aging-row-total {
+        background: rgba(148, 163, 184, 0.16);
+    }
+    .aging-day-table tbody tr.aging-row-delayed {
+        background: rgba(239, 68, 68, 0.24);
+    }
+    .aging-day-table tbody tr.aging-row-pending {
+        background: rgba(245, 158, 11, 0.22);
+    }
+    .aging-day-table tbody tr.aging-row-ongoing {
+        background: rgba(59, 130, 246, 0.24);
+    }
+    .aging-day-table tbody tr.aging-row-completed {
+        background: rgba(16, 185, 129, 0.22);
+    }
+    .aging-day-table td.aging-sticky-metric {
+        font-size: 0.98rem;
+        font-weight: 500;
+    }
+    .aging-day-table tbody td[data-col-idx],
+    .aging-day-table tbody td:last-child {
+        text-align: right;
+        letter-spacing: 0.01em;
+    }
+
+    :root[data-theme="dark"] {
+        --aging-row-total-bg: rgba(148, 163, 184, 0.18);
+        --aging-row-delayed-bg: rgba(239, 68, 68, 0.26);
+        --aging-row-pending-bg: rgba(245, 158, 11, 0.24);
+        --aging-row-ongoing-bg: rgba(59, 130, 246, 0.26);
+        --aging-row-completed-bg: rgba(16, 185, 129, 0.24);
+        --aging-row-other-bg: rgba(139, 92, 246, 0.22);
+
+        --aging-row-total-sticky-bg: #353a4f;
+        --aging-row-delayed-sticky-bg: #5b2a38;
+        --aging-row-pending-sticky-bg: #5a4321;
+        --aging-row-ongoing-sticky-bg: #2a4674;
+        --aging-row-completed-sticky-bg: #1f564b;
+        --aging-row-other-sticky-bg: #3d2f55;
+
+        --aging-text-total: #e5e7eb;
+        --aging-text-delayed: #fed7aa;
+        --aging-text-pending: #fde68a;
+        --aging-text-ongoing: #bfdbfe;
+        --aging-text-completed: #bbf7d0;
+        --aging-text-other: #e9d5ff;
+    }
+    :root[data-theme="light"] {
+        --aging-row-total-bg: rgba(203, 213, 225, 0.62);
+        --aging-row-delayed-bg: rgba(254, 202, 202, 0.95);
+        --aging-row-pending-bg: rgba(254, 240, 138, 0.88);
+        --aging-row-ongoing-bg: rgba(191, 219, 254, 0.90);
+        --aging-row-completed-bg: rgba(187, 247, 208, 0.90);
+        --aging-row-other-bg: rgba(221, 214, 254, 0.92);
+
+        --aging-row-total-sticky-bg: #dbe1ec;
+        --aging-row-delayed-sticky-bg: #fecaca;
+        --aging-row-pending-sticky-bg: #fef08a;
+        --aging-row-ongoing-sticky-bg: #bfdbfe;
+        --aging-row-completed-sticky-bg: #bbf7d0;
+        --aging-row-other-sticky-bg: #e9d5ff;
+
+        --aging-text-total: #111827;
+        --aging-text-delayed: #9a3412;
+        --aging-text-pending: #92400e;
+        --aging-text-ongoing: #1e3a8a;
+        --aging-text-completed: #14532d;
+        --aging-text-other: #5b21b6;
+        --aging-metric-text: #0f172a;
+    }
+    :root[data-theme="dark"] {
+        --aging-metric-text: #e5e7eb;
+    }
+
+    .aging-day-table tbody tr.aging-row-total { background: var(--aging-row-total-bg); }
+    .aging-day-table tbody tr.aging-row-delayed { background: var(--aging-row-delayed-bg); }
+    .aging-day-table tbody tr.aging-row-pending { background: var(--aging-row-pending-bg); }
+    .aging-day-table tbody tr.aging-row-ongoing { background: var(--aging-row-ongoing-bg); }
+    .aging-day-table tbody tr.aging-row-completed { background: var(--aging-row-completed-bg); }
+    .aging-day-table tbody tr.aging-row-other { background: var(--aging-row-other-bg); }
+
+    .aging-day-table tbody tr.aging-row-total td.aging-sticky-metric { background: var(--aging-row-total-sticky-bg) !important; }
+    .aging-day-table tbody tr.aging-row-delayed td.aging-sticky-metric { background: var(--aging-row-delayed-sticky-bg) !important; }
+    .aging-day-table tbody tr.aging-row-pending td.aging-sticky-metric { background: var(--aging-row-pending-sticky-bg) !important; }
+    .aging-day-table tbody tr.aging-row-ongoing td.aging-sticky-metric { background: var(--aging-row-ongoing-sticky-bg) !important; }
+    .aging-day-table tbody tr.aging-row-completed td.aging-sticky-metric { background: var(--aging-row-completed-sticky-bg) !important; }
+    .aging-day-table tbody tr.aging-row-other td.aging-sticky-metric { background: var(--aging-row-other-sticky-bg) !important; }
+
+    .aging-kpi-card {
+        border-radius: 16px;
+        padding: 14px 14px;
+        border: 1px solid var(--theme-surface-border);
+        background: var(--theme-surface-soft);
+    }
+    :root[data-theme="light"] .aging-kpi-card {
+        background: #ffffff;
+        border-color: #d8deea;
+    }
+
+    .aging-kpi-value {
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+</style>
+
+<div class="space-y-6 mb-6 fade-in">
+    <!-- KPI summary on top (horizontal) -->
+    <section class="aging-card rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold" style="color: var(--theme-text-dim);">Aging summary</h2>
+            <span class="text-[11px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full"
+                  style="color: var(--theme-accent); background: var(--theme-accent-soft); border: 1px solid var(--theme-surface-border);">
+                @Model.AgingScopeLabel
+            </span>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div class="aging-kpi-card">
+                <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Orders</div>
+                <div class="text-3xl aging-kpi-value mt-1" style="color: var(--theme-text);">@Model.TotalOrdersYearScope</div>
+            </div>
+
+            <div class="aging-kpi-card">
+                <div class="flex items-center justify-between">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Delayed</div>
+                    <span class="text-[11px] font-semibold" style="color:#fb923c;">High</span>
+                </div>
+                <div class="text-2xl aging-kpi-value mt-1" style="color:#fb923c;">@Model.DelayedCount</div>
+            </div>
+
+            <div class="aging-kpi-card">
+                <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Pending</div>
+                <div class="text-2xl aging-kpi-value mt-1" style="color:#eab308;">@Model.PendingCount</div>
+            </div>
+
+            <div class="aging-kpi-card">
+                <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Ongoing</div>
+                <div class="text-2xl aging-kpi-value mt-1" style="color:#4ade80;">@Model.OngoingCount</div>
+            </div>
+
+            <div class="aging-kpi-card">
+                <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Completed</div>
+                <div class="text-2xl aging-kpi-value mt-1" style="color:#818cf8;">@Model.CompletedCount</div>
+            </div>
+
+            @if (Model.OtherStatusCount > 0)
+            {
+                <div class="aging-kpi-card">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Other status</div>
+                    <div class="text-xl aging-kpi-value mt-1" style="color: var(--theme-text);">@Model.OtherStatusCount</div>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Charts below KPI -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="aging-card rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-semibold" style="color: var(--theme-text-dim);">All inventory (buckets)</h2>
+                <span class="text-[11px]" style="color: var(--theme-text-muted);">Repair only</span>
+            </div>
+            <div class="relative h-72 lg:h-[380px]">
+                <canvas id="aging-donut"></canvas>
+            </div>
+        </div>
+        <div class="aging-card rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-semibold" style="color: var(--theme-text-dim);">All inventory (stacked)</h2>
+                <span class="text-[11px]" style="color: var(--theme-text-muted);">Repair only</span>
+            </div>
+            <div class="relative h-72 lg:h-[380px]">
+                <canvas id="aging-stacked"></canvas>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Month + day-to-day -->
+<div class="aging-card rounded-2xl p-6 mb-10 fade-in">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        <div>
+            <h2 class="text-base font-semibold mb-1" style="color: var(--theme-text);">Day-to-Day Operational Report</h2>
+            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.SelectedMonthLabel · counts by last update date · days run through today for the selected month (filter by year and month)</p>
+        </div>
+        <div class="flex flex-wrap items-end gap-2">
+            <form method="get" asp-controller="Report" asp-action="OperationalDashboard" asp-route-token="@Model.ReportToken" class="flex flex-wrap items-center gap-2">
+                @if (od != null)
+                {
+                    @await Html.PartialAsync("_OperationalDashboardPreserveHidden", od)
+                }
+                <input type="hidden" name="agingYear" value="@Model.SelectedAgingYear" />
+                <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Year</label>
+                <select name="dailyYear" class="text-sm rounded-lg px-3 py-2 border"
+                        style="background: var(--theme-bg); color: var(--theme-text); border-color: var(--theme-surface-border);"
+                        onchange="this.form.submit()">
+                    @foreach (var y in Model.AvailableDailyYears)
+                    {
+                        if (y == Model.SelectedDailyYear)
+                        {
+                            <option value="@y" selected>@y</option>
+                        }
+                        else
+                        {
+                            <option value="@y">@y</option>
+                        }
+                    }
+                </select>
+                <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Month</label>
+                <select name="dailyMonth" class="text-sm rounded-lg px-3 py-2 border"
+                        style="background: var(--theme-bg); color: var(--theme-text); border-color: var(--theme-surface-border);"
+                        onchange="this.form.submit()">
+                    @{
+                        var monthsForDailyYear = Model.AvailableMonths
+                            .Where(m => m.Length >= 7 && m.StartsWith($"{Model.SelectedDailyYear}-", StringComparison.Ordinal))
+                            .ToList();
+                        if (monthsForDailyYear.Count == 0)
+                        {
+                            for (var mi = 1; mi <= 12; mi++)
+                            {
+                                monthsForDailyYear.Add($"{Model.SelectedDailyYear}-{mi:D2}");
+                            }
+                        }
+                    }
+                    @foreach (var m in monthsForDailyYear)
+                    {
+                        var mm = m.Length >= 7 ? int.Parse(m.AsSpan(5, 2), System.Globalization.CultureInfo.InvariantCulture) : 1;
+                        if (m == Model.SelectedMonth)
+                        {
+                            <option value="@mm" selected>@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(mm)</option>
+                        }
+                        else
+                        {
+                            <option value="@mm">@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(mm)</option>
+                        }
+                    }
+                </select>
+            </form>
+            <div class="text-xs px-2.5 py-1.5 rounded-full"
+                 style="color: var(--theme-text-muted); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
+                Davao North only
+            </div>
+        </div>
+    </div>
+
+    @if (Model.DailyHeaderLabels.Count > 0 && Model.DailyStatusRows.Count > 0)
+    {
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-xs"
+             style="color: var(--theme-text-muted);">
+            <span class="font-semibold uppercase tracking-wide">Show metrics</span>
+            @foreach (var metricRow in Model.DailyStatusRows)
+            {
+                <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                    <input type="checkbox" class="aging-day-metric-cb rounded border" data-metric="@metricRow.MetricKey" checked />
+                    @metricRow.MetricLabel
+                </label>
+            }
+        </div>
+    }
+
+    @if (Model.DailyHeaderLabels.Count == 0)
+    {
+        <p class="text-sm py-8 text-center" style="color: var(--theme-text-muted);">No day columns for future months.</p>
+    }
+    else
+    {
+        <div class="aging-scroll-wrap">
+            <table class="w-full text-xs border-collapse aging-day-table">
+                <thead>
+                <tr>
+                    <th class="py-2 pr-3 aging-sticky-metric" style="color: var(--theme-text-dim);">Metric</th>
+                    @{
+                        var colIdx = 0;
+                    }
+                    @foreach (var d in Model.DailyHeaderLabels)
+                    {
+                        var dayLabel = d;
+                        if (int.TryParse(d, out var dd)
+                            && DateOnly.TryParseExact(
+                                $"{Model.SelectedMonth}-{dd:D2}",
+                                "yyyy-MM-dd",
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                System.Globalization.DateTimeStyles.None,
+                                out var headerDate))
+                        {
+                            dayLabel = headerDate.ToString("MMM d", System.Globalization.CultureInfo.InvariantCulture);
+                        }
+                        <th data-col-idx="@colIdx" class="text-right py-2 px-1 font-mono whitespace-nowrap" style="color: var(--theme-text-muted);">@dayLabel</th>
+                        colIdx++;
+                    }
+                    <th class="text-right py-2 pl-2 whitespace-nowrap aging-total-col" style="color: var(--theme-accent); font-weight: 500;">Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.DailyStatusRows)
+                {
+                    var rowStyle = row.ColorKey switch
+                    {
+                        "delayed" => "color: var(--aging-text-delayed);",
+                        "pending" => "color: var(--aging-text-pending);",
+                        "ongoing" => "color: var(--aging-text-ongoing);",
+                        "completed" => "color: var(--aging-text-completed);",
+                        "other" => "color: var(--aging-text-other);",
+                        _ => "color: var(--aging-text-total);"
+                    };
+                    var cellStyle = row.ColorKey switch
+                    {
+                        "delayed" => "color: var(--aging-text-delayed);",
+                        "pending" => "color: var(--aging-text-pending);",
+                        "ongoing" => "color: var(--aging-text-ongoing);",
+                        "completed" => "color: var(--aging-text-completed);",
+                        "other" => "color: var(--aging-text-other);",
+                        _ => "color: var(--aging-text-total);"
+                    };
+                    var totalStyle = row.ColorKey switch
+                    {
+                        "delayed" => "color: var(--aging-text-delayed);",
+                        "pending" => "color: var(--aging-text-pending);",
+                        "ongoing" => "color: var(--aging-text-ongoing);",
+                        "completed" => "color: var(--aging-text-completed);",
+                        "other" => "color: var(--aging-text-other);",
+                        _ => "color: var(--aging-text-total);"
+                    };
+                    var rowClass = row.ColorKey switch
+                    {
+                        "delayed" => "aging-row-delayed",
+                        "pending" => "aging-row-pending",
+                        "ongoing" => "aging-row-ongoing",
+                        "completed" => "aging-row-completed",
+                        "other" => "aging-row-other",
+                        _ => "aging-row-total"
+                    };
+                    <tr class="@rowClass aging-day-metric-row" data-metric="@row.MetricKey">
+                        <td class="py-2 pr-3 aging-sticky-metric" style="@rowStyle; color: var(--aging-metric-text);">@row.MetricLabel</td>
+                        @{
+                            var rowColIdx = 0;
+                        }
+                        @foreach (var v in row.DayValues)
+                        {
+                            <td data-col-idx="@rowColIdx" class="text-right py-2 px-1 font-mono" style="@cellStyle">@v</td>
+                            rowColIdx++;
+                        }
+                        <td class="text-right py-2 pl-2 font-mono aging-total-col" style="@totalStyle; font-weight: 500;">@row.RowTotal</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Repair remarks by aging bucket -->
+<div class="aging-card rounded-2xl p-6 mb-10 fade-in">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
+        <div>
+            <h2 class="text-base font-semibold" style="color: var(--theme-text);">Repair remarks by aging bucket</h2>
+            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.AgingScopeLabel · Davao North · Repair only · order create date</p>
+        </div>
+        <form method="get" asp-controller="Report" asp-action="OperationalDashboard" asp-route-token="@Model.ReportToken"
+              class="flex flex-wrap items-center gap-2">
+            @if (od != null)
+            {
+                @await Html.PartialAsync("_OperationalDashboardPreserveHidden", od)
+            }
+            <input type="hidden" name="dailyYear" value="@Model.SelectedDailyYear" />
+            <input type="hidden" name="dailyMonth" value="@Model.SelectedDailyMonth" />
+            <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Year</label>
+            <select name="agingYear" class="text-sm rounded-lg px-3 py-2 border"
+                    style="background: var(--theme-bg); color: var(--theme-text); border-color: var(--theme-surface-border);"
+                    onchange="this.form.submit()">
+                @foreach (var y in Model.AvailableOrderScopeYears)
+                {
+                    if (y == Model.SelectedAgingYear)
+                    {
+                        <option value="@y" selected>@y</option>
+                    }
+                    else
+                    {
+                        <option value="@y">@y</option>
+                    }
+                }
+            </select>
+            <span class="text-xs px-2.5 py-1.5 rounded-full"
+                  style="color: var(--theme-text-muted); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
+                Remarks pivot
+            </span>
+        </form>
+    </div>
+
+    @if (Model.RepairRemarkRows.Count == 0)
+    {
+        <p class="text-sm py-6 text-center" style="color: var(--theme-text-muted);">No remarks for repair rows in this order-create year. Try another year.</p>
+    }
+    else
+    {
+        <div class="aging-scroll-wrap">
+            <table class="w-full text-xs border-collapse min-w-[980px]">
+                <thead>
+                <tr style="border-bottom: 1px solid var(--theme-surface-border);">
+                    <th class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim); text-align: left;">Row labels</th>
+                    @foreach (var b in Model.BucketLabels)
+                    {
+                        <th class="text-right py-2 px-2 font-semibold whitespace-nowrap" style="color: var(--theme-text-muted);">@b</th>
+                    }
+                    <th class="text-right py-2 px-2 font-semibold whitespace-nowrap" style="color: var(--theme-text-muted);">Repair Total</th>
+                    <th class="text-right py-2 pl-2 font-semibold whitespace-nowrap" style="color: var(--theme-accent);">Grand Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var r in Model.RepairRemarkRows)
+                {
+                    <tr class="border-b" style="border-color: var(--theme-surface-border);">
+                        <td class="text-left py-2 pr-3 aging-sticky-metric font-medium" style="color: var(--theme-text-dim); text-align: left;">@r.RemarkLabel</td>
+                        @foreach (var v in r.BucketCounts)
+                        {
+                            <td class="text-right py-2 px-2 font-mono" style="color: var(--theme-text-dim);">@v</td>
+                        }
+                        <td class="text-right py-2 px-2 font-mono font-semibold" style="color: var(--theme-text);">@r.RepairTotal</td>
+                        <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@r.GrandTotal</td>
+                    </tr>
+                }
+                <tr style="border-top: 1px solid var(--theme-surface-border);">
+                    <td class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text); text-align: left;">Grand Total</td>
+                    @foreach (var v in Model.RepairRemarkGrandBucketTotals)
+                    {
+                        <td class="text-right py-2 px-2 font-mono font-semibold" style="color: var(--theme-text);">@v</td>
+                    }
+                    <td class="text-right py-2 px-2 font-mono font-semibold" style="color: var(--theme-text);">@Model.RepairRemarkGrandTotal</td>
+                    <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@Model.RepairRemarkGrandTotal</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Detail rows -->
+<div id="aging-detail-section" class="aging-card aging-detail-section rounded-xl p-6 mb-10 fade-in">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <div>
+            <h2 class="text-lg font-semibold" style="color: var(--theme-text);">Order detail (@Model.AgingScopeLabel · Davao North)</h2>
+            @{
+                var startIdx = Model.DetailRowTotal == 0 ? 0 : ((Model.DetailPage - 1) * Model.DetailPageSize) + 1;
+                var endIdx = Math.Min(Model.DetailRowTotal, (Model.DetailPage * Model.DetailPageSize));
+            }
+            <p class="text-xs mt-1" style="color: var(--theme-text-muted);">
+                Showing @startIdx-@endIdx of @Model.DetailRowTotal rows (sorted by age).
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-3 text-xs items-center" style="color: var(--theme-text-muted);">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" class="aging-skill-cb rounded border" data-skill="repair" checked /> Repair
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" class="aging-skill-cb rounded border" data-skill="install" checked /> Install
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" class="aging-skill-cb rounded border" data-skill="other" checked /> Other
+            </label>
+        </div>
+    </div>
+
+    @if (Model.DetailTotalPages > 1)
+    {
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4 text-xs">
+            <div style="color: var(--theme-text-muted);">
+                Page <span class="font-mono font-semibold" style="color: var(--theme-text);">@Model.DetailPage</span>
+                of <span class="font-mono font-semibold" style="color: var(--theme-text);">@Model.DetailTotalPages</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <form method="get" asp-controller="Report" asp-action="OperationalDashboard" asp-route-token="@Model.ReportToken" class="flex items-center gap-2" data-ajax-detail="true">
+                    @if (od != null)
+                    {
+                        @await Html.PartialAsync("_OperationalDashboardPreserveHidden", od)
+                    }
+                    <input type="hidden" name="dailyYear" value="@Model.SelectedDailyYear" />
+                    <input type="hidden" name="dailyMonth" value="@Model.SelectedDailyMonth" />
+                    <input type="hidden" name="agingYear" value="@Model.SelectedAgingYear" />
+                    <input type="hidden" name="page" value="1" />
+                    <label class="text-xs font-medium" style="color: var(--theme-text-muted);">Rows</label>
+                    <select name="pageSize"
+                            class="text-sm rounded-lg px-2.5 py-1.5 border"
+                            style="background: var(--theme-bg); color: var(--theme-text); border-color: var(--theme-surface-border);"
+                            onchange="this.form.submit()">
+                        @if (Model.DetailPageSize == 10)
+                        {
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                        }
+                        else
+                        {
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                        }
+                    </select>
+                </form>
+                @{
+                    var prevPage = Math.Max(1, Model.DetailPage - 1);
+                    var nextPage = Math.Min(Model.DetailTotalPages, Model.DetailPage + 1);
+                }
+                <a asp-controller="Report" asp-action="OperationalDashboard" asp-route-token="@Model.ReportToken"
+                   asp-route-group="@(od?.PerformanceReport.SelectedPerformanceGroup)"
+                   asp-route-alarmPeriod="@(od?.AlarmReport.SelectedPeriod)"
+                   asp-route-alarmMode="@(od?.AlarmReport.DateFilterMode)"
+                   asp-route-alarmDate="@(od?.AlarmReport.SelectedDate)"
+                   asp-route-alarmStart="@(od?.AlarmReport.DateRangeStart)"
+                   asp-route-alarmEnd="@(od?.AlarmReport.DateRangeEnd)"
+                   asp-route-perfPeriod="@(od?.PerformanceReport.SelectedPeriod)"
+                   asp-route-perfMode="@(od?.PerformanceReport.DateFilterMode)"
+                   asp-route-perfDate="@(od?.PerformanceReport.SelectedDate)"
+                   asp-route-perfStart="@(od?.PerformanceReport.DateRangeStart)"
+                   asp-route-perfEnd="@(od?.PerformanceReport.DateRangeEnd)"
+                   asp-route-dailyYear="@Model.SelectedDailyYear" asp-route-dailyMonth="@Model.SelectedDailyMonth"
+                   asp-route-agingYear="@Model.SelectedAgingYear"
+                   asp-route-page="@prevPage" asp-route-pageSize="@Model.DetailPageSize"
+                   data-ajax-detail-link="true"
+                   class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                   style="color: var(--theme-text-dim); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border); @(Model.DetailPage == 1 ? "opacity:0.5; pointer-events:none;" : "")">
+                    Prev
+                </a>
+                <a asp-controller="Report" asp-action="OperationalDashboard" asp-route-token="@Model.ReportToken"
+                   asp-route-group="@(od?.PerformanceReport.SelectedPerformanceGroup)"
+                   asp-route-alarmPeriod="@(od?.AlarmReport.SelectedPeriod)"
+                   asp-route-alarmMode="@(od?.AlarmReport.DateFilterMode)"
+                   asp-route-alarmDate="@(od?.AlarmReport.SelectedDate)"
+                   asp-route-alarmStart="@(od?.AlarmReport.DateRangeStart)"
+                   asp-route-alarmEnd="@(od?.AlarmReport.DateRangeEnd)"
+                   asp-route-perfPeriod="@(od?.PerformanceReport.SelectedPeriod)"
+                   asp-route-perfMode="@(od?.PerformanceReport.DateFilterMode)"
+                   asp-route-perfDate="@(od?.PerformanceReport.SelectedDate)"
+                   asp-route-perfStart="@(od?.PerformanceReport.DateRangeStart)"
+                   asp-route-perfEnd="@(od?.PerformanceReport.DateRangeEnd)"
+                   asp-route-dailyYear="@Model.SelectedDailyYear" asp-route-dailyMonth="@Model.SelectedDailyMonth"
+                   asp-route-agingYear="@Model.SelectedAgingYear"
+                   asp-route-page="@nextPage" asp-route-pageSize="@Model.DetailPageSize"
+                   data-ajax-detail-link="true"
+                   class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                   style="color: var(--theme-text-dim); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border); @(Model.DetailPage == Model.DetailTotalPages ? "opacity:0.5; pointer-events:none;" : "")">
+                    Next
+                </a>
+            </div>
+        </div>
+    }
+    <div class="aging-scroll-wrap">
+        <table class="w-full text-xs border-collapse min-w-[720px]">
+            <thead>
+            <tr style="border-bottom: 1px solid var(--theme-surface-border);">
+                <th class="text-left py-2 pr-2 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim);">Appointment</th>
+                <th class="text-left py-2 pr-2" style="color: var(--theme-text-muted);">Order created</th>
+                <th class="text-right py-2 pr-2 font-mono" style="color: var(--theme-text-muted);">Age (d)</th>
+                <th class="text-left py-2 pr-2" style="color: var(--theme-text-muted);">Bucket</th>
+                <th class="text-left py-2 pr-2" style="color: var(--theme-text-muted);">Status</th>
+                <th class="text-left py-2" style="color: var(--theme-text-muted);">Skillset</th>
+            </tr>
+            </thead>
+            <tbody id="aging-detail-body">
+            @foreach (var r in Model.DetailRows)
+            {
+                <tr class="aging-detail-row border-b" style="border-color: var(--theme-surface-border);" data-skill="@r.SkillKind">
+                    <td class="py-2 pr-2 aging-sticky-metric font-mono" style="color: var(--theme-text);">@r.AppointmentId</td>
+                    <td class="py-2 pr-2" style="color: var(--theme-text-dim);">@r.OrderCreateDateRaw</td>
+                    <td class="text-right py-2 pr-2 font-mono">@r.AgeDays</td>
+                    <td class="py-2 pr-2">@r.AgingBucket</td>
+                    <td class="py-2 pr-2">@r.Status</td>
+                    <td class="py-2" style="color: var(--theme-text-dim);">@r.Skillset</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>

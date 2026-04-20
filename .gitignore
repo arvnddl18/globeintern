@@ -1,0 +1,32 @@
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build/artifact folders
+temp/
+temp_build_check/
+
+# Logs
+*.log
+debug-*.log
+
+# ASP.NET Core secrets
+secrets.json
+
+# Node modules (if frontend assets are added)
+node_modules/
+
+# Large local datasets
+App_Data/report_materialize/
+*.xlsx
+
+App_Data/reports/
+

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SlotAd Globe</title>
+    <script>
+        (function () {
+            var savedTheme = null;
+            try { savedTheme = localStorage.getItem('report-theme'); } catch (err) { savedTheme = null; }
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var initialTheme = savedTheme === 'light' || savedTheme === 'dark'
+                ? savedTheme
+                : (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['DM Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    colors: {
+                        surface: {
+                            DEFAULT: '#16162a',
+                            dark: '#0d0d1a',
+                            border: '#2a2a4a',
+                            hover: '#1e1e38'
+                        },
+                        accent: {
+                            DEFAULT: '#6366f1',
+                            hover: '#5558e6',
+                            light: '#a5b4fc',
+                            bg: 'rgba(99, 102, 241, 0.12)'
+                        },
+                        muted: {
+                            DEFAULT: '#7a7a9e',
+                            light: '#8a8ab0',
+                            dark: '#5a5a7e',
+                            darker: '#3a3a5a'
+                        },
+                        text: {
+                            DEFAULT: '#f0f0f8',
+                            dim: '#c8c8e0',
+                            muted: '#6a6a8e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root[data-theme="dark"] {
+            --theme-bg: #0d0d1a;
+            --theme-surface: #16162a;
+            --theme-surface-soft: rgba(22, 22, 42, 0.8);
+            --theme-surface-border: #2a2a4a;
+            --theme-text: #f0f0f8;
+            --theme-text-dim: #c8c8e0;
+            --theme-text-muted: #8a8ab0;
+            --theme-accent: #6366f1;
+            --theme-accent-soft: rgba(99, 102, 241, 0.12);
+            --theme-nav-pill: rgba(255, 255, 255, 0.04);
+            --theme-footer: #3a3a5a;
+        }
+
+        :root[data-theme="light"] {
+            --theme-bg: #f6f8fc;
+            --theme-surface: #ffffff;
+            --theme-surface-soft: #ffffff;
+            --theme-surface-border: #d8deea;
+            --theme-text: #15192d;
+            --theme-text-dim: #2e3550;
+            --theme-text-muted: #556084;
+            --theme-accent: #4f46e5;
+            --theme-accent-soft: rgba(79, 70, 229, 0.12);
+            --theme-nav-pill: rgba(30, 41, 59, 0.06);
+            --theme-footer: #7a86a8;
+        }
+
+        * { box-sizing: border-box; }
+
+        .drop-zone-active {
+            border-color: var(--theme-accent) !important;
+            background: var(--theme-accent-soft) !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-up {
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @@keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        @@keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.2); }
+            50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+        }
+
+        body.theme-transitioning,
+        body.theme-transitioning * {
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            body.theme-transitioning,
+            body.theme-transitioning * {
+                transition: none !important;
+            }
+        }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.15);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.7s linear infinite;
+            display: inline-block;
+        }
+
+        @@keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast-enter {
+            animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @@keyframes toastIn {
+            from { opacity: 0; transform: translateY(-12px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .toast-exit {
+            animation: toastOut 0.25s ease-in forwards;
+        }
+
+        @@keyframes toastOut {
+            to { opacity: 0; transform: translateY(-12px) scale(0.95); }
+        }
+
+        .filter-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+        .filter-scroll::-webkit-scrollbar-track { background: #1a1a2e; border-radius: 3px; }
+        .filter-scroll::-webkit-scrollbar-thumb { background: #3b3b5c; border-radius: 3px; }
+        .filter-scroll::-webkit-scrollbar-thumb:hover { background: #5a5a8a; }
+
+        input[type="date"] {
+            color-scheme: dark;
+        }
+
+        .checkbox-accent:checked {
+            background-color: #6366f1;
+            border-color: #6366f1;
+        }
+
+        /* Account Login/Register — light mode overrides inline dark-theme colors */
+        :root[data-theme="light"] .account-auth-header h1 {
+            color: var(--theme-text) !important;
+        }
+        :root[data-theme="light"] .account-auth-header p {
+            color: var(--theme-text-muted) !important;
+        }
+        :root[data-theme="light"] .account-auth-card {
+            background: var(--theme-surface) !important;
+            border-color: var(--theme-surface-border) !important;
+        }
+        :root[data-theme="light"] .account-auth-card label.account-auth-label {
+            color: var(--theme-text-muted) !important;
+        }
+        :root[data-theme="light"] .account-auth-card input.account-auth-input {
+            background: #f1f5f9 !important;
+            border-color: var(--theme-surface-border) !important;
+            color: var(--theme-text) !important;
+            color-scheme: light;
+        }
+        :root[data-theme="light"] .account-auth-footer {
+            color: var(--theme-text-muted) !important;
+        }
+        :root[data-theme="light"] .account-auth-link {
+            color: var(--theme-accent) !important;
+        }
+        :root[data-theme="light"] .account-auth-submit {
+            background: var(--theme-accent) !important;
+        }
+    </style>
+</head>
+<body class="h-full font-sans" style="background: var(--theme-bg); color: var(--theme-text);">
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <div class="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        @{
+            var _activeTab = ViewData["ActiveTab"] as string ?? "";
+        }
+        <nav class="slide-up mb-10" style="border-bottom: 1px solid var(--theme-surface-border);">
+            <!-- Top bar: controls -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-3">
+                <a asp-controller="Report" asp-action="Upload" class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">
+                    <span class="inline-flex items-center gap-1.5">
+                        <i data-lucide="upload" style="width:14px; height:14px;"></i> New upload
+                    </span>
+                </a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" id="theme-toggle-btn" class="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer" style="color: var(--theme-text-dim); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
+                        <i id="theme-toggle-icon" data-lucide="moon" style="width:14px; height:14px;"></i>
+                        <span id="theme-toggle-label">Night mode</span>
+                    </button>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        @if (User.HasClaim(AdminClaimTypes.IsAdmin, "true"))
+                        {
+                            <a asp-controller="Admin" asp-action="CreateUser" class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors" style="color: var(--theme-accent); background: var(--theme-accent-soft); border: 1px solid var(--theme-surface-border);">
+                                Admin · New user
+                            </a>
+                        }
+                        <span class="text-xs px-2 py-1 rounded-md" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">@User.Identity.Name</span>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer" style="color: var(--theme-accent); background: var(--theme-accent-soft); border: 1px solid var(--theme-surface-border);">
+                                Log out
+                            </button>
+                        </form>
+                    }
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium tracking-wide" style="background: var(--theme-accent-soft); color: var(--theme-accent);">
+                        <i data-lucide="zap" style="width:13px; height:13px;"></i>
+                        <span>DATA ANALYTICS TOOL</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Tab row: KPI / Operational -->
+            @if (_activeTab == "kpi" || _activeTab == "operational")
+            {
+                <div class="flex items-center justify-center gap-1 pt-1 pb-0">
+                    <a asp-controller="Report" asp-action="Dashboard"
+                       class="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-t-lg transition-colors"
+                       style="@(_activeTab == "kpi"
+                           ? "color: var(--theme-accent); border-bottom: 2px solid var(--theme-accent); background: var(--theme-accent-soft);"
+                           : "color: var(--theme-text-muted); border-bottom: 2px solid transparent; background: transparent;")">
+                        <i data-lucide="bar-chart-2" style="width:14px; height:14px;"></i>
+                        KPI
+                    </a>
+                    <a asp-controller="Report" asp-action="OperationalDashboard"
+                       class="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-t-lg transition-colors"
+                       style="@(_activeTab == "operational"
+                           ? "color: var(--theme-accent); border-bottom: 2px solid var(--theme-accent); background: var(--theme-accent-soft);"
+                           : "color: var(--theme-text-muted); border-bottom: 2px solid transparent; background: transparent;")">
+                        <i data-lucide="activity" style="width:14px; height:14px;"></i>
+                        Operational
+                    </a>
+                </div>
+            }
+        </nav>
+
+        @RenderBody()
+
+        <footer class="mt-16 mb-6 text-center">
+            <div class="flex items-center justify-center gap-1.5 text-xs" style="color: var(--theme-footer);">
+                <i data-lucide="shield-check" style="width:12px; height:12px;"></i>
+                <span>&copy; 2026 SlotAd Globe &bull; Pending Report Converter</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function updateThemeToggleUi(themeName) {
+            var toggleLabel = document.getElementById('theme-toggle-label');
+            var toggleIcon = document.getElementById('theme-toggle-icon');
+            if (toggleLabel) toggleLabel.textContent = themeName === 'dark' ? 'Light mode' : 'Night mode';
+            if (toggleIcon) toggleIcon.setAttribute('data-lucide', themeName === 'dark' ? 'sun' : 'moon');
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        }
+
+        (function () {
+            var toggleButton = document.getElementById('theme-toggle-btn');
+            var root = document.documentElement;
+            var currentTheme = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            updateThemeToggleUi(currentTheme);
+
+            if (!toggleButton) return;
+            toggleButton.addEventListener('click', function () {
+                var oldTheme = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+                var nextTheme = oldTheme === 'dark' ? 'light' : 'dark';
+                document.body.classList.add('theme-transitioning');
+                root.setAttribute('data-theme', nextTheme);
+                try { localStorage.setItem('report-theme', nextTheme); } catch (err) { }
+                updateThemeToggleUi(nextTheme);
+                window.setTimeout(function () {
+                    document.body.classList.remove('theme-transitioning');
+                }, 250);
+            });
+        })();
+
+        lucide.createIcons();
+
+        function showToast(message, type) {
+            type = type || 'success';
+            var container = document.getElementById('toast-container');
+            var toast = document.createElement('div');
+            var colors = {
+                success: { bg: '#065f46', border: '#10b981', icon: 'check-circle' },
+                error: { bg: '#7f1d1d', border: '#ef4444', icon: 'alert-circle' },
+                info: { bg: '#1e3a5f', border: '#3b82f6', icon: 'info' }
+            };
+            var c = colors[type] || colors.info;
+            toast.className = 'toast-enter flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium';
+            toast.style.cssText = 'background:' + c.bg + '; border:1px solid ' + c.border + '; color:#fff; min-width:220px;';
+            toast.innerHTML = '<i data-lucide="' + c.icon + '" style="width:16px;height:16px;flex-shrink:0;"></i><span>' + message + '</span>';
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(function () {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(function () { toast.remove(); }, 260);
+            }, 3200);
+        }
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

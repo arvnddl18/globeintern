@@ -1,0 +1,296 @@
+@model SlotAd_Globe.Models.CsvUploadViewModel
+@{
+    ViewData["Title"] = "Upload CSV Report";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+}
+
+<style>
+    :root[data-theme="light"] header h1 {
+        color: #1f2937 !important;
+    }
+    :root[data-theme="light"] header p {
+        color: #475569 !important;
+    }
+    :root[data-theme="light"] #drop-zone {
+        background: #ffffff !important;
+        border-color: #cbd5e1 !important;
+        backdrop-filter: none !important;
+    }
+    :root[data-theme="light"] #upload-prompt {
+        color: #334155 !important;
+    }
+    :root[data-theme="light"] #upload-icon {
+        background: rgba(79, 70, 229, 0.12) !important;
+    }
+    :root[data-theme="light"] #drop-zone p[style*="color: #5a5a7e"] {
+        color: #64748b !important;
+    }
+    :root[data-theme="light"] #file-info > div,
+    :root[data-theme="light"] #stats-section > div,
+    :root[data-theme="light"] #progress-section > div {
+        background: #ffffff !important;
+        border-color: #cbd5e1 !important;
+    }
+    :root[data-theme="light"] #file-name-display,
+    :root[data-theme="light"] #stat-name,
+    :root[data-theme="light"] #stat-size,
+    :root[data-theme="light"] #stat-type,
+    :root[data-theme="light"] #progress-label {
+        color: #1f2937 !important;
+    }
+    :root[data-theme="light"] #file-meta,
+    :root[data-theme="light"] #submit-hint,
+    :root[data-theme="light"] #progress-detail,
+    :root[data-theme="light"] #stats-section p[style*="color: #6a6a8e"] {
+        color: #64748b !important;
+    }
+    :root[data-theme="light"] #progress-pct {
+        color: #4338ca !important;
+    }
+    :root[data-theme="light"] #progress-section div[style*="background: #1a1a32"] {
+        background: #e2e8f0 !important;
+    }
+</style>
+
+<header class="text-center mb-10 slide-up">
+    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3" style="color: #f0f0f8;">
+        CSV / XLSX &rarr; Report Converter
+    </h1>
+    <p class="text-base sm:text-lg max-w-lg mx-auto" style="color: #7a7a9e;">
+        Upload your pending CSV or XLSX file and generate a formatted Excel report.
+    </p>
+</header>
+
+@if (TempData["Error"] is string errorMsg)
+{
+    <div class="mb-6 fade-in rounded-xl px-4 py-3 flex items-center gap-2 text-sm font-medium"
+         style="background: #7f1d1d; border: 1px solid #ef4444; color: #fff;">
+        <i data-lucide="alert-circle" style="width:16px; height:16px; flex-shrink:0;"></i>
+        <span>@errorMsg</span>
+    </div>
+}
+
+<form asp-action="Upload" asp-controller="Report" method="post" enctype="multipart/form-data" id="uploadForm">
+    @Html.AntiForgeryToken()
+
+    <section class="slide-up" style="animation-delay: 0.1s;">
+        <div id="drop-zone"
+             class="relative rounded-2xl border-2 border-dashed p-8 sm:p-12 text-center cursor-pointer transition-all duration-300"
+             style="border-color: #2a2a4a; background: rgba(22, 22, 42, 0.6); backdrop-filter: blur(12px);"
+             onclick="document.getElementById('CsvFile').click()">
+
+            <input asp-for="CsvFile" type="file" accept=".csv,.xlsx" class="hidden" id="CsvFile" />
+
+            <div id="upload-icon" class="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+                 style="background: rgba(99, 102, 241, 0.1);">
+                <i data-lucide="upload-cloud" style="width:28px; height:28px; color: #6366f1;"></i>
+            </div>
+            <p id="upload-prompt" class="text-base font-medium mb-2" style="color: #c8c8e0;">
+                Drop your CSV or XLSX file here or click to browse
+            </p>
+            <p class="text-sm" style="color: #5a5a7e;">Supports .csv and .xlsx files &bull; Max 500MB</p>
+            <span asp-validation-for="CsvFile" class="text-red-400 text-sm mt-2 block"></span>
+        </div>
+    </section>
+
+    <section id="file-info" class="hidden mt-5 fade-in">
+        <div class="rounded-xl p-4 flex flex-wrap items-center justify-between gap-3"
+             style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style="background: rgba(34, 197, 94, 0.12);">
+                    <i data-lucide="file-spreadsheet" style="width:18px; height:18px; color: #22c55e;"></i>
+                </div>
+                <div class="min-w-0">
+                    <p id="file-name-display" class="text-sm font-medium truncate" style="color: #e0e0f0;"></p>
+                    <p id="file-meta" class="text-xs" style="color: #6a6a8e;"></p>
+                </div>
+            </div>
+            <button type="button" onclick="clearFile()"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                    style="color: #8a8ab0; background: rgba(255,255,255,0.04);">
+                <i data-lucide="x" style="width:14px; height:14px;"></i>
+            </button>
+        </div>
+    </section>
+
+    <section id="stats-section" class="hidden mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 fade-in">
+        <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+            <p class="text-xs mb-1" style="color: #6a6a8e;">File Name</p>
+            <p id="stat-name" class="text-sm font-bold font-mono truncate" style="color: #f0f0f8;">-</p>
+        </div>
+        <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+            <p class="text-xs mb-1" style="color: #6a6a8e;">File Size</p>
+            <p id="stat-size" class="text-xl font-bold font-mono" style="color: #f0f0f8;">0 KB</p>
+        </div>
+        <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+            <p class="text-xs mb-1" style="color: #6a6a8e;">Type</p>
+            <p id="stat-type" class="text-xl font-bold font-mono" style="color: #f0f0f8;">CSV</p>
+        </div>
+    </section>
+
+    <section id="submit-section" class="hidden mt-8 text-center fade-in">
+        <button type="submit" id="submit-btn"
+                class="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 pulse-glow cursor-pointer"
+                style="background: #6366f1; color: #fff;">
+            <i data-lucide="upload" style="width:18px; height:18px;"></i>
+            <span id="submit-btn-text">Upload &amp; Extract Filters</span>
+        </button>
+        <p id="submit-hint" class="text-xs mt-3" style="color: #5a5a7e;">
+            The file will be processed on the server to extract filter options.
+        </p>
+
+        <div id="progress-section" class="hidden mt-5 max-w-md mx-auto">
+            <div class="rounded-xl p-4" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+                <div class="flex items-center justify-between mb-2">
+                    <span id="progress-label" class="text-xs font-medium" style="color: #c8c8e0;">Uploading...</span>
+                    <span id="progress-pct" class="text-xs font-mono font-bold" style="color: #a5b4fc;">0%</span>
+                </div>
+                <div class="w-full rounded-full overflow-hidden" style="height: 6px; background: #1a1a32;">
+                    <div id="progress-bar" class="h-full rounded-full transition-all duration-200"
+                         style="width: 0%; background: linear-gradient(90deg, #6366f1, #a5b4fc);"></div>
+                </div>
+                <p id="progress-detail" class="text-xs mt-2 font-mono" style="color: #5a5a7e;"></p>
+            </div>
+        </div>
+    </section>
+</form>
+
+@section Scripts {
+    <script>
+        var dropZone = document.getElementById('drop-zone');
+        var fileInput = document.getElementById('CsvFile');
+
+        dropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drop-zone-active');
+        });
+
+        dropZone.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drop-zone-active');
+        });
+
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drop-zone-active');
+            var file = e.dataTransfer.files[0];
+            if (file && file.name.match(/\.(csv|xlsx)$/i)) {
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                onFileSelected(file);
+            } else {
+                showToast('Please drop a .csv or .xlsx file', 'error');
+            }
+        });
+
+        fileInput.addEventListener('change', function () {
+            if (this.files.length > 0) onFileSelected(this.files[0]);
+        });
+
+        function onFileSelected(file) {
+            document.getElementById('file-info').classList.remove('hidden');
+            document.getElementById('file-name-display').textContent = file.name;
+            document.getElementById('file-meta').textContent = formatFileSize(file.size);
+
+            document.getElementById('stats-section').classList.remove('hidden');
+            document.getElementById('stat-name').textContent = file.name;
+            document.getElementById('stat-size').textContent = formatFileSize(file.size);
+            document.getElementById('stat-type').textContent = file.name.split('.').pop().toUpperCase();
+
+            document.getElementById('submit-section').classList.remove('hidden');
+
+            dropZone.style.borderColor = '#22c55e';
+            document.getElementById('upload-prompt').textContent = 'File selected! Ready to upload.';
+
+            showToast('File loaded: ' + file.name, 'success');
+            lucide.createIcons();
+        }
+
+        function clearFile() {
+            fileInput.value = '';
+            document.getElementById('file-info').classList.add('hidden');
+            document.getElementById('stats-section').classList.add('hidden');
+            document.getElementById('submit-section').classList.add('hidden');
+            dropZone.style.borderColor = '#2a2a4a';
+            document.getElementById('upload-prompt').textContent = 'Drop your CSV or XLSX file here or click to browse';
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            var form = this;
+            var btn = document.getElementById('submit-btn');
+            var formData = new FormData(form);
+
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            document.getElementById('submit-btn-text').innerHTML = '<span class="spinner"></span> Uploading...';
+            document.getElementById('submit-hint').classList.add('hidden');
+            document.getElementById('progress-section').classList.remove('hidden');
+
+            var startTime = Date.now();
+            var xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('progress', function (ev) {
+                if (!ev.lengthComputable) return;
+                var pct = Math.round((ev.loaded / ev.total) * 100);
+                document.getElementById('progress-bar').style.width = pct + '%';
+                document.getElementById('progress-pct').textContent = pct + '%';
+
+                var elapsed = (Date.now() - startTime) / 1000;
+                var speed = ev.loaded / elapsed;
+                var remaining = (ev.total - ev.loaded) / speed;
+                document.getElementById('progress-detail').textContent =
+                    formatFileSize(ev.loaded) + ' / ' + formatFileSize(ev.total) +
+                    (remaining > 0 ? '  ~' + Math.ceil(remaining) + 's remaining' : '');
+
+                if (pct >= 100) {
+                    document.getElementById('progress-label').textContent = 'Processing file on server...';
+                    document.getElementById('submit-btn-text').innerHTML = '<span class="spinner"></span> Extracting filters...';
+                    document.getElementById('progress-detail').textContent =
+                        'Upload complete. Saving and scanning the file for filter options — large files (50MB+) can take several minutes; please wait.';
+                }
+            });
+
+            xhr.addEventListener('load', function () {
+                if (xhr.status >= 200 && xhr.status < 400) {
+                    document.open();
+                    document.write(xhr.responseText);
+                    document.close();
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    document.getElementById('submit-btn-text').innerHTML = 'Upload &amp; Extract Filters';
+                    document.getElementById('progress-section').classList.add('hidden');
+                    document.getElementById('submit-hint').classList.remove('hidden');
+                    showToast('Upload failed (' + xhr.status + '). Please try again.', 'error');
+                }
+            });
+
+            xhr.addEventListener('error', function () {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                document.getElementById('submit-btn-text').innerHTML = 'Upload &amp; Extract Filters';
+                document.getElementById('progress-section').classList.add('hidden');
+                document.getElementById('submit-hint').classList.remove('hidden');
+                showToast('Network error. Please check your connection and try again.', 'error');
+            });
+
+            xhr.open('POST', form.action);
+            xhr.send(formData);
+        });
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        lucide.createIcons();
+    </script>
+}

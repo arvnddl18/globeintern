@@ -1,0 +1,42 @@
+@model SlotAd_Globe.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Sign in";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+}
+
+<header class="account-auth-header text-center mb-10 slide-up">
+    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-3" style="color: #f0f0f8;">Sign in</h1>
+    <p class="text-sm" style="color: #7a7a9e;">Use your SlotAd Globe account.</p>
+</header>
+
+<div class="account-auth-card max-w-md mx-auto rounded-xl p-6 fade-in" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+    <form asp-action="Login" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ReturnUrl" />
+        <div asp-validation-summary="ModelOnly" class="mb-4 text-sm rounded-lg px-3 py-2" style="background: #7f1d1d; border: 1px solid #ef4444; color: #fff;"></div>
+        <div class="mb-4">
+            <label asp-for="UserName" class="account-auth-label block text-xs font-medium mb-1" style="color: #8a8ab0;"></label>
+            <input asp-for="UserName" class="account-auth-input w-full rounded-lg px-3 py-2 text-sm" style="background: #0d0d1a; border: 1px solid #2a2a4a; color: #c8c8e0;" autocomplete="username" />
+            <span asp-validation-for="UserName" class="text-xs" style="color: #f87171;"></span>
+        </div>
+        <div class="mb-6">
+            <label asp-for="Password" class="account-auth-label block text-xs font-medium mb-1" style="color: #8a8ab0;"></label>
+            <input asp-for="Password" class="account-auth-input w-full rounded-lg px-3 py-2 text-sm" style="background: #0d0d1a; border: 1px solid #2a2a4a; color: #c8c8e0;" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="text-xs" style="color: #f87171;"></span>
+        </div>
+        <button type="submit" class="account-auth-submit w-full py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer" style="background: #6366f1; color: #fff; border: none;">
+            Sign in
+        </button>
+    </form>
+    @if (ViewData["AllowRegistration"] is true)
+    {
+        <p class="account-auth-footer mt-6 text-center text-xs" style="color: #6a6a8e;">
+            No account?
+            <a asp-action="Register" class="account-auth-link font-medium" style="color: #a5b4fc;">Create one</a>
+        </p>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
