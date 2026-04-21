@@ -2443,13 +2443,52 @@
             var hmFltStatuses    = new Set();
             var napRefSet = null;
             var napRefBrgyByDp = new Map();
+            var napRefCoordsByDp = new Map();
             var selectedBarangay = '';
             var allBarangayRanks = [];
             var allFixRanks = [];
 
             function normalizeDpid(raw) {
                 var dpid = String(raw || '').trim().toUpperCase();
-                return dpid.length > 0 ? dpid.slice(0, -1) : '';
+                if (!dpid) return '';
+                return dpid.endsWith('A') ? dpid.slice(0, -1) : dpid;
+            }
+            function findHeaderKey(sampleRow, aliases) {
+                var keys = Object.keys(sampleRow || {});
+                for (var i = 0; i < keys.length; i++) {
+                    var normalized = String(keys[i] || '').trim().toUpperCase();
+                    for (var j = 0; j < aliases.length; j++) {
+                        if (normalized === aliases[j]) return keys[i];
+                    }
+                }
+                return null;
+            }
+            function tryParseReferenceCoord(raw) {
+                if (raw === null || raw === undefined) return null;
+                var normalized = String(raw).trim();
+                if (!normalized) return null;
+                var value = Number(normalized);
+                return Number.isFinite(value) ? value : null;
+            }
+            function computeJitter(baseValue, seed) {
+                var n = (Math.sin(seed * 12.9898) * 43758.5453) % 1;
+                var frac = n - Math.floor(n);
+                return baseValue + ((frac - 0.5) * 0.00022);
+            }
+            function buildNapCoordByDpidIndex(range) {
+                var index = new Map();
+                for (var i = 0; i < napDots.length; i++) {
+                    var di = napDots[i][2];
+                    if (!isDateIntInRange(di, range)) continue;
+                    if (!passDotFilter(i)) continue;
+                    var norm = normalizeDpid(napDotDpids[i]);
+                    if (!norm || index.has(norm)) continue;
+                    var lat = napDots[i][0];
+                    var lng = napDots[i][1];
+                    if (lat < 6.5 || lat > 8.0 || lng < 124.5 || lng > 126.5) continue;
+                    index.set(norm, [lat, lng]);
+                }
+                return index;
             }
             function monthIndexFromYm(ym) {
                 if (!ym || ym.indexOf('-') < 0) return null;
@@ -2529,7 +2568,7 @@
                     safeName.replace(/"/g, '&quot;') + '">' + safeName + '</span><span class="font-mono flex-shrink-0" style="color:#a5b4fc">' +
                     Number(value || 0).toLocaleString() + '</span></div>' +
                     '<div class="h-1.5 rounded-full overflow-hidden" style="background:rgba(42,42,74,0.6)"><div class="h-full rounded-full" style="width:' + pct +
-                    '%;background:linear-gradient(90deg,#0c2461,#4dd0e1,#43a047,#fdd835,#fb8c00,#b71c1c)"></div></div>';
+                    '%;background:#1E90FF;box-shadow:0 0 8px rgba(30,144,255,0.45)"></div></div>';
                 return row;
             }
             function showAllModal(kind) {
@@ -2642,8 +2681,10 @@
                                 return;
                             }
 
-                            var dpKey = Object.keys(rows[0]).find(function(k) { return k.trim().toUpperCase() === 'DP'; });
-                            var brgyKey = Object.keys(rows[0]).find(function(k) { return k.trim().toUpperCase() === 'BRGY_NAME'; });
+                            var dpKey = findHeaderKey(rows[0], ['DP']);
+                            var brgyKey = findHeaderKey(rows[0], ['BRGY_NAME']);
+                            var latKey = findHeaderKey(rows[0], ['DP/NAP LAT', 'DP NAP LAT', 'NAP LAT', 'LAT', 'LATITUDE']);
+                            var lngKey = findHeaderKey(rows[0], ['DP/NAP LONG', 'DP NAP LONG', 'NAP LONG', 'LONG', 'LNG', 'LONGITUDE']);
                             if (!dpKey) {
                                 alert('No "DP" column found in the uploaded file.');
                                 return;
@@ -2655,12 +2696,16 @@
 
                             napRefSet = new Set();
                             napRefBrgyByDp = new Map();
+                            napRefCoordsByDp = new Map();
                             rows.forEach(function(r) {
-                                var dp = String(r[dpKey] || '').trim().toUpperCase();
+                                var dp = normalizeDpid(r[dpKey]);
                                 if (!dp) return;
                                 var brgy = String(r[brgyKey] || '').trim();
+                                var lat = latKey ? tryParseReferenceCoord(r[latKey]) : null;
+                                var lng = lngKey ? tryParseReferenceCoord(r[lngKey]) : null;
                                 napRefSet.add(dp);
                                 if (brgy) napRefBrgyByDp.set(dp, brgy);
+                                if (lat !== null && lng !== null) napRefCoordsByDp.set(dp, [lat, lng]);
                             });
                             updateBarangayDropdownFromReference();
 
@@ -2728,14 +2773,11 @@
                 maxZoom: 17,
                 max: 1.0,
                 gradient: {
-                    0.0: '#0c2461',
-                    0.15: '#1565c0',
-                    0.3: '#4dd0e1',
-                    0.45: '#43a047',
-                    0.6: '#fdd835',
+                    0.0: '#43a047',
+                    0.25: '#43a047',
+                    0.5: '#fdd835',
                     0.75: '#fb8c00',
-                    0.88: '#e53935',
-                    1.0: '#b71c1c'
+                    1.0: '#e53935'
                 }
             }).addTo(napMap);
             var dotsGroup = L.layerGroup().addTo(napMap);
@@ -2755,7 +2797,7 @@
                     }
                     var heatSection =
                         '<span class="nap-flt-section">Heatmap</span>' +
-                        row('nap-flt-heat-all', 'background: linear-gradient(135deg,#0c2461 0%,#4dd0e1 28%,#43a047 52%,#fdd835 68%,#fb8c00 82%,#b71c1c 100%);', 'All', true) +
+                        row('nap-flt-heat-all', 'background: linear-gradient(135deg,#43a047 0%,#43a047 25%,#fdd835 25%,#fdd835 50%,#fb8c00 50%,#fb8c00 75%,#e53935 75%,#e53935 100%);', 'All', true) +
                         row('nap-flt-heat-repair', 'background:#32CD32; box-shadow:0 0 4px rgba(50,205,50,0.75);', 'Repair', false) +
                         row('nap-flt-heat-install', 'background:#1E90FF; box-shadow:0 0 4px rgba(30,144,255,0.7);', 'Install', false);
                     var pinsSection = hasCoordinates
@@ -2800,22 +2842,28 @@
             new NapFilterControl().addTo(napMap);
 
             function renderHeatmap(range) {
-                if (!hasCoordinates || !napDots.length) { heatLayer.setLatLngs([]); return; }
                 var points = [];
-                for (var i = 0; i < napDots.length; i++) {
-                    var pt = napDots[i];
-                    var lat = pt[0], lng = pt[1], di = pt[2];
-                    if (!isDateIntInRange(di, range)) continue;
-                    if (lat < 6.5 || lat > 8.0 || lng < 124.5 || lng > 126.5) continue;
-                    if (!passesReferenceAndBarangay(napDotDpids[i])) continue;
-                    if (!passDotFilter(i)) continue;
-                    var sk = (napDotSkillsets[i] || '').trim().toLowerCase();
-                    var isRepair = sk.indexOf('repair') !== -1;
-                    var isInstall = sk.indexOf('install') !== -1;
-                    if (filterState.heatMode === 'repair' && !isRepair) continue;
-                    if (filterState.heatMode === 'install' && !isInstall) continue;
-                    if (filterState.heatMode === 'all' && !isRepair && !isInstall) continue;
-                    points.push([lat, lng]);
+                var napCoordByDpid = buildNapCoordByDpidIndex(range);
+                for (var j = 0; j < hmJoinDateInts.length; j++) {
+                    if (!isDateIntInRange(hmJoinDateInts[j], range)) continue;
+                    if (!passJoinFilter(j)) continue;
+                    if (!matchesSkillsetGate(hmJoinSkillsets[j])) continue;
+                    if (!passesReferenceAndBarangay(hmJoinDpids[j])) continue;
+                    var joinNormDpid = normalizeDpid(hmJoinDpids[j]);
+                    if (!joinNormDpid) continue;
+                    var joinCoords = napRefCoordsByDp.get(joinNormDpid) || napCoordByDpid.get(joinNormDpid);
+                    if (napRefSet !== null && !napRefCoordsByDp.get(joinNormDpid)) continue;
+                    if (!joinCoords) continue;
+                    var joinLat = joinCoords[0];
+                    var joinLng = joinCoords[1];
+                    if (joinLat < 6.5 || joinLat > 8.0 || joinLng < 124.5 || joinLng > 126.5) continue;
+                    var joinSkill = String(hmJoinSkillsets[j] || '').trim().toLowerCase();
+                    var joinIsRepair = joinSkill.indexOf('repair') !== -1;
+                    var joinIsInstall = joinSkill.indexOf('install') !== -1;
+                    if (filterState.heatMode === 'repair' && !joinIsRepair) continue;
+                    if (filterState.heatMode === 'install' && !joinIsInstall) continue;
+                    if (filterState.heatMode === 'all' && !joinIsRepair && !joinIsInstall) continue;
+                    points.push([joinLat, joinLng]);
                 }
                 heatLayer.setLatLngs(points);
             }
@@ -2824,33 +2872,39 @@
             var DOT_STYLE_INSTALL = { radius: 3, color: '#1a5eb0', fillColor: '#1E90FF', fillOpacity: 0.92, weight: 0.5, opacity: 0.95 };
             function renderDots(range) {
                 dotsGroup.clearLayers();
-                if (!hasCoordinates || !napDots.length) return;
                 if (!filterState.repair && !filterState.install) return;
-                for (var i = 0; i < napDots.length; i++) {
-                    var pt = napDots[i];
-                    var lat = pt[0], lng = pt[1], di = pt[2];
-                    if (!isDateIntInRange(di, range)) continue;
-                    if (lat < 6.5 || lat > 8.0 || lng < 124.5 || lng > 126.5) continue;
-                    if (!passesReferenceAndBarangay(napDotDpids[i])) continue;
-                    if (!passDotFilter(i)) continue;
-                    var sk = (napDotSkillsets[i] || '').trim().toLowerCase();
-                    var isRepair = sk.indexOf('repair') !== -1;
-                    var isInstall = sk.indexOf('install') !== -1;
-                    if (!isRepair && !isInstall) continue;
-                    if (isRepair && !filterState.repair) continue;
-                    if (isInstall && !filterState.install) continue;
-                    var dot = L.circleMarker([lat, lng], isRepair ? DOT_STYLE_REPAIR : DOT_STYLE_INSTALL);
-                    var pDay = Math.round(di) % 100;
-                    var pYear = 2000 + Math.floor(Math.round(di) / 10000);
-                    var pMon = Math.floor((Math.round(di) % 10000) / 100);
-                    var dateStr = pYear + '-' + (pMon < 10 ? '0' + pMon : String(pMon)) + '-' + (pDay < 10 ? '0' + pDay : String(pDay));
-                    var facilityName = (napDotNames[i] || '').trim();
-                    dot.bindTooltip(
-                        (facilityName ? '<div class="nap-dot-tip-name">' + facilityName + '</div>' : '') +
-                        '<div class="nap-dot-tip-date">' + dateStr + '</div>',
+                var napCoordByDpid = buildNapCoordByDpidIndex(range);
+                for (var j = 0; j < hmJoinDateInts.length; j++) {
+                    if (!isDateIntInRange(hmJoinDateInts[j], range)) continue;
+                    if (!passJoinFilter(j)) continue;
+                    if (!matchesSkillsetGate(hmJoinSkillsets[j])) continue;
+                    if (!passesReferenceAndBarangay(hmJoinDpids[j])) continue;
+                    var joinNormDpid = normalizeDpid(hmJoinDpids[j]);
+                    if (!joinNormDpid) continue;
+                    var joinCoords = napRefCoordsByDp.get(joinNormDpid) || napCoordByDpid.get(joinNormDpid);
+                    if (napRefSet !== null && !napRefCoordsByDp.get(joinNormDpid)) continue;
+                    if (!joinCoords) continue;
+                    var joinLat = joinCoords[0];
+                    var joinLng = joinCoords[1];
+                    if (joinLat < 6.5 || joinLat > 8.0 || joinLng < 124.5 || joinLng > 126.5) continue;
+                    var joinSkill = String(hmJoinSkillsets[j] || '').trim().toLowerCase();
+                    var joinIsRepair = joinSkill.indexOf('repair') !== -1;
+                    var joinIsInstall = joinSkill.indexOf('install') !== -1;
+                    if (!joinIsRepair && !joinIsInstall) continue;
+                    if (joinIsRepair && !filterState.repair) continue;
+                    if (joinIsInstall && !filterState.install) continue;
+                    var renderLat = computeJitter(joinLat, (j + 1) * 2.17);
+                    var renderLng = computeJitter(joinLng, (j + 1) * 3.41);
+                    var joinDot = L.circleMarker([renderLat, renderLng], joinIsRepair ? DOT_STYLE_REPAIR : DOT_STYLE_INSTALL);
+                    var jDay = Math.round(hmJoinDateInts[j]) % 100;
+                    var jYear = 2000 + Math.floor(Math.round(hmJoinDateInts[j]) / 10000);
+                    var jMon = Math.floor((Math.round(hmJoinDateInts[j]) % 10000) / 100);
+                    var jDateStr = jYear + '-' + (jMon < 10 ? '0' + jMon : String(jMon)) + '-' + (jDay < 10 ? '0' + jDay : String(jDay));
+                    joinDot.bindTooltip(
+                        '<div class="nap-dot-tip-name">' + joinNormDpid + '</div><div class="nap-dot-tip-date">' + jDateStr + '</div>',
                         { direction: 'top', className: 'nap-dot-tip', permanent: false, sticky: false, offset: [0, -4] }
                     );
-                    dotsGroup.addLayer(dot);
+                    dotsGroup.addLayer(joinDot);
                 }
             }
 
