@@ -1607,6 +1607,7 @@ public class CsvProcessingService : ICsvProcessingService
         int? agingMonthParam,
         int detailPage = 1,
         int detailPageSize = 20,
+        int? dailyFocusDay = null,
         CancellationToken cancellationToken = default)
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
@@ -1627,6 +1628,8 @@ public class CsvProcessingService : ICsvProcessingService
         var pendingV = _config["CsvMapping:PendingStatusValue"] ?? "Pending";
         var ongoingV = _config["CsvMapping:OngoingStatusValue"] ?? "Ongoing";
         var completedV = _config["CsvMapping:CompletedStatusValue"] ?? "Completed";
+        var unassignedV = _config["CsvMapping:UnassignedStatusValue"] ?? "Unassigned";
+        var cancelledV = _config["CsvMapping:CancelledStatusValue"] ?? "Cancelled";
 
         var availableMonths = BuildMonthKeyRangeFromLastUpdate(meta.LastUpdateMin, meta.LastUpdateMax);
         if (availableMonths.Count == 0)
@@ -1697,6 +1700,7 @@ public class CsvProcessingService : ICsvProcessingService
 
         var dailyHeaders = new List<string>();
         var dayCount = 0;
+        var dailyFocusDayOptions = new List<int>();
         if (!isFutureMonth)
         {
             for (var d = new DateOnly(monthStart.Year, monthStart.Month, 1); d <= lastVisibleDay; d = d.AddDays(1))
@@ -1704,6 +1708,9 @@ public class CsvProcessingService : ICsvProcessingService
                 dailyHeaders.Add(d.Day.ToString(CultureInfo.InvariantCulture));
                 dayCount++;
             }
+
+            for (var di = 1; di <= dayCount; di++)
+                dailyFocusDayOptions.Add(di);
         }
 
         var bucketOrder = new[] { "0-2 Days", "2-4 Days", "4-7 Days", "7-15 Days", "16-30 Days", "Above 30 Days" };
@@ -1724,10 +1731,18 @@ public class CsvProcessingService : ICsvProcessingService
         var dailyDelayed = new int[dayCount];
         var dailyPending = new int[dayCount];
         var dailyOngoing = new int[dayCount];
-        var dailyCompleted = new int[dayCount];
+        var dailyUnassigned = new int[dayCount];
+        var dailyCancelled = new int[dayCount];
         var dailyOther = new int[dayCount];
 
-        int totalYear = 0, delayed = 0, pending = 0, ongoing = 0, completed = 0, other = 0;
+        int totalYear = 0,
+            delayed = 0,
+            pending = 0,
+            ongoing = 0,
+            unassigned = 0,
+            cancelled = 0,
+            completed = 0,
+            other = 0;
         var allDetailRows = new List<OperationAgingDetailRow>();
         DateOnly? csvStartDate = null;
         DateOnly? csvEndDate = null;
@@ -1804,14 +1819,19 @@ public class CsvProcessingService : ICsvProcessingService
                     remarkBuckets[rrIdx]++;
                 }
 
-                var cat = ClassifyStatusCategory(status, delayedV, pendingV, ongoingV, completedV);
+                var cat = ClassifyStatusCategory(status, unassignedV, cancelledV, delayedV, pendingV, ongoingV);
                 switch (cat)
                 {
+                    case AgingStatusCategory.Unassigned: unassigned++; break;
+                    case AgingStatusCategory.Cancelled: cancelled++; break;
                     case AgingStatusCategory.Delayed: delayed++; break;
                     case AgingStatusCategory.Pending: pending++; break;
                     case AgingStatusCategory.Ongoing: ongoing++; break;
-                    case AgingStatusCategory.Completed: completed++; break;
-                    default: other++; break;
+                    default:
+                        other++;
+                        if (string.Equals(status, completedV, StringComparison.OrdinalIgnoreCase))
+                            completed++;
+                        break;
                 }
 
                 allDetailRows.Add(new OperationAgingDetailRow
@@ -1836,13 +1856,14 @@ public class CsvProcessingService : ICsvProcessingService
                     if (dayIndex >= 0 && dayIndex < dayCount)
                     {
                         dailyTotal[dayIndex]++;
-                        var dcat = ClassifyStatusCategory(status, delayedV, pendingV, ongoingV, completedV);
+                        var dcat = ClassifyStatusCategory(status, unassignedV, cancelledV, delayedV, pendingV, ongoingV);
                         switch (dcat)
                         {
+                            case AgingStatusCategory.Unassigned: dailyUnassigned[dayIndex]++; break;
+                            case AgingStatusCategory.Cancelled: dailyCancelled[dayIndex]++; break;
                             case AgingStatusCategory.Delayed: dailyDelayed[dayIndex]++; break;
                             case AgingStatusCategory.Pending: dailyPending[dayIndex]++; break;
                             case AgingStatusCategory.Ongoing: dailyOngoing[dayIndex]++; break;
-                            case AgingStatusCategory.Completed: dailyCompleted[dayIndex]++; break;
                             default: dailyOther[dayIndex]++; break;
                         }
                     }
@@ -1866,8 +1887,11 @@ public class CsvProcessingService : ICsvProcessingService
         var donutLabels = bucketOrder.ToList();
         var donutValues = bucketOrder.Select(b => bucketCounts[b]).ToList();
 
-        var barLabels = new List<string> { "Delayed", "Pending", "Ongoing", "Completed" };
-        var barValues = new List<int> { delayed, pending, ongoing, completed };
+        var barLabels = new List<string>
+        {
+            "Delayed", "Pending", "Ongoing", "Unassigned", "Cancelled", "Other"
+        };
+        var barValues = new List<int> { delayed, pending, ongoing, unassigned, cancelled, other };
 
         static int Sum(int[] xs)
         {
@@ -1876,15 +1900,31 @@ public class CsvProcessingService : ICsvProcessingService
             return s;
         }
 
+        var nonMappedStatusLabel = $"Other (incl. {completedV} & other values)";
+
         var dailyRows = new List<DailyStatusReportRow>
         {
-            NewDailyRow("total", "Total", "neutral", dailyTotal),
             NewDailyRow("delayed", "Delayed", "delayed", dailyDelayed),
             NewDailyRow("pending", "Pending", "pending", dailyPending),
             NewDailyRow("ongoing", "Ongoing", "ongoing", dailyOngoing),
-            NewDailyRow("completed", "Completed", "completed", dailyCompleted),
-            NewDailyRow("other", "Other status", "other", dailyOther)
+            NewDailyRow("unassigned", "Unassigned", "unassigned", dailyUnassigned),
+            NewDailyRow("cancelled", "Cancelled", "cancelled", dailyCancelled),
+            NewDailyRow("other", nonMappedStatusLabel, "other", dailyOther)
         };
+
+        int? selectedDailyFocusDay = null;
+        if (dailyFocusDay is { } focusDay && dayCount > 0 && focusDay >= 1 && focusDay <= dayCount)
+        {
+            selectedDailyFocusDay = focusDay;
+            var colIdx = focusDay - 1;
+            dailyHeaders = new List<string> { dailyHeaders[colIdx] };
+            foreach (var row in dailyRows)
+            {
+                var v = row.DayValues[colIdx];
+                row.DayValues = new List<int> { v };
+                row.RowTotal = v;
+            }
+        }
 
         DailyStatusReportRow NewDailyRow(string key, string label, string colorKey, int[] days)
         {
@@ -1934,6 +1974,35 @@ public class CsvProcessingService : ICsvProcessingService
             repairRemarkBucketTotals[i] = repairRemarkRows.Sum(r => r.BucketCounts[i]);
         var repairRemarkGrandTotal = repairRemarkBucketTotals.Sum();
 
+        var territoryBucketLabels = new List<string>
+        {
+            "0 Day",
+            "1 Day",
+            "2 Days",
+            "3 Days",
+            "4-7 Days",
+            "8-15 Days",
+            "16-30 Days",
+            "Above 30 Days"
+        };
+        var territoryBucketCounts = new int[territoryBucketLabels.Count];
+        foreach (var detail in allDetailRows)
+        {
+            var idx = ClassifyTerritoryBucketIndex(detail.AgeDays);
+            territoryBucketCounts[idx]++;
+        }
+        var territoryBucketRows = new List<TerritoryAgingBucketRow>
+        {
+            new()
+            {
+                TerritoryLabel = "Davao North",
+                BucketCounts = territoryBucketCounts.ToList(),
+                Total = territoryBucketCounts.Sum()
+            }
+        };
+        var territoryBucketGrandTotals = territoryBucketCounts.ToList();
+        var territoryBucketGrandTotal = territoryBucketGrandTotals.Sum();
+
         var csvYearSummary = csvYears.Count == 0
             ? "N/A"
             : string.Join(", ", csvYears.OrderBy(y => y).Select(y => y.ToString(CultureInfo.InvariantCulture)));
@@ -1955,6 +2024,8 @@ public class CsvProcessingService : ICsvProcessingService
             SelectedMonthLabel = monthLabel,
             AvailableMonths = availableMonths,
             DailyHeaderLabels = dailyHeaders,
+            DailyFocusDayOptions = dailyFocusDayOptions,
+            SelectedDailyFocusDay = selectedDailyFocusDay,
             DailyStatusRows = dailyRows,
             ReadingYearScope = scopeYear,
             SelectedDailyYear = monthStart.Year,
@@ -1971,15 +2042,22 @@ public class CsvProcessingService : ICsvProcessingService
             DelayedCount = delayed,
             PendingCount = pending,
             OngoingCount = ongoing,
+            UnassignedCount = unassigned,
+            CancelledCount = cancelled,
             CompletedCount = completed,
             OtherStatusCount = other,
+            NonMappedStatusLabel = nonMappedStatusLabel,
             BucketCounts = bucketList,
             DetailRows = pageRows,
             DetailRowTotal = detailTotal,
             DonutLabels = donutLabels,
             DonutValues = donutValues,
             BarLabels = barLabels,
-            BarValues = barValues
+            BarValues = barValues,
+            TerritoryBucketLabels = territoryBucketLabels,
+            TerritoryBucketRows = territoryBucketRows,
+            TerritoryBucketGrandTotals = territoryBucketGrandTotals,
+            TerritoryBucketGrandTotal = territoryBucketGrandTotal
         };
     }
 
@@ -1991,23 +2069,37 @@ public class CsvProcessingService : ICsvProcessingService
         return "other";
     }
 
-    private enum AgingStatusCategory { Delayed, Pending, Ongoing, Completed, Other }
+    private enum AgingStatusCategory
+    {
+        Unassigned,
+        Cancelled,
+        Delayed,
+        Pending,
+        Ongoing,
+        Other
+    }
 
+    /// <summary>
+    /// Maps Delayed / Pending / Ongoing / Unassigned / Cancelled from CSV; completed and any other string → <see cref="AgingStatusCategory.Other"/>.
+    /// </summary>
     private static AgingStatusCategory ClassifyStatusCategory(
         string status,
+        string unassignedV,
+        string cancelledV,
         string delayedV,
         string pendingV,
-        string ongoingV,
-        string completedV)
+        string ongoingV)
     {
-        if (string.Equals(status, completedV, StringComparison.OrdinalIgnoreCase))
-            return AgingStatusCategory.Completed;
+        if (string.Equals(status, unassignedV, StringComparison.OrdinalIgnoreCase))
+            return AgingStatusCategory.Unassigned;
+        if (string.Equals(status, cancelledV, StringComparison.OrdinalIgnoreCase))
+            return AgingStatusCategory.Cancelled;
         if (string.Equals(status, delayedV, StringComparison.OrdinalIgnoreCase))
             return AgingStatusCategory.Delayed;
-        if (string.Equals(status, ongoingV, StringComparison.OrdinalIgnoreCase))
-            return AgingStatusCategory.Ongoing;
         if (string.Equals(status, pendingV, StringComparison.OrdinalIgnoreCase))
             return AgingStatusCategory.Pending;
+        if (string.Equals(status, ongoingV, StringComparison.OrdinalIgnoreCase))
+            return AgingStatusCategory.Ongoing;
         return AgingStatusCategory.Other;
     }
 
@@ -2020,6 +2112,19 @@ public class CsvProcessingService : ICsvProcessingService
         if (a < 15) return "7-15 Days";
         if (a < 30) return "16-30 Days";
         return "Above 30 Days";
+    }
+
+    private static int ClassifyTerritoryBucketIndex(int ageDays)
+    {
+        var a = Math.Max(0, ageDays);
+        if (a == 0) return 0;
+        if (a == 1) return 1;
+        if (a == 2) return 2;
+        if (a == 3) return 3;
+        if (a <= 7) return 4;
+        if (a <= 15) return 5;
+        if (a <= 30) return 6;
+        return 7;
     }
 
     private static bool IsDavaoNorthTerritory(string? territory)

@@ -84,6 +84,14 @@
         color: #cbd5e1 !important;
         border-bottom: 1px solid rgba(99, 102, 241, 0.28);
     }
+    /* Sticky "Metric" header sits on light bg — use strong contrast */
+    .aging-day-table thead th.aging-sticky-metric.aging-metric-header {
+        color: #0f172a !important;
+        font-weight: 600;
+    }
+    :root[data-theme="dark"] .aging-day-table thead th.aging-sticky-metric.aging-metric-header {
+        color: #f8fafc !important;
+    }
     .aging-day-table thead .aging-sticky-metric {
         z-index: 50;
     }
@@ -95,6 +103,7 @@
         padding-bottom: 0.7rem;
         padding-left: 0.75rem;
         padding-right: 0.75rem;
+        text-align: center;
     }
     .aging-day-table thead th.aging-total-col {
         font-size: 0.95rem;
@@ -104,6 +113,7 @@
         padding-bottom: 0.7rem;
         padding-left: 0.75rem;
         padding-right: 0.75rem;
+        text-align: center;
     }
     .aging-day-table tbody td[data-col-idx] {
         font-size: 0.98rem;
@@ -133,16 +143,19 @@
     .aging-day-table tbody tr.aging-row-ongoing {
         background: rgba(59, 130, 246, 0.24);
     }
-    .aging-day-table tbody tr.aging-row-completed {
-        background: rgba(16, 185, 129, 0.22);
+    .aging-day-table tbody tr.aging-row-unassigned {
+        background: rgba(14, 165, 233, 0.22);
+    }
+    .aging-day-table tbody tr.aging-row-cancelled {
+        background: rgba(244, 63, 94, 0.22);
     }
     .aging-day-table td.aging-sticky-metric {
         font-size: 0.98rem;
         font-weight: 500;
     }
     .aging-day-table tbody td[data-col-idx],
-    .aging-day-table tbody td:last-child {
-        text-align: right;
+    .aging-day-table tbody td.aging-total-col {
+        text-align: center;
         letter-spacing: 0.01em;
     }
 
@@ -151,21 +164,24 @@
         --aging-row-delayed-bg: rgba(239, 68, 68, 0.26);
         --aging-row-pending-bg: rgba(245, 158, 11, 0.24);
         --aging-row-ongoing-bg: rgba(59, 130, 246, 0.26);
-        --aging-row-completed-bg: rgba(16, 185, 129, 0.24);
+        --aging-row-unassigned-bg: rgba(14, 165, 233, 0.26);
+        --aging-row-cancelled-bg: rgba(244, 63, 94, 0.26);
         --aging-row-other-bg: rgba(139, 92, 246, 0.22);
 
         --aging-row-total-sticky-bg: #353a4f;
         --aging-row-delayed-sticky-bg: #5b2a38;
         --aging-row-pending-sticky-bg: #5a4321;
         --aging-row-ongoing-sticky-bg: #2a4674;
-        --aging-row-completed-sticky-bg: #1f564b;
+        --aging-row-unassigned-sticky-bg: #164e63;
+        --aging-row-cancelled-sticky-bg: #5c2a35;
         --aging-row-other-sticky-bg: #3d2f55;
 
         --aging-text-total: #e5e7eb;
         --aging-text-delayed: #fed7aa;
         --aging-text-pending: #fde68a;
         --aging-text-ongoing: #bfdbfe;
-        --aging-text-completed: #bbf7d0;
+        --aging-text-unassigned: #a5f3fc;
+        --aging-text-cancelled: #fecdd3;
         --aging-text-other: #e9d5ff;
     }
     :root[data-theme="light"] {
@@ -173,21 +189,24 @@
         --aging-row-delayed-bg: rgba(254, 202, 202, 0.95);
         --aging-row-pending-bg: rgba(254, 240, 138, 0.88);
         --aging-row-ongoing-bg: rgba(191, 219, 254, 0.90);
-        --aging-row-completed-bg: rgba(187, 247, 208, 0.90);
+        --aging-row-unassigned-bg: rgba(165, 243, 252, 0.92);
+        --aging-row-cancelled-bg: rgba(254, 205, 211, 0.92);
         --aging-row-other-bg: rgba(221, 214, 254, 0.92);
 
         --aging-row-total-sticky-bg: #dbe1ec;
         --aging-row-delayed-sticky-bg: #fecaca;
         --aging-row-pending-sticky-bg: #fef08a;
         --aging-row-ongoing-sticky-bg: #bfdbfe;
-        --aging-row-completed-sticky-bg: #bbf7d0;
+        --aging-row-unassigned-sticky-bg: #a5f3fc;
+        --aging-row-cancelled-sticky-bg: #fecdd3;
         --aging-row-other-sticky-bg: #e9d5ff;
 
         --aging-text-total: #111827;
         --aging-text-delayed: #9a3412;
         --aging-text-pending: #92400e;
         --aging-text-ongoing: #1e3a8a;
-        --aging-text-completed: #14532d;
+        --aging-text-unassigned: #155e75;
+        --aging-text-cancelled: #9f1239;
         --aging-text-other: #5b21b6;
         --aging-metric-text: #0f172a;
     }
@@ -199,14 +218,16 @@
     .aging-day-table tbody tr.aging-row-delayed { background: var(--aging-row-delayed-bg); }
     .aging-day-table tbody tr.aging-row-pending { background: var(--aging-row-pending-bg); }
     .aging-day-table tbody tr.aging-row-ongoing { background: var(--aging-row-ongoing-bg); }
-    .aging-day-table tbody tr.aging-row-completed { background: var(--aging-row-completed-bg); }
+    .aging-day-table tbody tr.aging-row-unassigned { background: var(--aging-row-unassigned-bg); }
+    .aging-day-table tbody tr.aging-row-cancelled { background: var(--aging-row-cancelled-bg); }
     .aging-day-table tbody tr.aging-row-other { background: var(--aging-row-other-bg); }
 
     .aging-day-table tbody tr.aging-row-total td.aging-sticky-metric { background: var(--aging-row-total-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-delayed td.aging-sticky-metric { background: var(--aging-row-delayed-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-pending td.aging-sticky-metric { background: var(--aging-row-pending-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-ongoing td.aging-sticky-metric { background: var(--aging-row-ongoing-sticky-bg) !important; }
-    .aging-day-table tbody tr.aging-row-completed td.aging-sticky-metric { background: var(--aging-row-completed-sticky-bg) !important; }
+    .aging-day-table tbody tr.aging-row-unassigned td.aging-sticky-metric { background: var(--aging-row-unassigned-sticky-bg) !important; }
+    .aging-day-table tbody tr.aging-row-cancelled td.aging-sticky-metric { background: var(--aging-row-cancelled-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-other td.aging-sticky-metric { background: var(--aging-row-other-sticky-bg) !important; }
 
     .aging-kpi-card {
@@ -238,7 +259,7 @@
             </span>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3">
             <div class="aging-kpi-card">
                 <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Orders</div>
                 <div class="text-3xl aging-kpi-value mt-1" style="color: var(--theme-text);">@Model.TotalOrdersYearScope</div>
@@ -263,14 +284,19 @@
             </div>
 
             <div class="aging-kpi-card">
-                <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Completed</div>
-                <div class="text-2xl aging-kpi-value mt-1" style="color:#818cf8;">@Model.CompletedCount</div>
+                <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Unassigned</div>
+                <div class="text-2xl aging-kpi-value mt-1" style="color:#22d3ee;">@Model.UnassignedCount</div>
+            </div>
+
+            <div class="aging-kpi-card">
+                <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Cancelled</div>
+                <div class="text-2xl aging-kpi-value mt-1" style="color:#fb7185;">@Model.CancelledCount</div>
             </div>
 
             @if (Model.OtherStatusCount > 0)
             {
                 <div class="aging-kpi-card">
-                    <div class="text-[11px] font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Other status</div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide leading-snug" style="color: var(--theme-text-muted);">@Model.NonMappedStatusLabel</div>
                     <div class="text-xl aging-kpi-value mt-1" style="color: var(--theme-text);">@Model.OtherStatusCount</div>
                 </div>
             }
@@ -301,23 +327,23 @@
 </div>
 
 <!-- Month + day-to-day -->
-<div class="aging-card rounded-2xl p-6 mb-10 fade-in">
+<div id="aging-day-section" class="aging-card rounded-2xl p-6 mb-10 fade-in">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
             <h2 class="text-base font-semibold mb-1" style="color: var(--theme-text);">Day-to-Day Operational Report</h2>
-            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.SelectedMonthLabel · counts by last update date · days run through today for the selected month (filter by year and month)</p>
+            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.SelectedMonthLabel · counts by last update date · days run through today for the selected month (filter by year, month, and optional day)</p>
         </div>
-        <div class="flex flex-wrap items-end gap-2">
-            <form method="get" asp-controller="Report" asp-action="OperationalDashboard" asp-route-token="@Model.ReportToken" class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-nowrap items-center gap-2 sm:gap-3 max-w-full min-w-0 overflow-x-auto pb-0.5">
+            <form method="get" asp-controller="Report" asp-action="OperationalDashboard" asp-route-token="@Model.ReportToken" class="flex flex-nowrap items-center gap-2 shrink-0" data-ajax-day="true">
                 @if (od != null)
                 {
                     @await Html.PartialAsync("_OperationalDashboardPreserveHidden", od)
                 }
                 <input type="hidden" name="agingYear" value="@Model.SelectedAgingYear" />
-                <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Year</label>
-                <select name="dailyYear" class="text-sm rounded-lg px-3 py-2 border"
+                <label class="text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style="color: var(--theme-text-muted);">Year</label>
+                <select name="dailyYear" class="text-sm rounded-lg px-2.5 sm:px-3 py-2 border shrink-0"
                         style="background: var(--theme-bg); color: var(--theme-text); border-color: var(--theme-surface-border);"
-                        onchange="this.form.submit()">
+                        onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
                     @foreach (var y in Model.AvailableDailyYears)
                     {
                         if (y == Model.SelectedDailyYear)
@@ -330,10 +356,10 @@
                         }
                     }
                 </select>
-                <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Month</label>
-                <select name="dailyMonth" class="text-sm rounded-lg px-3 py-2 border"
+                <label class="text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style="color: var(--theme-text-muted);">Month</label>
+                <select name="dailyMonth" class="text-sm rounded-lg px-2.5 sm:px-3 py-2 border shrink-0"
                         style="background: var(--theme-bg); color: var(--theme-text); border-color: var(--theme-surface-border);"
-                        onchange="this.form.submit()">
+                        onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
                     @{
                         var monthsForDailyYear = Model.AvailableMonths
                             .Where(m => m.Length >= 7 && m.StartsWith($"{Model.SelectedDailyYear}-", StringComparison.Ordinal))
@@ -359,8 +385,28 @@
                         }
                     }
                 </select>
+                @if (Model.DailyFocusDayOptions.Count > 0)
+                {
+                    <label class="text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style="color: var(--theme-text-muted);">Day</label>
+                    <select name="dailyDay" class="text-sm rounded-lg px-2.5 sm:px-3 py-2 border shrink-0 min-w-[7.5rem]"
+                            style="background: var(--theme-bg); color: var(--theme-text); border-color: var(--theme-surface-border);"
+                            onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
+                        <option value="">All days</option>
+                        @foreach (var d in Model.DailyFocusDayOptions)
+                        {
+                            if (Model.SelectedDailyFocusDay == d)
+                            {
+                                <option value="@d" selected>@d</option>
+                            }
+                            else
+                            {
+                                <option value="@d">@d</option>
+                            }
+                        }
+                    </select>
+                }
             </form>
-            <div class="text-xs px-2.5 py-1.5 rounded-full"
+            <div class="text-xs px-2.5 py-1.5 rounded-full shrink-0 whitespace-nowrap"
                  style="color: var(--theme-text-muted); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
                 Davao North only
             </div>
@@ -392,7 +438,7 @@
             <table class="w-full text-xs border-collapse aging-day-table">
                 <thead>
                 <tr>
-                    <th class="py-2 pr-3 aging-sticky-metric" style="color: var(--theme-text-dim);">Metric</th>
+                    <th class="py-2 pr-3 aging-sticky-metric aging-metric-header">Metric</th>
                     @{
                         var colIdx = 0;
                     }
@@ -409,13 +455,18 @@
                         {
                             dayLabel = headerDate.ToString("MMM d", System.Globalization.CultureInfo.InvariantCulture);
                         }
-                        <th data-col-idx="@colIdx" class="text-right py-2 px-1 font-mono whitespace-nowrap" style="color: var(--theme-text-muted);">@dayLabel</th>
+                        <th data-col-idx="@colIdx" class="py-2 px-1 font-mono whitespace-nowrap" style="color: var(--theme-text-muted);">@dayLabel</th>
                         colIdx++;
                     }
-                    <th class="text-right py-2 pl-2 whitespace-nowrap aging-total-col" style="color: var(--theme-accent); font-weight: 500;">Total</th>
+                    <th class="py-2 pl-2 whitespace-nowrap aging-total-col" style="color: var(--theme-accent); font-weight: 500;">Total</th>
                 </tr>
                 </thead>
                 <tbody>
+                @{
+                    var totalMetricRow = Model.DailyStatusRows.FirstOrDefault(r => string.Equals(r.MetricKey, "total", StringComparison.OrdinalIgnoreCase));
+                    var grandTotalDayValues = totalMetricRow?.DayValues ?? Model.DailyHeaderLabels.Select((_, idx) => Model.DailyStatusRows.Sum(r => idx < r.DayValues.Count ? r.DayValues[idx] : 0)).ToList();
+                    var grandTotal = grandTotalDayValues.Sum();
+                }
                 @foreach (var row in Model.DailyStatusRows)
                 {
                     var rowStyle = row.ColorKey switch
@@ -423,7 +474,8 @@
                         "delayed" => "color: var(--aging-text-delayed);",
                         "pending" => "color: var(--aging-text-pending);",
                         "ongoing" => "color: var(--aging-text-ongoing);",
-                        "completed" => "color: var(--aging-text-completed);",
+                        "unassigned" => "color: var(--aging-text-unassigned);",
+                        "cancelled" => "color: var(--aging-text-cancelled);",
                         "other" => "color: var(--aging-text-other);",
                         _ => "color: var(--aging-text-total);"
                     };
@@ -432,7 +484,8 @@
                         "delayed" => "color: var(--aging-text-delayed);",
                         "pending" => "color: var(--aging-text-pending);",
                         "ongoing" => "color: var(--aging-text-ongoing);",
-                        "completed" => "color: var(--aging-text-completed);",
+                        "unassigned" => "color: var(--aging-text-unassigned);",
+                        "cancelled" => "color: var(--aging-text-cancelled);",
                         "other" => "color: var(--aging-text-other);",
                         _ => "color: var(--aging-text-total);"
                     };
@@ -441,7 +494,8 @@
                         "delayed" => "color: var(--aging-text-delayed);",
                         "pending" => "color: var(--aging-text-pending);",
                         "ongoing" => "color: var(--aging-text-ongoing);",
-                        "completed" => "color: var(--aging-text-completed);",
+                        "unassigned" => "color: var(--aging-text-unassigned);",
+                        "cancelled" => "color: var(--aging-text-cancelled);",
                         "other" => "color: var(--aging-text-other);",
                         _ => "color: var(--aging-text-total);"
                     };
@@ -450,7 +504,8 @@
                         "delayed" => "aging-row-delayed",
                         "pending" => "aging-row-pending",
                         "ongoing" => "aging-row-ongoing",
-                        "completed" => "aging-row-completed",
+                        "unassigned" => "aging-row-unassigned",
+                        "cancelled" => "aging-row-cancelled",
                         "other" => "aging-row-other",
                         _ => "aging-row-total"
                     };
@@ -461,12 +516,24 @@
                         }
                         @foreach (var v in row.DayValues)
                         {
-                            <td data-col-idx="@rowColIdx" class="text-right py-2 px-1 font-mono" style="@cellStyle">@v</td>
+                            <td data-col-idx="@rowColIdx" class="py-2 px-1 font-mono" style="@cellStyle">@v</td>
                             rowColIdx++;
                         }
-                        <td class="text-right py-2 pl-2 font-mono aging-total-col" style="@totalStyle; font-weight: 500;">@row.RowTotal</td>
+                        <td class="py-2 pl-2 font-mono aging-total-col" style="@totalStyle; font-weight: 500;">@row.RowTotal</td>
                     </tr>
                 }
+                <tr style="border-top: 1px solid var(--theme-surface-border); background: rgba(148, 163, 184, 0.12);">
+                    <td class="py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text);">Grand Total</td>
+                    @{
+                        var gtColIdx = 0;
+                    }
+                    @foreach (var value in grandTotalDayValues)
+                    {
+                        <td data-col-idx="@gtColIdx" class="py-2 px-1 font-mono font-semibold" style="color: var(--theme-text);">@value</td>
+                        gtColIdx++;
+                    }
+                    <td class="py-2 pl-2 font-mono aging-total-col font-semibold" style="color: var(--theme-accent);">@grandTotal</td>
+                </tr>
                 </tbody>
             </table>
         </div>
@@ -488,6 +555,10 @@
             }
             <input type="hidden" name="dailyYear" value="@Model.SelectedDailyYear" />
             <input type="hidden" name="dailyMonth" value="@Model.SelectedDailyMonth" />
+            @if (Model.SelectedDailyFocusDay is not null)
+            {
+                <input type="hidden" name="dailyDay" value="@Model.SelectedDailyFocusDay" />
+            }
             <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--theme-text-muted);">Year</label>
             <select name="agingYear" class="text-sm rounded-lg px-3 py-2 border"
                     style="background: var(--theme-bg); color: var(--theme-text); border-color: var(--theme-surface-border);"
@@ -558,6 +629,63 @@
     }
 </div>
 
+<!-- Territory aging buckets -->
+<div class="aging-card rounded-2xl p-6 mb-10 fade-in">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
+        <div>
+            <h2 class="text-base font-semibold" style="color: var(--theme-text);">Area/Territory aging buckets</h2>
+            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.AgingScopeLabel · Davao North territory only · order create date</p>
+        </div>
+        <span class="text-xs px-2.5 py-1.5 rounded-full"
+              style="color: var(--theme-text-muted); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
+            Davao North focus
+        </span>
+    </div>
+
+    @if (Model.TerritoryBucketRows.Count == 0 || Model.TerritoryBucketLabels.Count == 0)
+    {
+        <p class="text-sm py-6 text-center" style="color: var(--theme-text-muted);">No territory aging rows for this year.</p>
+    }
+    else
+    {
+        <div class="aging-scroll-wrap">
+            <table class="w-full text-xs border-collapse min-w-[980px]">
+                <thead>
+                <tr style="border-bottom: 1px solid var(--theme-surface-border);">
+                    <th class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim); text-align: left;">AREA/TERRITORY</th>
+                    @foreach (var b in Model.TerritoryBucketLabels)
+                    {
+                        <th class="text-right py-2 px-2 font-semibold whitespace-nowrap" style="color: var(--theme-text-muted);">@b</th>
+                    }
+                    <th class="text-right py-2 pl-2 font-semibold whitespace-nowrap" style="color: var(--theme-accent);">Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.TerritoryBucketRows)
+                {
+                    <tr class="border-b" style="border-color: var(--theme-surface-border);">
+                        <td class="text-left py-2 pr-3 aging-sticky-metric font-medium" style="color: var(--theme-text-dim); text-align: left;">@row.TerritoryLabel</td>
+                        @foreach (var value in row.BucketCounts)
+                        {
+                            <td class="text-right py-2 px-2 font-mono" style="color: var(--theme-text-dim);">@value</td>
+                        }
+                        <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@row.Total</td>
+                    </tr>
+                }
+                <tr style="border-top: 1px solid var(--theme-surface-border);">
+                    <td class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text); text-align: left;">Grand Total</td>
+                    @foreach (var value in Model.TerritoryBucketGrandTotals)
+                    {
+                        <td class="text-right py-2 px-2 font-mono font-semibold" style="color: var(--theme-text);">@value</td>
+                    }
+                    <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@Model.TerritoryBucketGrandTotal</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
 <!-- Detail rows -->
 <div id="aging-detail-section" class="aging-card aging-detail-section rounded-xl p-6 mb-10 fade-in">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -599,6 +727,10 @@
                     }
                     <input type="hidden" name="dailyYear" value="@Model.SelectedDailyYear" />
                     <input type="hidden" name="dailyMonth" value="@Model.SelectedDailyMonth" />
+                    @if (Model.SelectedDailyFocusDay is not null)
+                    {
+                        <input type="hidden" name="dailyDay" value="@Model.SelectedDailyFocusDay" />
+                    }
                     <input type="hidden" name="agingYear" value="@Model.SelectedAgingYear" />
                     <input type="hidden" name="page" value="1" />
                     <label class="text-xs font-medium" style="color: var(--theme-text-muted);">Rows</label>
@@ -635,6 +767,7 @@
                    asp-route-perfStart="@(od?.PerformanceReport.DateRangeStart)"
                    asp-route-perfEnd="@(od?.PerformanceReport.DateRangeEnd)"
                    asp-route-dailyYear="@Model.SelectedDailyYear" asp-route-dailyMonth="@Model.SelectedDailyMonth"
+                   asp-route-dailyDay="@Model.SelectedDailyFocusDay"
                    asp-route-agingYear="@Model.SelectedAgingYear"
                    asp-route-page="@prevPage" asp-route-pageSize="@Model.DetailPageSize"
                    data-ajax-detail-link="true"
@@ -655,6 +788,7 @@
                    asp-route-perfStart="@(od?.PerformanceReport.DateRangeStart)"
                    asp-route-perfEnd="@(od?.PerformanceReport.DateRangeEnd)"
                    asp-route-dailyYear="@Model.SelectedDailyYear" asp-route-dailyMonth="@Model.SelectedDailyMonth"
+                   asp-route-dailyDay="@Model.SelectedDailyFocusDay"
                    asp-route-agingYear="@Model.SelectedAgingYear"
                    asp-route-page="@nextPage" asp-route-pageSize="@Model.DetailPageSize"
                    data-ajax-detail-link="true"

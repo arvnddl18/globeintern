@@ -50,6 +50,12 @@ public class OperationAgingViewModel
     /// <summary>Day column headers (e.g. "1", "2", …) aligned with daily value arrays.</summary>
     public List<string> DailyHeaderLabels { get; set; } = [];
 
+    /// <summary>1-based day-of-month choices for the day-to-day table (through last visible day in the month).</summary>
+    public List<int> DailyFocusDayOptions { get; set; } = [];
+
+    /// <summary>When set, <see cref="DailyHeaderLabels"/> and day columns are restricted to this day only.</summary>
+    public int? SelectedDailyFocusDay { get; set; }
+
     public List<DailyStatusReportRow> DailyStatusRows { get; set; } = [];
 
     public int ReadingYearScope { get; set; }
@@ -63,8 +69,17 @@ public class OperationAgingViewModel
     public int DelayedCount { get; set; }
     public int PendingCount { get; set; }
     public int OngoingCount { get; set; }
+    public int UnassignedCount { get; set; }
+    public int CancelledCount { get; set; }
+
+    /// <summary>Subset of orders matching the configured completed status; also counted in <see cref="OtherStatusCount"/> for the day-to-day grid.</summary>
     public int CompletedCount { get; set; }
+
+    /// <summary>Completed plus any status not mapped to the five primary values.</summary>
     public int OtherStatusCount { get; set; }
+
+    /// <summary>Label for the aggregate "other" row (e.g. includes completed and non-mapped statuses).</summary>
+    public string NonMappedStatusLabel { get; set; } = string.Empty;
 
     /// <summary>Ordered bucket label → count (full year scope).</summary>
     public IReadOnlyList<AgingBucketCount> BucketCounts { get; set; } = [];
@@ -80,6 +95,12 @@ public class OperationAgingViewModel
     /// <summary>Chart.js bar: status categories.</summary>
     public List<string> BarLabels { get; set; } = [];
     public List<int> BarValues { get; set; } = [];
+
+    /// <summary>Davao North territory-only aging snapshot (0,1,2,3,4-7,8-15,16-30,30+).</summary>
+    public List<string> TerritoryBucketLabels { get; set; } = [];
+    public List<TerritoryAgingBucketRow> TerritoryBucketRows { get; set; } = [];
+    public List<int> TerritoryBucketGrandTotals { get; set; } = [];
+    public int TerritoryBucketGrandTotal { get; set; }
 }
 
 public class AgingBucketCount
@@ -128,4 +149,11 @@ public class RepairRemarkBucketRow
     public List<int> BucketCounts { get; set; } = [];
     public int RepairTotal { get; set; }
     public int GrandTotal { get; set; }
+}
+
+public class TerritoryAgingBucketRow
+{
+    public string TerritoryLabel { get; set; } = string.Empty;
+    public List<int> BucketCounts { get; set; } = [];
+    public int Total { get; set; }
 }

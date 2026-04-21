@@ -202,6 +202,7 @@ public class ReportController : Controller
         [FromQuery] string? month = null,
         [FromQuery] int? dailyYear = null,
         [FromQuery] int? dailyMonth = null,
+        [FromQuery] int? dailyDay = null,
         [FromQuery] int? agingYear = null,
         [FromQuery] int? agingMonth = null,
         [FromQuery] int page = 1,
@@ -295,6 +296,7 @@ public class ReportController : Controller
                     agingMonth,
                     page,
                     pageSize,
+                    dailyDay,
                     HttpContext.RequestAborted);
             }
             catch (Exception ex)
