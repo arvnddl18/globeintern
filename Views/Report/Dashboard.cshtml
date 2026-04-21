@@ -1359,9 +1359,8 @@
             <p class="text-2xl font-bold font-mono" style="color: #a1a1c7;">@Model.ComplianceNaCount.ToString("N0")</p>
         </div>
         <div class="rounded-xl p-5 lg:col-span-2" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #6366f1; border-left: 4px solid #6366f1;">
-            <p class="text-xs font-medium mb-1" style="color: #6a6a8e;">Pass rate (Pass ÷ (Pass + Fail))</p>
+            <p class="text-xs font-medium mb-1" style="color: #6a6a8e;">Pass rate</p>
             <p class="text-2xl font-bold font-mono" style="color: #a5b4fc;">@passRatePct.ToString("F1")%</p>
-            <p class="text-xs mt-1" style="color: #5a5a7e;">Completion time uses noon boundary (hour &lt; 12 = AM).</p>
         </div>
     </section>
     @if (Model.ComplianceFailReasons.Count > 0)
