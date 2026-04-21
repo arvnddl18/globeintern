@@ -166,6 +166,7 @@
         --aging-row-ongoing-bg: rgba(59, 130, 246, 0.26);
         --aging-row-unassigned-bg: rgba(14, 165, 233, 0.26);
         --aging-row-cancelled-bg: rgba(244, 63, 94, 0.26);
+        --aging-row-completed-bg: rgba(16, 185, 129, 0.24);
         --aging-row-other-bg: rgba(139, 92, 246, 0.22);
 
         --aging-row-total-sticky-bg: #353a4f;
@@ -174,6 +175,7 @@
         --aging-row-ongoing-sticky-bg: #2a4674;
         --aging-row-unassigned-sticky-bg: #164e63;
         --aging-row-cancelled-sticky-bg: #5c2a35;
+        --aging-row-completed-sticky-bg: #1f564b;
         --aging-row-other-sticky-bg: #3d2f55;
 
         --aging-text-total: #e5e7eb;
@@ -182,6 +184,7 @@
         --aging-text-ongoing: #bfdbfe;
         --aging-text-unassigned: #a5f3fc;
         --aging-text-cancelled: #fecdd3;
+        --aging-text-completed: #bbf7d0;
         --aging-text-other: #e9d5ff;
     }
     :root[data-theme="light"] {
@@ -191,6 +194,7 @@
         --aging-row-ongoing-bg: rgba(191, 219, 254, 0.90);
         --aging-row-unassigned-bg: rgba(165, 243, 252, 0.92);
         --aging-row-cancelled-bg: rgba(254, 205, 211, 0.92);
+        --aging-row-completed-bg: rgba(187, 247, 208, 0.90);
         --aging-row-other-bg: rgba(221, 214, 254, 0.92);
 
         --aging-row-total-sticky-bg: #dbe1ec;
@@ -199,6 +203,7 @@
         --aging-row-ongoing-sticky-bg: #bfdbfe;
         --aging-row-unassigned-sticky-bg: #a5f3fc;
         --aging-row-cancelled-sticky-bg: #fecdd3;
+        --aging-row-completed-sticky-bg: #bbf7d0;
         --aging-row-other-sticky-bg: #e9d5ff;
 
         --aging-text-total: #111827;
@@ -207,6 +212,7 @@
         --aging-text-ongoing: #1e3a8a;
         --aging-text-unassigned: #155e75;
         --aging-text-cancelled: #9f1239;
+        --aging-text-completed: #14532d;
         --aging-text-other: #5b21b6;
         --aging-metric-text: #0f172a;
     }
@@ -220,6 +226,7 @@
     .aging-day-table tbody tr.aging-row-ongoing { background: var(--aging-row-ongoing-bg); }
     .aging-day-table tbody tr.aging-row-unassigned { background: var(--aging-row-unassigned-bg); }
     .aging-day-table tbody tr.aging-row-cancelled { background: var(--aging-row-cancelled-bg); }
+    .aging-day-table tbody tr.aging-row-completed { background: var(--aging-row-completed-bg); }
     .aging-day-table tbody tr.aging-row-other { background: var(--aging-row-other-bg); }
 
     .aging-day-table tbody tr.aging-row-total td.aging-sticky-metric { background: var(--aging-row-total-sticky-bg) !important; }
@@ -228,6 +235,7 @@
     .aging-day-table tbody tr.aging-row-ongoing td.aging-sticky-metric { background: var(--aging-row-ongoing-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-unassigned td.aging-sticky-metric { background: var(--aging-row-unassigned-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-cancelled td.aging-sticky-metric { background: var(--aging-row-cancelled-sticky-bg) !important; }
+    .aging-day-table tbody tr.aging-row-completed td.aging-sticky-metric { background: var(--aging-row-completed-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-other td.aging-sticky-metric { background: var(--aging-row-other-sticky-bg) !important; }
 
     .aging-kpi-card {
@@ -331,7 +339,7 @@
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
             <h2 class="text-base font-semibold mb-1" style="color: var(--theme-text);">Day-to-Day Operational Report</h2>
-            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.SelectedMonthLabel · counts by last update date · days run through today for the selected month (filter by year, month, and optional day)</p>
+            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.SelectedMonthLabel · Repair only · counts by appointment date (fallback: last update date) · days run through today for the selected month (filter by year, month, and optional day)</p>
         </div>
         <div class="flex flex-nowrap items-center gap-2 sm:gap-3 max-w-full min-w-0 overflow-x-auto pb-0.5">
             <form method="get" asp-controller="Report" asp-action="OperationalDashboard" asp-route-token="@Model.ReportToken" class="flex flex-nowrap items-center gap-2 shrink-0" data-ajax-day="true">
@@ -476,6 +484,7 @@
                         "ongoing" => "color: var(--aging-text-ongoing);",
                         "unassigned" => "color: var(--aging-text-unassigned);",
                         "cancelled" => "color: var(--aging-text-cancelled);",
+                        "completed" => "color: var(--aging-text-completed);",
                         "other" => "color: var(--aging-text-other);",
                         _ => "color: var(--aging-text-total);"
                     };
@@ -486,6 +495,7 @@
                         "ongoing" => "color: var(--aging-text-ongoing);",
                         "unassigned" => "color: var(--aging-text-unassigned);",
                         "cancelled" => "color: var(--aging-text-cancelled);",
+                        "completed" => "color: var(--aging-text-completed);",
                         "other" => "color: var(--aging-text-other);",
                         _ => "color: var(--aging-text-total);"
                     };
@@ -496,6 +506,7 @@
                         "ongoing" => "color: var(--aging-text-ongoing);",
                         "unassigned" => "color: var(--aging-text-unassigned);",
                         "cancelled" => "color: var(--aging-text-cancelled);",
+                        "completed" => "color: var(--aging-text-completed);",
                         "other" => "color: var(--aging-text-other);",
                         _ => "color: var(--aging-text-total);"
                     };
@@ -506,6 +517,7 @@
                         "ongoing" => "aging-row-ongoing",
                         "unassigned" => "aging-row-unassigned",
                         "cancelled" => "aging-row-cancelled",
+                        "completed" => "aging-row-completed",
                         "other" => "aging-row-other",
                         _ => "aging-row-total"
                     };
@@ -522,7 +534,7 @@
                         <td class="py-2 pl-2 font-mono aging-total-col" style="@totalStyle; font-weight: 500;">@row.RowTotal</td>
                     </tr>
                 }
-                <tr style="border-top: 1px solid var(--theme-surface-border); background: rgba(148, 163, 184, 0.12);">
+                <tr data-grand-total="true" style="border-top: 1px solid var(--theme-surface-border); background: rgba(148, 163, 184, 0.12);">
                     <td class="py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text);">Grand Total</td>
                     @{
                         var gtColIdx = 0;

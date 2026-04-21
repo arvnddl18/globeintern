@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -258,7 +259,7 @@ public class CsvProcessingService : ICsvProcessingService
                 continue;
 
             var territory = csv.GetField(territoryCol) ?? "";
-            var status = csv.GetField(statusCol) ?? "";
+            var status = (csv.GetField(statusCol) ?? "").Trim();
             var subStatus = csv.GetField(subStatusCol) ?? "";
             var skillset = csv.GetField(skillsetCol) ?? "";
             var orderCreateDate = csv.GetField(orderCreateDateCol) ?? "";
@@ -1621,6 +1622,7 @@ public class CsvProcessingService : ICsvProcessingService
         var statusCol = Col("StatusColumn");
         var orderCreateCol = Col("OrderCreateDateColumn");
         var lastUpdateCol = Col("LastUpdateDateColumn");
+        var appointmentDateCol = Col("AppointmentDateColumn");
         var appointmentIdCol = Col("AppointmentIdColumn");
         var skillsetCol = Col("SkillsetColumn");
 
@@ -1733,7 +1735,7 @@ public class CsvProcessingService : ICsvProcessingService
         var dailyOngoing = new int[dayCount];
         var dailyUnassigned = new int[dayCount];
         var dailyCancelled = new int[dayCount];
-        var dailyOther = new int[dayCount];
+        var dailyCompleted = new int[dayCount];
 
         int totalYear = 0,
             delayed = 0,
@@ -1785,7 +1787,9 @@ public class CsvProcessingService : ICsvProcessingService
             var status = csv.GetField(statusCol) ?? "";
             var skillset = csv.GetField(skillsetCol) ?? "";
             var rawLastUpdate = csv.GetField(lastUpdateCol) ?? "";
+            var rawAppointmentDate = csv.GetField(appointmentDateCol) ?? "";
             var appointmentId = csv.GetField(appointmentIdCol) ?? "";
+            var isRepairSkillset = string.Equals(ClassifySkillKind(skillset), "repair", StringComparison.OrdinalIgnoreCase);
 
             if (orderCreateDate.Year == scopeYear)
             {
@@ -1829,7 +1833,7 @@ public class CsvProcessingService : ICsvProcessingService
                     case AgingStatusCategory.Ongoing: ongoing++; break;
                     default:
                         other++;
-                        if (string.Equals(status, completedV, StringComparison.OrdinalIgnoreCase))
+                        if (StatusEquals(status, completedV))
                             completed++;
                         break;
                 }
@@ -1847,7 +1851,8 @@ public class CsvProcessingService : ICsvProcessingService
                 });
             }
 
-            if (dayCount > 0 && TryParseCsvDateLoose(rawLastUpdate, out var lastUpDate))
+            var rawDailyDate = string.IsNullOrWhiteSpace(rawAppointmentDate) ? rawLastUpdate : rawAppointmentDate;
+            if (isRepairSkillset && dayCount > 0 && TryParseCsvDateLoose(rawDailyDate, out var lastUpDate))
             {
                 if (lastUpDate.Year == monthStart.Year && lastUpDate.Month == monthStart.Month
                     && lastUpDate <= lastVisibleDay && lastUpDate >= new DateOnly(monthStart.Year, monthStart.Month, 1))
@@ -1864,7 +1869,10 @@ public class CsvProcessingService : ICsvProcessingService
                             case AgingStatusCategory.Delayed: dailyDelayed[dayIndex]++; break;
                             case AgingStatusCategory.Pending: dailyPending[dayIndex]++; break;
                             case AgingStatusCategory.Ongoing: dailyOngoing[dayIndex]++; break;
-                            default: dailyOther[dayIndex]++; break;
+                            default:
+                                if (StatusEquals(status, completedV))
+                                    dailyCompleted[dayIndex]++;
+                                break;
                         }
                     }
                 }
@@ -1892,6 +1900,7 @@ public class CsvProcessingService : ICsvProcessingService
             "Delayed", "Pending", "Ongoing", "Unassigned", "Cancelled", "Other"
         };
         var barValues = new List<int> { delayed, pending, ongoing, unassigned, cancelled, other };
+        var nonMappedStatusLabel = "Completed";
 
         static int Sum(int[] xs)
         {
@@ -1900,8 +1909,6 @@ public class CsvProcessingService : ICsvProcessingService
             return s;
         }
 
-        var nonMappedStatusLabel = $"Other (incl. {completedV} & other values)";
-
         var dailyRows = new List<DailyStatusReportRow>
         {
             NewDailyRow("delayed", "Delayed", "delayed", dailyDelayed),
@@ -1909,7 +1916,7 @@ public class CsvProcessingService : ICsvProcessingService
             NewDailyRow("ongoing", "Ongoing", "ongoing", dailyOngoing),
             NewDailyRow("unassigned", "Unassigned", "unassigned", dailyUnassigned),
             NewDailyRow("cancelled", "Cancelled", "cancelled", dailyCancelled),
-            NewDailyRow("other", nonMappedStatusLabel, "other", dailyOther)
+            NewDailyRow("completed", "Completed", "completed", dailyCompleted)
         };
 
         int? selectedDailyFocusDay = null;
@@ -2090,17 +2097,30 @@ public class CsvProcessingService : ICsvProcessingService
         string pendingV,
         string ongoingV)
     {
-        if (string.Equals(status, unassignedV, StringComparison.OrdinalIgnoreCase))
+        if (StatusEquals(status, unassignedV))
             return AgingStatusCategory.Unassigned;
-        if (string.Equals(status, cancelledV, StringComparison.OrdinalIgnoreCase))
+        if (StatusEquals(status, cancelledV))
             return AgingStatusCategory.Cancelled;
-        if (string.Equals(status, delayedV, StringComparison.OrdinalIgnoreCase))
+        if (StatusEquals(status, delayedV))
             return AgingStatusCategory.Delayed;
-        if (string.Equals(status, pendingV, StringComparison.OrdinalIgnoreCase))
+        if (StatusEquals(status, pendingV))
             return AgingStatusCategory.Pending;
-        if (string.Equals(status, ongoingV, StringComparison.OrdinalIgnoreCase))
+        if (StatusEquals(status, ongoingV))
             return AgingStatusCategory.Ongoing;
         return AgingStatusCategory.Other;
+    }
+
+    private static bool StatusEquals(string left, string right) =>
+        string.Equals(NormalizeStatusToken(left), NormalizeStatusToken(right), StringComparison.Ordinal);
+
+    private static string NormalizeStatusToken(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        // Normalize status labels from CSV/config: trim + collapse spaces + lowercase.
+        var compact = Regex.Replace(value.Trim(), @"\s+", " ");
+        return compact.ToLowerInvariant();
     }
 
     private static string ClassifyAgingBucket(int ageDays)

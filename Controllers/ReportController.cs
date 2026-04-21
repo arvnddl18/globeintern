@@ -299,6 +299,11 @@ public class ReportController : Controller
                     dailyDay,
                     HttpContext.RequestAborted);
             }
+            catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                // Expected when user changes filters quickly or navigates away.
+                _logger.LogDebug("Operation aging request was canceled for token {Token}", agingToken);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error computing operation aging for token {Token}", agingToken);

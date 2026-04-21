@@ -690,9 +690,49 @@ else
                         var k = tr.getAttribute('data-metric');
                         tr.classList.toggle('is-hidden', !on[k]);
                     });
+                    updateGrandTotalRow(root);
+                }
+                function updateGrandTotalRow(root) {
+                    root = root || document;
+                    var table = root.querySelector('.aging-day-table');
+                    if (!table) return;
+
+                    var grandRow = table.querySelector('tr[data-grand-total="true"]');
+                    if (!grandRow) return;
+
+                    function parseCellValue(text) {
+                        var cleaned = (text || '').replace(/,/g, '').trim();
+                        var parsed = Number(cleaned);
+                        return Number.isFinite(parsed) ? parsed : 0;
+                    }
+
+                    var dayTotals = {};
+                    var grandTotal = 0;
+                    table.querySelectorAll('tr.aging-day-metric-row:not(.is-hidden)').forEach(function (row) {
+                        row.querySelectorAll('td[data-col-idx]').forEach(function (cell) {
+                            var idx = cell.getAttribute('data-col-idx');
+                            dayTotals[idx] = (dayTotals[idx] || 0) + parseCellValue(cell.textContent);
+                        });
+                        var rowTotalCell = row.querySelector('td.aging-total-col');
+                        if (rowTotalCell) {
+                            grandTotal += parseCellValue(rowTotalCell.textContent);
+                        }
+                    });
+
+                    grandRow.querySelectorAll('td[data-col-idx]').forEach(function (cell) {
+                        var idx = cell.getAttribute('data-col-idx');
+                        cell.textContent = String(dayTotals[idx] || 0);
+                    });
+                    var grandTotalCell = grandRow.querySelector('td.aging-total-col');
+                    if (grandTotalCell) {
+                        grandTotalCell.textContent = String(grandTotal);
+                    }
                 }
                 document.querySelectorAll('.aging-day-metric-cb').forEach(function (cb) {
-                    cb.addEventListener('change', applyDayMetricFilter);
+                    cb.addEventListener('change', function () {
+                        var section = cb.closest('#aging-day-section') || document;
+                        applyDayMetricFilter(section);
+                    });
                 });
                 applyDayMetricFilter();
 
