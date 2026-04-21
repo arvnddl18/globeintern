@@ -859,6 +859,229 @@ public class CsvProcessingService : ICsvProcessingService
         return BuildXlsx(dateFilterMode, selectedDate, dateRangeStart, dateRangeEnd, amRows, pmRows);
     }
 
+    public Task<MemoryStream> GenerateSlotAdherenceCsvAsync(KpiDashboardViewModel kpi)
+    {
+        var stream = new MemoryStream();
+        using (var writer = new StreamWriter(stream, new UTF8Encoding(true), 65536, leaveOpen: true))
+        {
+            static string CsvEscape(string value)
+            {
+                var raw = value ?? string.Empty;
+                if (raw.Contains("\""))
+                    raw = raw.Replace("\"", "\"\"");
+                if (raw.IndexOfAny(new[] { ',', '"', '\r', '\n' }) >= 0)
+                    return $"\"{raw}\"";
+                return raw;
+            }
+
+            static void WriteCsvRow(StreamWriter w, IEnumerable<string> cells)
+            {
+                w.WriteLine(string.Join(",", cells.Select(CsvEscape)));
+            }
+
+            writer.WriteLine("Slot Adherence Export");
+            writer.WriteLine();
+            WriteCsvRow(writer, ["Metric", "Value"]);
+            WriteCsvRow(writer, ["Total Appointments", kpi.TotalAppointments.ToString(CultureInfo.InvariantCulture)]);
+            WriteCsvRow(writer, ["Unique Territories", kpi.UniqueTerritoriesCount.ToString(CultureInfo.InvariantCulture)]);
+            WriteCsvRow(writer, ["Unique Skillsets", kpi.UniqueSkillsetsCount.ToString(CultureInfo.InvariantCulture)]);
+            WriteCsvRow(writer, ["Date Range", kpi.DateRangeDisplay]);
+            WriteCsvRow(writer, ["AM Slot Count", kpi.AmSlotCount.ToString(CultureInfo.InvariantCulture)]);
+            WriteCsvRow(writer, ["PM Slot Count", kpi.PmSlotCount.ToString(CultureInfo.InvariantCulture)]);
+            WriteCsvRow(writer, ["Delayed Count", kpi.DelayedCount.ToString(CultureInfo.InvariantCulture)]);
+            WriteCsvRow(writer, ["Lapsed Count", kpi.LapsedCount.ToString(CultureInfo.InvariantCulture)]);
+            if (kpi.ActiveDashboardView == "status")
+            {
+                WriteCsvRow(writer, ["Compliance Pass", kpi.CompliancePassCount.ToString(CultureInfo.InvariantCulture)]);
+                WriteCsvRow(writer, ["Compliance Fail", kpi.ComplianceFailCount.ToString(CultureInfo.InvariantCulture)]);
+                WriteCsvRow(writer, ["Compliance N/A", kpi.ComplianceNaCount.ToString(CultureInfo.InvariantCulture)]);
+            }
+
+            static void WriteDistributionBlock(StreamWriter w, string title, Dictionary<string, int> dist)
+            {
+                w.WriteLine();
+                w.WriteLine(title);
+                WriteCsvRow(w, ["Name", "Count"]);
+                foreach (var kv in dist.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
+                    WriteCsvRow(w, [kv.Key, kv.Value.ToString(CultureInfo.InvariantCulture)]);
+            }
+
+            WriteDistributionBlock(writer, "Status Distribution", kpi.StatusDistribution);
+            WriteDistributionBlock(writer, "SubStatus Distribution", kpi.SubStatusDistribution);
+            WriteDistributionBlock(writer, "Territory Distribution", kpi.TerritoryDistribution);
+            WriteDistributionBlock(writer, "Skillset Distribution", kpi.SkillsetDistribution);
+
+            writer.WriteLine();
+            writer.WriteLine("Data Preview (Full Filtered Rows)");
+            var headers = DeterminePreviewHeaders(kpi);
+            WriteCsvRow(writer, headers);
+            foreach (var row in kpi.PreviewRows)
+            {
+                var values = headers.Select(h => row.TryGetValue(h, out var value) ? value : string.Empty);
+                WriteCsvRow(writer, values);
+            }
+            writer.Flush();
+        }
+
+        stream.Position = 0;
+        return Task.FromResult(stream);
+    }
+
+    public Task<MemoryStream> GenerateSlotAdherenceVisualXlsxAsync(
+        KpiDashboardViewModel kpi,
+        IReadOnlyCollection<SlotAdherenceChartImage> chartImages)
+    {
+        var workbook = new XLWorkbook();
+        var summarySheet = workbook.Worksheets.Add("Slot Adherence");
+        var dataSheet = workbook.Worksheets.Add("Data Preview");
+
+        var row = 1;
+        summarySheet.Cell(row, 1).Value = "Slot Adherence Report Export";
+        summarySheet.Range(row, 1, row, 4).Merge();
+        summarySheet.Cell(row, 1).Style.Font.Bold = true;
+        summarySheet.Cell(row, 1).Style.Font.FontSize = 16;
+        summarySheet.Cell(row, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#E0E7FF");
+        row += 2;
+
+        summarySheet.Cell(row, 1).Value = "View";
+        summarySheet.Cell(row, 2).Value = kpi.ActiveDashboardView;
+        row++;
+        summarySheet.Cell(row, 1).Value = "Date Range";
+        summarySheet.Cell(row, 2).Value = kpi.DateRangeDisplay;
+        row += 2;
+
+        summarySheet.Cell(row, 1).Value = "KPI";
+        summarySheet.Cell(row, 2).Value = "Value";
+        summarySheet.Range(row, 1, row, 2).Style.Font.Bold = true;
+        summarySheet.Range(row, 1, row, 2).Style.Fill.BackgroundColor = XLColor.FromHtml("#DBEAFE");
+        row++;
+
+        void WriteMetric(string name, string value)
+        {
+            summarySheet.Cell(row, 1).Value = name;
+            summarySheet.Cell(row, 2).Value = value;
+            row++;
+        }
+
+        WriteMetric("Total Appointments", kpi.TotalAppointments.ToString(CultureInfo.InvariantCulture));
+        WriteMetric("Unique Territories", kpi.UniqueTerritoriesCount.ToString(CultureInfo.InvariantCulture));
+        WriteMetric("Unique Skillsets", kpi.UniqueSkillsetsCount.ToString(CultureInfo.InvariantCulture));
+        WriteMetric("AM Slot Count", kpi.AmSlotCount.ToString(CultureInfo.InvariantCulture));
+        WriteMetric("PM Slot Count", kpi.PmSlotCount.ToString(CultureInfo.InvariantCulture));
+        WriteMetric("Delayed Count", kpi.DelayedCount.ToString(CultureInfo.InvariantCulture));
+        WriteMetric("Lapsed Count", kpi.LapsedCount.ToString(CultureInfo.InvariantCulture));
+        if (kpi.ActiveDashboardView == "status")
+        {
+            WriteMetric("Compliance Pass", kpi.CompliancePassCount.ToString(CultureInfo.InvariantCulture));
+            WriteMetric("Compliance Fail", kpi.ComplianceFailCount.ToString(CultureInfo.InvariantCulture));
+            WriteMetric("Compliance N/A", kpi.ComplianceNaCount.ToString(CultureInfo.InvariantCulture));
+        }
+
+        row += 1;
+        WriteDistributionTable(summarySheet, ref row, "Status Distribution", kpi.StatusDistribution);
+        WriteDistributionTable(summarySheet, ref row, "Territory Distribution", kpi.TerritoryDistribution);
+        WriteDistributionTable(summarySheet, ref row, "Skillset Distribution", kpi.SkillsetDistribution);
+
+        row += 1;
+        summarySheet.Cell(row, 1).Value = "Chart Snapshots";
+        summarySheet.Cell(row, 1).Style.Font.Bold = true;
+        row++;
+        foreach (var chart in chartImages.Take(8))
+        {
+            if (!TryDecodeDataUrl(chart.DataUrl, out var imageBytes))
+                continue;
+            summarySheet.Cell(row, 1).Value = string.IsNullOrWhiteSpace(chart.ChartTitle) ? chart.ChartKey : chart.ChartTitle;
+            row++;
+            using var imageStream = new MemoryStream(imageBytes, writable: false);
+            summarySheet.AddPicture(imageStream)
+                .MoveTo(summarySheet.Cell(row, 1))
+                .WithSize(900, 280);
+            row += 16;
+        }
+
+        var previewHeaders = DeterminePreviewHeaders(kpi);
+        for (var i = 0; i < previewHeaders.Count; i++)
+            dataSheet.Cell(1, i + 1).Value = previewHeaders[i];
+        var dataHeader = dataSheet.Range(1, 1, 1, previewHeaders.Count);
+        dataHeader.Style.Font.Bold = true;
+        dataHeader.Style.Fill.BackgroundColor = XLColor.FromHtml("#E5E7EB");
+        dataSheet.SheetView.FreezeRows(1);
+
+        for (var rowIndex = 0; rowIndex < kpi.PreviewRows.Count; rowIndex++)
+        {
+            var src = kpi.PreviewRows[rowIndex];
+            for (var colIndex = 0; colIndex < previewHeaders.Count; colIndex++)
+            {
+                var key = previewHeaders[colIndex];
+                dataSheet.Cell(rowIndex + 2, colIndex + 1).Value = src.TryGetValue(key, out var val) ? val : string.Empty;
+            }
+        }
+
+        summarySheet.Columns(1, 4).AdjustToContents();
+        dataSheet.Columns(1, Math.Min(10, previewHeaders.Count)).AdjustToContents();
+
+        var output = new MemoryStream();
+        workbook.SaveAs(output);
+        output.Position = 0;
+        return Task.FromResult(output);
+    }
+
+    private static void WriteDistributionTable(IXLWorksheet sheet, ref int row, string title, Dictionary<string, int> values)
+    {
+        sheet.Cell(row, 1).Value = title;
+        sheet.Cell(row, 1).Style.Font.Bold = true;
+        row++;
+        sheet.Cell(row, 1).Value = "Name";
+        sheet.Cell(row, 2).Value = "Count";
+        sheet.Range(row, 1, row, 2).Style.Font.Bold = true;
+        sheet.Range(row, 1, row, 2).Style.Fill.BackgroundColor = XLColor.FromHtml("#F3F4F6");
+        row++;
+        foreach (var kv in values.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            sheet.Cell(row, 1).Value = kv.Key;
+            sheet.Cell(row, 2).Value = kv.Value;
+            row++;
+        }
+        row++;
+    }
+
+    private static List<string> DeterminePreviewHeaders(KpiDashboardViewModel kpi)
+    {
+        string[] preferredHeaders =
+        [
+            "AppointmentID", "AppointmentDate", "Skillset", "Status", "SubStatus", "Territory",
+            "OrderCreateDate", "LastUpdateDate", "CompletionDate", "Compliance", "ComplianceReason"
+        ];
+        var availableKeys = new HashSet<string>(
+            kpi.PreviewRows.SelectMany(row => row.Keys).Where(k => !k.StartsWith("_", StringComparison.Ordinal)),
+            StringComparer.OrdinalIgnoreCase);
+        var ordered = preferredHeaders.Where(availableKeys.Contains).ToList();
+        ordered.AddRange(availableKeys.Where(k => !ordered.Contains(k, StringComparer.OrdinalIgnoreCase)).OrderBy(k => k, StringComparer.OrdinalIgnoreCase));
+        return ordered;
+    }
+
+    private static bool TryDecodeDataUrl(string dataUrl, out byte[] data)
+    {
+        data = [];
+        if (string.IsNullOrWhiteSpace(dataUrl))
+            return false;
+        var markerIndex = dataUrl.IndexOf("base64,", StringComparison.OrdinalIgnoreCase);
+        if (markerIndex < 0)
+            return false;
+        var base64 = dataUrl[(markerIndex + "base64,".Length)..].Trim();
+        if (base64.Length == 0 || base64.Length > 1_500_000)
+            return false;
+        try
+        {
+            data = Convert.FromBase64String(base64);
+            return data.Length > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private sealed record FilteredDatasetKpi(
         int TotalAppointments,
         int UniqueTerritoriesCount,

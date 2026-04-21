@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -770,127 +771,6 @@ public class ReportController : Controller
 
     [HttpPost("[action]")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DownloadFiltered([FromForm] string reportToken, [FromForm] string? activeDashboardView = null)
-    {
-        if (!_sessionStore.IsValidTokenFormat(reportToken))
-        {
-            TempData["Error"] = "Report not found or expired. Please upload again.";
-            return RedirectToAction(nameof(Upload));
-        }
-
-        if (!TryGetCurrentUserId(out var userId))
-        {
-            TempData["Error"] = "Report not found or expired. Please upload again.";
-            return RedirectToAction(nameof(Upload));
-        }
-
-        var viewKey = string.Equals(activeDashboardView, "status", StringComparison.OrdinalIgnoreCase)
-            ? "status"
-            : "pending";
-
-        if (_sessionStore.TryGetCsvPath(reportToken, out var csvPath))
-        {
-            var session = await _sessionStore.LoadAsync(reportToken);
-            if (session is null)
-            {
-                TempData["Error"] = "Report session is incomplete. Please upload again.";
-                return RedirectToAction(nameof(Upload));
-            }
-
-            try
-            {
-                var activeFilters = ReportSessionFilterResolver.GetSessionFiltersForView(session, viewKey);
-                var filterOptions = await GetFilterOptionsForDashboardAsync(
-                    reportToken,
-                    csvPath,
-                    session,
-                    HttpContext.RequestAborted);
-                var territoryForExport = ResolveTerritoryFiltersForKpi(
-                    session.CsvSourceKind,
-                    activeFilters.SelectedTerritories,
-                    filterOptions.AvailableTerritories);
-
-                var mode = activeFilters.DateFilterMode;
-                DateOnly? singleDate = ReportSessionDate.ParseDateOrNull(activeFilters.SelectedDate);
-                DateOnly? rangeStart = ReportSessionDate.ParseDateOrNull(activeFilters.DateRangeStart);
-                DateOnly? rangeEnd = ReportSessionDate.ParseDateOrNull(activeFilters.DateRangeEnd);
-
-                var xlsxStream = await _csvService.GenerateFilteredXlsxAsync(
-                    csvPath,
-                    mode,
-                    singleDate,
-                    rangeStart,
-                    rangeEnd,
-                    territoryForExport,
-                    activeFilters.SelectedStatuses,
-                    activeFilters.SelectedSubStatuses,
-                    activeFilters.SelectedSkillsets,
-                    activeFilters.SelectedOrderCreateDates);
-
-                var fileName = mode switch
-                {
-                    "single" when singleDate.HasValue => $"FilteredReport_{singleDate.Value:yyyy-MM-dd}.xlsx",
-                    "range" => $"FilteredReport_{rangeStart?.ToString("yyyy-MM-dd") ?? "start"}_to_{rangeEnd?.ToString("yyyy-MM-dd") ?? "end"}.xlsx",
-                    _ => "FilteredReport_AllDates.xlsx"
-                };
-
-                return File(
-                    xlsxStream,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    fileName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generating filtered XLSX report");
-                TempData["Error"] = $"Error generating report: {ex.Message}";
-                return RedirectToAction(nameof(Dashboard), new { token = reportToken, view = viewKey });
-            }
-        }
-
-        var archive = await _db.ReportDashboardArchives.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Token == reportToken && a.UserId == userId, HttpContext.RequestAborted);
-        if (archive is null)
-        {
-            TempData["Error"] = "Report not found or expired. Please upload again.";
-            return RedirectToAction(nameof(Upload));
-        }
-
-        var bytes = viewKey == "status" ? archive.StatusFilteredXlsxBytes : archive.PendingFilteredXlsxBytes;
-        if (bytes is not { Length: > 0 })
-        {
-            TempData["Error"] = "Export file is not available for this historical report.";
-            return RedirectToAction(nameof(Dashboard), new { token = reportToken, view = viewKey });
-        }
-
-        ReportSessionData archSession;
-        try
-        {
-            archSession = JsonSerializer.Deserialize<ReportSessionData>(archive.SessionJson, ReportSessionJson.Options)
-                          ?? new ReportSessionData();
-        }
-        catch (JsonException)
-        {
-            TempData["Error"] = "Report session is incomplete. Please upload again.";
-            return RedirectToAction(nameof(Upload));
-        }
-
-        var af = ReportSessionFilterResolver.GetSessionFiltersForView(archSession, viewKey);
-        var modeA = af.DateFilterMode;
-        DateOnly? sd = ReportSessionDate.ParseDateOrNull(af.SelectedDate);
-        DateOnly? rs = ReportSessionDate.ParseDateOrNull(af.DateRangeStart);
-        DateOnly? re = ReportSessionDate.ParseDateOrNull(af.DateRangeEnd);
-        var fileNameA = modeA switch
-        {
-            "single" when sd.HasValue => $"FilteredReport_{sd.Value:yyyy-MM-dd}.xlsx",
-            "range" => $"FilteredReport_{rs?.ToString("yyyy-MM-dd") ?? "start"}_to_{re?.ToString("yyyy-MM-dd") ?? "end"}.xlsx",
-            _ => "FilteredReport_AllDates.xlsx"
-        };
-
-        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileNameA);
-    }
-
-    [HttpPost("[action]")]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Generate(FilterOptionsViewModel model)
     {
         if (!_sessionStore.IsValidTokenFormat(model.ReportToken))
@@ -984,6 +864,183 @@ public class ReportController : Controller
         };
 
         return File(archive.LegacyGenerateXlsxBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileNameA);
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ExportSlotAdherenceCsv(SlotAdherenceExportRequest request)
+    {
+        if (!_sessionStore.IsValidTokenFormat(request.ReportToken))
+        {
+            TempData["Error"] = "Report not found or expired. Please upload again.";
+            return RedirectToAction(nameof(Upload));
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            TempData["Error"] = "Report not found or expired. Please upload again.";
+            return RedirectToAction(nameof(Upload));
+        }
+
+        try
+        {
+            var (kpi, isArchived) = await BuildExportKpiAsync(request.ReportToken, request.View, userId, HttpContext.RequestAborted);
+            var csvStream = await _csvService.GenerateSlotAdherenceCsvAsync(kpi);
+            var stamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var archiveTag = isArchived ? "_archived" : string.Empty;
+            var fileName = $"SlotAdherence_{kpi.ActiveDashboardView}_{stamp}{archiveTag}.csv";
+            return File(csvStream, "text/csv; charset=utf-8", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating Slot Adherence CSV export");
+            TempData["Error"] = $"Error exporting Slot Adherence CSV: {ex.Message}";
+            return RedirectToAction(nameof(Dashboard), new { token = request.ReportToken, view = request.View });
+        }
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ExportSlotAdherenceExcel(SlotAdherenceExportRequest request)
+    {
+        if (!_sessionStore.IsValidTokenFormat(request.ReportToken))
+        {
+            TempData["Error"] = "Report not found or expired. Please upload again.";
+            return RedirectToAction(nameof(Upload));
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            TempData["Error"] = "Report not found or expired. Please upload again.";
+            return RedirectToAction(nameof(Upload));
+        }
+
+        try
+        {
+            var (kpi, isArchived) = await BuildExportKpiAsync(request.ReportToken, request.View, userId, HttpContext.RequestAborted);
+            var chartImages = ParseChartImages(request.ChartImagesJson);
+            var xlsxStream = await _csvService.GenerateSlotAdherenceVisualXlsxAsync(kpi, chartImages);
+            var stamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var archiveTag = isArchived ? "_archived" : string.Empty;
+            var fileName = $"SlotAdherence_{kpi.ActiveDashboardView}_{stamp}{archiveTag}.xlsx";
+            return File(xlsxStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating Slot Adherence Excel export");
+            TempData["Error"] = $"Error exporting Slot Adherence Excel: {ex.Message}";
+            return RedirectToAction(nameof(Dashboard), new { token = request.ReportToken, view = request.View });
+        }
+    }
+
+    private async Task<(KpiDashboardViewModel Kpi, bool IsArchived)> BuildExportKpiAsync(
+        string token,
+        string? requestedView,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        if (_sessionStore.TryGetCsvPath(token, out var csvPath))
+        {
+            var session = await _sessionStore.LoadAsync(token);
+            if (session is null)
+                throw new InvalidOperationException("Report session is incomplete.");
+
+            var sourceKind = session.CsvSourceKind;
+            var activeView = !string.IsNullOrWhiteSpace(requestedView)
+                ? (string.Equals(requestedView, "status", StringComparison.OrdinalIgnoreCase) ? "status" : "pending")
+                : sourceKind == CsvSourceKind.AllStatus ? "status" : "pending";
+
+            var filterOptions = await GetFilterOptionsForDashboardAsync(token, csvPath, session, cancellationToken);
+            var activeFilters = ReportSessionFilterResolver.GetSessionFiltersForView(session, activeView);
+            var mode = activeFilters.DateFilterMode;
+            DateOnly? singleDate = ReportSessionDate.ParseDateOrNull(activeFilters.SelectedDate);
+            DateOnly? rangeStart = ReportSessionDate.ParseDateOrNull(activeFilters.DateRangeStart);
+            DateOnly? rangeEnd = ReportSessionDate.ParseDateOrNull(activeFilters.DateRangeEnd);
+
+            var territoryFilters = ResolveTerritoryFiltersForKpi(sourceKind, activeFilters.SelectedTerritories, filterOptions.AvailableTerritories);
+
+            KpiDashboardViewModel kpi = activeView == "status"
+                ? await _csvService.ComputeAllStatusComplianceKpiAsync(
+                    csvPath,
+                    mode,
+                    singleDate,
+                    rangeStart,
+                    rangeEnd,
+                    territoryFilters,
+                    activeFilters.SelectedStatuses,
+                    activeFilters.SelectedSubStatuses,
+                    activeFilters.SelectedSkillsets,
+                    activeFilters.SelectedOrderCreateDates)
+                : await _csvService.ComputeKpiAsync(
+                    csvPath,
+                    mode,
+                    singleDate,
+                    rangeStart,
+                    rangeEnd,
+                    territoryFilters,
+                    activeFilters.SelectedStatuses,
+                    activeFilters.SelectedSubStatuses,
+                    activeFilters.SelectedSkillsets,
+                    activeFilters.SelectedOrderCreateDates);
+
+            kpi.ReportToken = token;
+            kpi.ActiveDashboardView = activeView;
+            kpi.CsvSourceKind = sourceKind;
+            kpi.DateFilterMode = mode;
+            kpi.SelectedDate = activeFilters.SelectedDate;
+            kpi.DateRangeStart = activeFilters.DateRangeStart;
+            kpi.DateRangeEnd = activeFilters.DateRangeEnd;
+            kpi.SelectedTerritories = territoryFilters;
+            kpi.SelectedStatuses = activeFilters.SelectedStatuses;
+            kpi.SelectedSubStatuses = activeFilters.SelectedSubStatuses;
+            kpi.SelectedSkillsets = activeFilters.SelectedSkillsets;
+            kpi.SelectedOrderCreateDates = activeFilters.SelectedOrderCreateDates;
+            return (kpi, false);
+        }
+
+        var archive = await _db.ReportDashboardArchives
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Token == token && a.UserId == userId, cancellationToken);
+        if (archive is null)
+            throw new InvalidOperationException("Report not found or expired.");
+
+        var archiveSession = JsonSerializer.Deserialize<ReportSessionData>(archive.SessionJson, ReportSessionJson.Options)
+                             ?? throw new InvalidOperationException("Archived report session is incomplete.");
+        var archiveSourceKind = archiveSession.CsvSourceKind;
+        var activeViewArchive = !string.IsNullOrWhiteSpace(requestedView)
+            ? (string.Equals(requestedView, "status", StringComparison.OrdinalIgnoreCase) ? "status" : "pending")
+            : archiveSourceKind == CsvSourceKind.AllStatus ? "status" : "pending";
+        var archiveKpiJson = activeViewArchive == "status" ? archive.StatusKpiJson : archive.PendingKpiJson;
+        var archivedKpi = JsonSerializer.Deserialize<KpiDashboardViewModel>(archiveKpiJson, ReportKpiJson.Options) ?? new KpiDashboardViewModel();
+        archivedKpi.ReportToken = token;
+        archivedKpi.ActiveDashboardView = activeViewArchive;
+        archivedKpi.CsvSourceKind = archiveSourceKind;
+        return (archivedKpi, true);
+    }
+
+    private static IReadOnlyCollection<SlotAdherenceChartImage> ParseChartImages(string? chartImagesJson)
+    {
+        if (string.IsNullOrWhiteSpace(chartImagesJson))
+            return [];
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<SlotAdherenceChartImage>>(chartImagesJson)
+                         ?? [];
+            return parsed
+                .Where(x => !string.IsNullOrWhiteSpace(x.DataUrl))
+                .Take(8)
+                .Select(x => new SlotAdherenceChartImage
+                {
+                    ChartKey = (x.ChartKey ?? string.Empty).Trim(),
+                    ChartTitle = (x.ChartTitle ?? string.Empty).Trim(),
+                    DataUrl = (x.DataUrl ?? string.Empty).Trim()
+                })
+                .ToList();
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private async Task PopulateDashboardContextAsync(string token, KpiDashboardViewModel kpi, CancellationToken cancellationToken)

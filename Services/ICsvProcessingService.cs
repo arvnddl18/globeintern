@@ -59,6 +59,12 @@ public interface ICsvProcessingService
         IReadOnlyCollection<string> selectedSkillsets,
         IReadOnlyCollection<string> selectedOrderCreateDates);
 
+    Task<MemoryStream> GenerateSlotAdherenceCsvAsync(KpiDashboardViewModel kpi);
+
+    Task<MemoryStream> GenerateSlotAdherenceVisualXlsxAsync(
+        KpiDashboardViewModel kpi,
+        IReadOnlyCollection<SlotAdherenceChartImage> chartImages);
+
     /// <summary>
     /// Extracts heatmap data from the CSV with NO Slot Adherence filters applied.
     /// Returns a partial <see cref="KpiDashboardViewModel"/> with only the Heatmap* fields populated.

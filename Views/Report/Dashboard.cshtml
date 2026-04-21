@@ -55,9 +55,6 @@
         --dash-text-muted: #8a8ab0;
         --dash-pill-bg: rgba(255, 255, 255, 0.04);
         --dash-input-bg: #0d0d1a;
-        --dash-pvt-input-bg: #1a1a32;
-        --dash-pvt-head-bg: rgba(15, 15, 30, 0.7);
-        --dash-pvt-cell-bg: rgba(22, 22, 42, 0.5);
     }
 
     :root[data-theme="light"] {
@@ -68,9 +65,6 @@
         --dash-text-muted: #556084;
         --dash-pill-bg: rgba(30, 41, 59, 0.06);
         --dash-input-bg: #f8faff;
-        --dash-pvt-input-bg: #f6f8fc;
-        --dash-pvt-head-bg: #eef2fb;
-        --dash-pvt-cell-bg: #ffffff;
     }
 
     :root[data-theme="light"] header h1,
@@ -186,63 +180,6 @@
         border-color: #d8deea !important;
     }
 
-    .pvtUi { background: transparent !important; color: #c8c8e0 !important; border: none !important; }
-    .pvtUi select, .pvtUi input[type="text"] {
-        background: var(--dash-pvt-input-bg) !important; color: var(--dash-text-dim) !important;
-        border: 1px solid var(--dash-card-border) !important; border-radius: 6px !important;
-        padding: 4px 8px !important; font-size: 12px !important;
-    }
-    .pvtUi select:focus, .pvtUi input[type="text"]:focus { outline: none !important; border-color: #6366f1 !important; }
-    .pvtAxisContainer, .pvtVals { background: var(--dash-card-bg) !important; border: 1px solid var(--dash-card-border) !important; border-radius: 8px !important; }
-    .pvtAxisContainer li span.pvtAttr {
-        background: rgba(99, 102, 241, 0.18) !important; color: #a5b4fc !important;
-        border: 1px solid rgba(99, 102, 241, 0.35) !important; border-radius: 6px !important;
-        font-size: 11px !important; font-weight: 500 !important;
-    }
-    .pvtAxisContainer li span.pvtAttr:hover { background: rgba(99, 102, 241, 0.28) !important; }
-    .pvtAxisContainer .pvtTriangle { color: #6366f1 !important; }
-    .pvtTable { font-size: 12px !important; border-collapse: collapse !important; }
-    .pvtTable thead tr th, .pvtTable tbody tr th {
-        background: var(--dash-pvt-head-bg) !important; color: var(--dash-text-muted) !important;
-        border: 1px solid var(--dash-card-border) !important; padding: 6px 10px !important;
-        font-weight: 600 !important; font-size: 11px !important;
-    }
-    .pvtTable tbody tr td {
-        background: var(--dash-pvt-cell-bg) !important; color: var(--dash-text-dim) !important;
-        border: 1px solid var(--dash-card-border) !important; padding: 5px 10px !important;
-        font-family: 'JetBrains Mono', monospace !important; font-size: 11px !important;
-    }
-    .pvtTable tbody tr td.pvtTotal, .pvtTable thead tr th.pvtTotalLabel, .pvtTable tbody tr th.pvtTotalLabel {
-        background: rgba(99, 102, 241, 0.1) !important; color: #a5b4fc !important;
-        font-weight: 700 !important;
-    }
-    .pvtTable .pvtGrandTotal { background: rgba(99, 102, 241, 0.18) !important; color: #f0f0f8 !important; }
-    .pvtFilterBox {
-        background: var(--dash-card-bg) !important; border: 1px solid var(--dash-card-border) !important;
-        border-radius: 10px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
-        color: var(--dash-text-dim) !important;
-    }
-    .pvtFilterBox h4 { color: var(--dash-text) !important; font-weight: 600 !important; }
-    .pvtFilterBox p { color: var(--dash-text-muted) !important; }
-    .pvtFilterBox button {
-        background: #6366f1 !important; color: #fff !important;
-        border: none !important; border-radius: 6px !important;
-        padding: 5px 14px !important; cursor: pointer !important; font-weight: 500 !important;
-    }
-    .pvtFilterBox button:hover { background: #5558e6 !important; }
-    .pvtFilterBox input[type="checkbox"] { accent-color: #6366f1 !important; }
-    .pvtFilterBox .count { color: var(--dash-text-muted) !important; }
-    .pvtRendererArea { background: transparent !important; }
-    table.pvtTable { width: 100% !important; }
-    .pvtCheckContainer { overflow-y: auto !important; max-height: 200px !important; }
-    .pvtCheckContainer p label { color: var(--dash-text-dim) !important; }
-    .pvtSearch { background: var(--dash-pvt-input-bg) !important; color: var(--dash-text-dim) !important; border: 1px solid var(--dash-card-border) !important; border-radius: 6px !important; }
-    #pivot-output .pvtRendererArea { max-width: 100% !important; overflow-x: auto !important; }
-    #pivot-output .pvtRendererArea .plotly { max-height: 420px !important; }
-    #pivot-output .pvtRendererArea .js-plotly-plot, #pivot-output .pvtRendererArea .plot-container { max-height: 420px !important; width: 100% !important; }
-    #pivot-output .pvtRendererArea .js-plotly-plot .main-svg { max-height: 420px !important; }
-    #pivot-output .pvtUi { overflow-x: auto !important; }
-    #pivot-output td.pvtRendererArea { vertical-align: top !important; }
 
     #report-history-section { contain: content; }
     .report-history-scroll {
@@ -953,7 +890,7 @@
     <div class="mb-6 fade-in rounded-xl px-4 py-3 flex items-center gap-2 text-sm font-medium"
          style="background: rgba(30, 41, 59, 0.5); border: 1px solid #3a3a5a; color: #a5b4fc;">
         <i data-lucide="lock" style="width:16px; height:16px; flex-shrink:0;"></i>
-        <span>Historical report — the source file was removed by storage policy. Filters are locked; you can still export the saved workbook.</span>
+        <span>Historical report — the source file was removed by storage policy. Filters are locked for archived snapshots.</span>
     </div>
 }
 
@@ -1105,7 +1042,7 @@
 {
 <div id="filter-modal-backdrop" class="fixed inset-0 z-40 hidden" style="background: rgba(0,0,0,0.7);">
     <div class="fixed inset-0 flex items-start justify-center overflow-y-auto py-8 px-4 z-50">
-        <div id="filter-modal" class="w-full max-w-3xl rounded-2xl shadow-2xl"
+        <div id="filter-modal" class="w-full max-w-5xl rounded-2xl shadow-2xl"
              style="background: #12122a; border: 1px solid #2a2a4a;">
             <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid #2a2a4a;">
                 <div class="flex items-center gap-2">
@@ -1194,7 +1131,12 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    @{
+                        var modalPanelGridClass = Model.CsvSourceKind == SlotAd_Globe.Models.CsvSourceKind.AllStatus
+                            ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+                            : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4";
+                    }
+                    <div class="@modalPanelGridClass">
                         @if (Model.CsvSourceKind == SlotAd_Globe.Models.CsvSourceKind.AllStatus)
                         {
                             foreach (var t in Model.SelectedTerritories ?? [])
@@ -1208,8 +1150,6 @@
                         }
                         @{ ModalFilterPanel("Status", "SelectedStatuses", Model.AvailableStatuses, Model.SelectedStatuses); }
                         @{ ModalFilterPanel("SubStatus", "SelectedSubStatuses", Model.AvailableSubStatuses, Model.SelectedSubStatuses); }
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         @{ ModalFilterPanel("Skillset", "SelectedSkillsets", Model.AvailableSkillsets, Model.SelectedSkillsets); }
                     </div>
                 </div>
@@ -1238,9 +1178,9 @@
     {
         var selectedJson = System.Text.Json.JsonSerializer.Serialize(selected ?? []);
         var optionsJson = System.Text.Json.JsonSerializer.Serialize(options);
-        <div class="modal-filter-panel rounded-xl overflow-hidden"
+        <div class="modal-filter-panel rounded-xl overflow-hidden flex flex-col"
              data-field="@fieldName" data-options="@optionsJson" data-selected="@selectedJson"
-             style="background: rgba(22, 22, 42, 0.6); border: 1px solid #2a2a4a;">
+             style="background: rgba(22, 22, 42, 0.6); border: 1px solid #2a2a4a; min-height: 260px;">
             <div class="flex items-center justify-between px-3 py-2.5" style="border-bottom: 1px solid #2a2a4a;">
                 <div class="flex items-center gap-1.5">
                     <i data-lucide="filter" style="width:12px; height:12px; color: #6366f1;"></i>
@@ -1270,7 +1210,7 @@
                            style="background: #1a1a32; border: 1px solid #2a2a4a; color: #e0e0f0;" />
                 </div>
             }
-            <div class="filter-scroll p-2 space-y-0.5" data-list="@fieldName" style="max-height: 180px; overflow-y: auto;"></div>
+            <div class="filter-scroll p-2 space-y-0.5 flex-1" data-list="@fieldName" style="max-height: 220px; overflow-y: auto;"></div>
             <div class="px-3 py-1.5 text-center" style="border-top: 1px solid #2a2a4a;">
                 <span class="text-xs font-mono" style="color: #5a5a7e;">@options.Count value(s)</span>
             </div>
@@ -1675,52 +1615,6 @@
     </div>
 </section>
 
-<section class="mb-8 fade-in" style="animation-delay: 0.22s;">
-    <div class="rounded-xl overflow-hidden" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
-        <div class="flex items-center justify-between px-5 py-4 cursor-pointer" id="pivot-section-header"
-             style="border-bottom: 1px solid #2a2a4a;">
-            <div class="flex items-center gap-2">
-                <i data-lucide="layout-grid" style="width:14px; height:14px; color: #a855f7;"></i>
-                <span class="text-sm font-semibold" style="color: #c8c8e0;">Pivot Analysis</span>
-                <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background: rgba(168,85,247,0.15); color: #c084fc;">Interactive</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="text-xs" style="color: #6a6a8e;" id="pivot-toggle-hint">Click to expand</span>
-                <i data-lucide="chevron-down" id="pivot-chevron" style="width:16px; height:16px; color: #6a6a8e; transition: transform 0.2s;"></i>
-            </div>
-        </div>
-
-        <div id="pivot-section-body" class="hidden">
-            <div class="px-5 py-3 flex flex-wrap gap-2" style="border-bottom: 1px solid #2a2a4a;">
-                <span class="text-xs font-medium self-center" style="color: #8a8ab0;">Presets:</span>
-                <button type="button" class="pivot-preset px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                        data-preset="statusByTerritory"
-                        style="color: #a5b4fc; background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);">
-                    Status by Territory
-                </button>
-                <button type="button" class="pivot-preset px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                        data-preset="dailyTrend"
-                        style="color: #a5b4fc; background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);">
-                    Daily Trend
-                </button>
-                <button type="button" class="pivot-preset px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                        data-preset="skillsetBreakdown"
-                        style="color: #a5b4fc; background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);">
-                    Skillset Breakdown
-                </button>
-                <button type="button" class="pivot-preset px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                        data-preset="substatusByTerritory"
-                        style="color: #a5b4fc; background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);">
-                    SubStatus by Territory
-                </button>
-            </div>
-
-            <div class="p-5 filter-scroll" style="overflow-x: auto;">
-                <div id="pivot-output"></div>
-            </div>
-        </div>
-    </div>
-</section>
 
 <section class="mb-8 fade-in" style="animation-delay: 0.25s;">
     <div class="rounded-xl overflow-hidden" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
@@ -1779,6 +1673,30 @@
             </div>
         </div>
     </div>
+</section>
+
+<section class="mt-8 pt-4 fade-in" style="animation-delay: 0.26s; border-top: 1px solid #2a2a4a;">
+    <div class="flex flex-wrap items-center justify-end gap-2">
+        <button id="slot-adh-export-csv-btn"
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                style="color: #a5b4fc; background: rgba(99, 102, 241, 0.12); border: 1px solid #2a2a4a;">
+            <i data-lucide="file-down" style="width:12px; height:12px;"></i> Export CSV (Full Data)
+        </button>
+        <button id="slot-adh-export-xlsx-btn"
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                style="color: #e0e7ff; background: rgba(34, 197, 94, 0.16); border: 1px solid rgba(34, 197, 94, 0.35);">
+            <i data-lucide="file-text" style="width:12px; height:12px;"></i> Export PDF (Visual)
+        </button>
+    </div>
+
+    <form id="slot-adh-export-csv-form" asp-controller="Report" asp-action="ExportSlotAdherenceCsv" method="post" class="hidden">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ReportToken" value="@Model.ReportToken" />
+        <input type="hidden" name="View" value="@Model.ActiveDashboardView" />
+    </form>
+
 </section>
 
 </div>
@@ -2013,19 +1931,6 @@
      ═══════════════════════════════════════════════════════════════════════════ -->
 
 <section class="flex flex-wrap items-center justify-center gap-4 mb-4 fade-in" style="animation-delay: 0.3s;">
-    <form asp-action="DownloadFiltered" asp-controller="Report" method="post" id="downloadForm">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="reportToken" value="@Model.ReportToken" />
-        <input type="hidden" name="activeDashboardView" value="@Model.ActiveDashboardView" />
-
-        <button type="submit" id="download-btn"
-                class="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 pulse-glow cursor-pointer"
-                style="background: #22c55e; color: #fff;">
-            <i data-lucide="download" style="width:18px; height:18px;"></i>
-            <span id="download-btn-text">Download XLSX (Filtered + Dashboard Summary)</span>
-        </button>
-    </form>
-
     <a asp-action="Upload"
        class="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 cursor-pointer"
        style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid #3a3a5a;">
@@ -2033,21 +1938,16 @@
         Upload New File
     </a>
 </section>
-<p class="text-center text-xs mb-4" style="color: #5a5a7e;">
-    Export all @Model.TotalFilteredRows.ToString("N0") filtered records. The workbook includes the <span class="font-mono" style="color: #8a8ab0;">Filtered Data</span> sheet and a <span class="font-mono" style="color: #8a8ab0;">Dashboard Summary</span> sheet (KPIs, distributions, and the same rows).
-</p>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery-ui-dist@1.13.2/jquery-ui.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pivottable@2.23.0/dist/pivot.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/pivottable@2.23.0/dist/pivot.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pivottable@2.23.0/dist/plotly_renderers.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script>
         var chartColors = [
             '#6366f1', '#22c55e', '#f97316', '#ec4899', '#3b82f6',
@@ -2405,6 +2305,135 @@
                 }
             });
             themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        })();
+
+        (function initSlotAdherenceExports() {
+            var csvBtn = document.getElementById('slot-adh-export-csv-btn');
+            var xlsxBtn = document.getElementById('slot-adh-export-xlsx-btn');
+            var csvForm = document.getElementById('slot-adh-export-csv-form');
+            if (!csvBtn || !xlsxBtn || !csvForm) return;
+
+            var isBusy = false;
+            var defaultCsvText = csvBtn.textContent;
+            var defaultXlsxText = xlsxBtn.textContent;
+
+            function setBusy(nextBusy, labelText) {
+                isBusy = nextBusy;
+                csvBtn.disabled = nextBusy;
+                xlsxBtn.disabled = nextBusy;
+                csvBtn.style.opacity = nextBusy ? '0.6' : '1';
+                xlsxBtn.style.opacity = nextBusy ? '0.6' : '1';
+                csvBtn.style.pointerEvents = nextBusy ? 'none' : '';
+                xlsxBtn.style.pointerEvents = nextBusy ? 'none' : '';
+                if (nextBusy) {
+                    if (labelText === 'csv') csvBtn.textContent = 'Preparing CSV...';
+                    if (labelText === 'xlsx') xlsxBtn.textContent = 'Preparing PDF...';
+                } else {
+                    csvBtn.textContent = defaultCsvText;
+                    xlsxBtn.textContent = defaultXlsxText;
+                }
+            }
+
+            async function exportVisualPdf() {
+                var reportRoot = document.getElementById('slot-adherence-report');
+                if (!reportRoot || typeof html2canvas !== 'function' || !window.jspdf || !window.jspdf.jsPDF) {
+                    throw new Error('PDF export dependencies are unavailable.');
+                }
+
+                var jsPDFCtor = window.jspdf.jsPDF;
+                var pdf = new jsPDFCtor({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+                var pageWidth = pdf.internal.pageSize.getWidth();
+                var pageHeight = pdf.internal.pageSize.getHeight();
+                var margin = 24;
+                var headerSpace = 42;
+                var footerSpace = 18;
+                var contentWidth = pageWidth - margin * 2;
+                var contentHeight = pageHeight - margin * 2 - headerSpace - footerSpace;
+                var pageNumber = 0;
+
+                function decoratePage(title) {
+                    pageNumber += 1;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(13);
+                    pdf.setTextColor(35, 44, 75);
+                    pdf.text(title, margin, margin + 12);
+                    pdf.setDrawColor(210, 220, 236);
+                    pdf.line(margin, margin + 18, pageWidth - margin, margin + 18);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(120, 130, 150);
+                    pdf.text('Page ' + pageNumber, pageWidth - margin - 34, pageHeight - margin + 4);
+                }
+
+                function addSlideFromCanvas(canvas, title) {
+                    if (!canvas || canvas.width <= 0 || canvas.height <= 0) return;
+                    var imageData = canvas.toDataURL('image/png');
+                    var imageHeight = (canvas.height * contentWidth) / canvas.width;
+                    var drawHeight = Math.min(contentHeight, imageHeight);
+                    if (pageNumber > 0) pdf.addPage();
+                    decoratePage(title);
+                    var drawTop = margin + headerSpace;
+                    pdf.addImage(imageData, 'PNG', margin, drawTop, contentWidth, drawHeight, undefined, 'FAST');
+                }
+
+                function getSlideTargets() {
+                    var targets = [];
+                    var header = reportRoot.querySelector(':scope > div');
+                    if (header) targets.push({ el: header, title: 'Slot Adherence Report' });
+
+                    var sections = Array.from(reportRoot.querySelectorAll(':scope > section'));
+                    sections.forEach(function(section) {
+                        if (!section) return;
+                        if (section.querySelector('#table-body')) return; // Exclude Data Preview
+                        if (section.querySelector('#slot-adh-export-csv-btn')) return; // Exclude export buttons
+                        var heading = section.querySelector('.text-sm.font-semibold, .kpi-title');
+                        var title = heading ? String(heading.textContent || '').trim() : 'Slot Adherence Report';
+                        if (!title) title = 'Slot Adherence Report';
+                        targets.push({ el: section, title: title });
+                    });
+                    return targets;
+                }
+
+                var slideTargets = getSlideTargets();
+                if (slideTargets.length === 0) {
+                    throw new Error('No visible report sections found for PDF export.');
+                }
+
+                for (var i = 0; i < slideTargets.length; i++) {
+                    var slide = slideTargets[i];
+                    var canvas = await html2canvas(slide.el, {
+                        scale: 2,
+                        backgroundColor: '#0d0d1a',
+                        useCORS: true,
+                        logging: false,
+                        windowWidth: document.documentElement.scrollWidth
+                    });
+                    addSlideFromCanvas(canvas, slide.title);
+                }
+
+                var viewLabel = '@Model.ActiveDashboardView';
+                var dateStamp = new Date().toISOString().replace(/[:.]/g, '-');
+                pdf.save('SlotAdherenceVisual_' + viewLabel + '_' + dateStamp + '.pdf');
+            }
+
+            csvBtn.addEventListener('click', function() {
+                if (isBusy) return;
+                setBusy(true, 'csv');
+                csvForm.submit();
+                window.setTimeout(function() { setBusy(false); }, 1800);
+            });
+
+            xlsxBtn.addEventListener('click', function() {
+                if (isBusy) return;
+                setBusy(true, 'xlsx');
+                exportVisualPdf()
+                    .catch(function() {
+                        window.alert('Unable to export visual PDF. Please try again.');
+                    })
+                    .finally(function() {
+                        setBusy(false);
+                    });
+            });
         })();
 
         (function initNapHeatmap() {
@@ -3464,18 +3493,6 @@
 
         renderTable(1);
 
-        document.getElementById('downloadForm').addEventListener('submit', function () {
-            var btn = document.getElementById('download-btn');
-            btn.disabled = true;
-            btn.style.opacity = '0.7';
-            document.getElementById('download-btn-text').innerHTML = '<span class="spinner"></span> Generating...';
-            setTimeout(function () {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                document.getElementById('download-btn-text').innerHTML = 'Download XLSX';
-            }, 5000);
-        });
-
         var backdrop = document.getElementById('filter-modal-backdrop');
         if (backdrop) {
         var _panelsBuilt = false;
@@ -3653,118 +3670,6 @@
             }
         })();
 
-        var pivotData = allRows.map(function(row) {
-            var clean = {};
-            Object.keys(row).forEach(function(k) {
-                if (k[0] !== '_') clean[k] = row[k];
-            });
-            clean.RecordCount = 1;
-            return clean;
-        });
-
-        var pivotInitialized = false;
-        var pivotRenderers = $.extend(
-            $.pivotUtilities.renderers,
-            $.pivotUtilities.plotly_renderers
-        );
-
-        var pivotPresets = {
-            statusByTerritory: {
-                rows: ["Territory"],
-                cols: ["Status"],
-                aggregatorName: "Sum",
-                vals: ["RecordCount"],
-                rendererName: "Heatmap",
-                renderers: pivotRenderers,
-                unusedAttrsVertical: false
-            },
-            dailyTrend: {
-                rows: [],
-                cols: ["AppointmentDate"],
-                aggregatorName: "Sum",
-                vals: ["RecordCount"],
-                rendererName: "Line Chart",
-                renderers: pivotRenderers,
-                unusedAttrsVertical: false
-            },
-            skillsetBreakdown: {
-                rows: ["Skillset"],
-                cols: ["Status"],
-                aggregatorName: "Sum",
-                vals: ["RecordCount"],
-                rendererName: "Stacked Bar Chart",
-                renderers: pivotRenderers,
-                unusedAttrsVertical: false
-            },
-            substatusByTerritory: {
-                rows: ["Territory"],
-                cols: ["SubStatus"],
-                aggregatorName: "Sum",
-                vals: ["RecordCount"],
-                rendererName: "Table",
-                renderers: pivotRenderers,
-                unusedAttrsVertical: false
-            }
-        };
-
-        var pivotPlotlyOptions = {
-            plotly: { autosize: true, height: 400, width: 700 },
-            plotlyConfig: { responsive: true }
-        };
-
-        function initPivot(config) {
-            var merged = $.extend({}, config, { rendererOptions: pivotPlotlyOptions });
-            $("#pivot-output").pivotUI(pivotData, merged, true);
-        }
-
-        var pivotHeader = document.getElementById('pivot-section-header');
-        var pivotBody = document.getElementById('pivot-section-body');
-        var pivotChevron = document.getElementById('pivot-chevron');
-        var pivotToggleHint = document.getElementById('pivot-toggle-hint');
-
-        pivotHeader.addEventListener('click', function() {
-            var isHidden = pivotBody.classList.contains('hidden');
-            pivotBody.classList.toggle('hidden');
-            pivotChevron.style.transform = isHidden ? 'rotate(180deg)' : '';
-            pivotToggleHint.textContent = isHidden ? 'Click to collapse' : 'Click to expand';
-
-            if (isHidden && !pivotInitialized) {
-                initPivot({
-                    rows: ["Territory"],
-                    cols: ["Status"],
-                    aggregatorName: "Sum",
-                    vals: ["RecordCount"],
-                    rendererName: "Table",
-                    renderers: pivotRenderers,
-                    unusedAttrsVertical: false
-                });
-                pivotInitialized = true;
-            }
-        });
-
-        document.querySelectorAll('.pivot-preset').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                var presetKey = this.dataset.preset;
-                var config = pivotPresets[presetKey];
-                if (!config) return;
-
-                if (pivotBody.classList.contains('hidden')) {
-                    pivotBody.classList.remove('hidden');
-                    pivotChevron.style.transform = 'rotate(180deg)';
-                    pivotToggleHint.textContent = 'Click to collapse';
-                }
-
-                initPivot(config);
-                pivotInitialized = true;
-
-                document.querySelectorAll('.pivot-preset').forEach(function(b) {
-                    b.style.background = 'rgba(99,102,241,0.12)';
-                    b.style.color = '#a5b4fc';
-                });
-                this.style.background = 'rgba(99,102,241,0.35)';
-                this.style.color = '#f0f0f8';
-            });
-        });
 
         (function initReportHistoryFilter() {
             var section = document.getElementById('report-history-section');
