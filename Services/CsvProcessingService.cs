@@ -23,6 +23,9 @@ public class CsvProcessingService : ICsvProcessingService
     private string Col(string key) =>
         _config[$"CsvMapping:{key}"] ?? throw new InvalidOperationException($"Missing CsvMapping:{key}");
 
+    private string ColOr(string key, string fallback) =>
+        _config[$"CsvMapping:{key}"] ?? fallback;
+
     private static CsvConfiguration DefaultCsvConfig => new(CultureInfo.InvariantCulture)
     {
         HasHeaderRecord = true,
@@ -201,6 +204,7 @@ public class CsvProcessingService : ICsvProcessingService
         var subStatusCol = Col("SubStatusColumn");
         var skillsetCol = Col("SkillsetColumn");
         var appointmentIdCol = Col("AppointmentIdColumn");
+        var workOrderCol = ColOr("WorkOrderColumn", appointmentIdCol);
         var orderCreateDateCol = Col("OrderCreateDateColumn");
         var delayedValue = Col("DelayedStatusValue");
         var amSlotMarker = Col("AmSlotMarker");
@@ -263,7 +267,7 @@ public class CsvProcessingService : ICsvProcessingService
             var subStatus = csv.GetField(subStatusCol) ?? "";
             var skillset = csv.GetField(skillsetCol) ?? "";
             var orderCreateDate = csv.GetField(orderCreateDateCol) ?? "";
-            var appointmentId = csv.GetField(appointmentIdCol) ?? "";
+            var appointmentId = csv.GetField(workOrderCol) ?? csv.GetField(appointmentIdCol) ?? "";
             var rawLastUpdate = csv.GetField(lastUpdateCol) ?? "";
 
             if (!MatchesFilter(territorySet, territory)) continue;
@@ -1414,6 +1418,33 @@ public class CsvProcessingService : ICsvProcessingService
         return string.IsNullOrWhiteSpace(hasReason) ? null : hasReason;
     }
 
+    private static string? FindConfiguredOrPreferredColumn(string[]? headers, string? configuredName, params string[] preferredNames)
+    {
+        if (headers is null || headers.Length == 0)
+            return null;
+
+        if (!string.IsNullOrWhiteSpace(configuredName))
+        {
+            var configured = headers.FirstOrDefault(h =>
+                string.Equals(NormalizeValue(h), NormalizeValue(configuredName), StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(configured))
+                return configured;
+        }
+
+        foreach (var preferred in preferredNames)
+        {
+            if (string.IsNullOrWhiteSpace(preferred))
+                continue;
+
+            var exact = headers.FirstOrDefault(h =>
+                string.Equals(NormalizeValue(h), NormalizeValue(preferred), StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(exact))
+                return exact;
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Scans the CSV with NO Slot Adherence filters and returns only the data needed
     /// by the Heatmap section. Used to keep the heatmap independent of SA filter selections.
@@ -1608,6 +1639,7 @@ public class CsvProcessingService : ICsvProcessingService
         int? agingMonthParam,
         int detailPage = 1,
         int detailPageSize = 20,
+        string? detailSort = null,
         int? dailyFocusDay = null,
         CancellationToken cancellationToken = default)
     {
@@ -1617,13 +1649,14 @@ public class CsvProcessingService : ICsvProcessingService
 
         var safePage = Math.Max(1, detailPage);
         var safePageSize = Math.Clamp(detailPageSize, 10, 20);
+        var safeDetailSort = string.Equals(detailSort, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : "desc";
 
         var territoryCol = Col("TerritoryColumn");
         var statusCol = Col("StatusColumn");
         var orderCreateCol = Col("OrderCreateDateColumn");
         var lastUpdateCol = Col("LastUpdateDateColumn");
         var appointmentDateCol = Col("AppointmentDateColumn");
-        var appointmentIdCol = Col("AppointmentIdColumn");
+        var workOrderConfiguredCol = ColOr("WorkOrderColumn", "workordernumber");
         var skillsetCol = Col("SkillsetColumn");
 
         var delayedV = _config["CsvMapping:DelayedStatusValue"] ?? "Delayed";
@@ -1756,6 +1789,8 @@ public class CsvProcessingService : ICsvProcessingService
 
         await csv.ReadAsync();
         csv.ReadHeader();
+        var workOrderCol = FindConfiguredOrPreferredColumn(csv.HeaderRecord, workOrderConfiguredCol,
+            "workordernumber", "work order number", "work_order_number", "workorder", "work order");
         var remarkCol = FindRemarksColumn(csv.HeaderRecord, _config["CsvMapping:RemarksColumn"]);
 
         var yieldEvery = int.TryParse(_config["CsvMapping:FilterExtractionYieldEveryRows"], out var yr2)
@@ -1788,7 +1823,9 @@ public class CsvProcessingService : ICsvProcessingService
             var skillset = csv.GetField(skillsetCol) ?? "";
             var rawLastUpdate = csv.GetField(lastUpdateCol) ?? "";
             var rawAppointmentDate = csv.GetField(appointmentDateCol) ?? "";
-            var appointmentId = csv.GetField(appointmentIdCol) ?? "";
+            var appointmentId = !string.IsNullOrWhiteSpace(workOrderCol)
+                ? (csv.GetField(workOrderCol) ?? "")
+                : "";
             var isRepairSkillset = string.Equals(ClassifySkillKind(skillset), "repair", StringComparison.OrdinalIgnoreCase);
 
             if (orderCreateDate.Year == scopeYear)
@@ -1840,7 +1877,7 @@ public class CsvProcessingService : ICsvProcessingService
 
                 allDetailRows.Add(new OperationAgingDetailRow
                 {
-                    AppointmentId = appointmentId.Trim(),
+                    WorkOrder = appointmentId.Trim(),
                     OrderCreateDateRaw = rawOrderCreate.Trim(),
                     AgeDays = slaDays,
                     AgingBucket = bucket,
@@ -1879,10 +1916,20 @@ public class CsvProcessingService : ICsvProcessingService
             }
         }
 
-        allDetailRows.Sort(static (a, b) =>
-            b.AgeDays != a.AgeDays
-                ? b.AgeDays.CompareTo(a.AgeDays)
-                : string.Compare(a.AppointmentId, b.AppointmentId, StringComparison.OrdinalIgnoreCase));
+        if (safeDetailSort == "asc")
+        {
+            allDetailRows.Sort(static (a, b) =>
+                a.AgeDays != b.AgeDays
+                    ? a.AgeDays.CompareTo(b.AgeDays)
+                    : string.Compare(a.WorkOrder, b.WorkOrder, StringComparison.OrdinalIgnoreCase));
+        }
+        else
+        {
+            allDetailRows.Sort(static (a, b) =>
+                b.AgeDays != a.AgeDays
+                    ? b.AgeDays.CompareTo(a.AgeDays)
+                    : string.Compare(a.WorkOrder, b.WorkOrder, StringComparison.OrdinalIgnoreCase));
+        }
 
         var detailTotal = allDetailRows.Count;
         var totalPages = Math.Max(1, (int)Math.Ceiling(detailTotal / (double)safePageSize));
@@ -2022,6 +2069,7 @@ public class CsvProcessingService : ICsvProcessingService
             DetailPage = safePage,
             DetailPageSize = safePageSize,
             DetailTotalPages = totalPages,
+            DetailSort = safeDetailSort,
             BucketLabels = bucketOrder.ToList(),
             BucketMatrixRows = matrixRows,
             RepairRemarkRows = repairRemarkRows,

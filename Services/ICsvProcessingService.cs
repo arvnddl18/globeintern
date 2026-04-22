@@ -76,6 +76,7 @@ public interface ICsvProcessingService
         int? agingMonthParam,
         int detailPage = 1,
         int detailPageSize = 20,
+        string? detailSort = null,
         int? dailyFocusDay = null,
         CancellationToken cancellationToken = default);
 }

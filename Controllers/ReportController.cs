@@ -206,7 +206,8 @@ public class ReportController : Controller
         [FromQuery] int? agingYear = null,
         [FromQuery] int? agingMonth = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? detailSort = null)
     {
         if (!TryGetCurrentUserId(out var userId))
             return RedirectToAction(nameof(Upload));
@@ -296,6 +297,7 @@ public class ReportController : Controller
                     agingMonth,
                     page,
                     pageSize,
+                    detailSort,
                     dailyDay,
                     HttpContext.RequestAborted);
             }

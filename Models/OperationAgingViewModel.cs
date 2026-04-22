@@ -7,6 +7,7 @@ public class OperationAgingViewModel
     public int DetailPage { get; set; } = 1;
     public int DetailPageSize { get; set; } = 20;
     public int DetailTotalPages { get; set; }
+    public string DetailSort { get; set; } = "desc";
 
     /// <summary>Bucket header labels (fixed order).</summary>
     public List<string> BucketLabels { get; set; } = [];
@@ -111,7 +112,7 @@ public class AgingBucketCount
 
 public class OperationAgingDetailRow
 {
-    public string AppointmentId { get; set; } = string.Empty;
+    public string WorkOrder { get; set; } = string.Empty;
     public string OrderCreateDateRaw { get; set; } = string.Empty;
     public int AgeDays { get; set; }
     public string AgingBucket { get; set; } = string.Empty;
