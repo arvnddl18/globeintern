@@ -334,6 +334,63 @@
     </section>
 </div>
 
+<!-- Territory aging buckets -->
+<div class="aging-card rounded-2xl p-6 mb-10 fade-in">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
+        <div>
+            <h2 class="text-base font-semibold" style="color: var(--theme-text);">Area/Territory aging buckets</h2>
+            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.AgingScopeLabel · Davao North territory only · order create date</p>
+        </div>
+        <span class="text-xs px-2.5 py-1.5 rounded-full"
+              style="color: var(--theme-text-muted); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
+            Davao North focus
+        </span>
+    </div>
+
+    @if (Model.TerritoryBucketRows.Count == 0 || Model.TerritoryBucketLabels.Count == 0)
+    {
+        <p class="text-sm py-6 text-center" style="color: var(--theme-text-muted);">No territory aging rows for this year.</p>
+    }
+    else
+    {
+        <div class="aging-scroll-wrap">
+            <table class="w-full text-xs border-collapse min-w-[980px]">
+                <thead>
+                <tr style="border-bottom: 1px solid var(--theme-surface-border);">
+                    <th class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim); text-align: left;">AREA/TERRITORY</th>
+                    @foreach (var b in Model.TerritoryBucketLabels)
+                    {
+                        <th class="text-right py-2 px-2 font-semibold whitespace-nowrap" style="color: var(--theme-text-muted);">@b</th>
+                    }
+                    <th class="text-right py-2 pl-2 font-semibold whitespace-nowrap" style="color: var(--theme-accent);">Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.TerritoryBucketRows)
+                {
+                    <tr class="border-b" style="border-color: var(--theme-surface-border);">
+                        <td class="text-left py-2 pr-3 aging-sticky-metric font-medium" style="color: var(--theme-text-dim); text-align: left;">@row.TerritoryLabel</td>
+                        @foreach (var value in row.BucketCounts)
+                        {
+                            <td class="text-right py-2 px-2 font-mono" style="color: var(--theme-text-dim);">@value</td>
+                        }
+                        <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@row.Total</td>
+                    </tr>
+                }
+                <tr style="border-top: 1px solid var(--theme-surface-border);">
+                    <td class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text); text-align: left;">Grand Total</td>
+                    @foreach (var value in Model.TerritoryBucketGrandTotals)
+                    {
+                        <td class="text-right py-2 px-2 font-mono font-semibold" style="color: var(--theme-text);">@value</td>
+                    }
+                    <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@Model.TerritoryBucketGrandTotal</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
 <!-- Month + day-to-day -->
 <div id="aging-day-section" class="aging-card rounded-2xl p-6 mb-10 fade-in">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
@@ -641,63 +698,6 @@
     }
 </div>
 
-<!-- Territory aging buckets -->
-<div class="aging-card rounded-2xl p-6 mb-10 fade-in">
-    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
-        <div>
-            <h2 class="text-base font-semibold" style="color: var(--theme-text);">Area/Territory aging buckets</h2>
-            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.AgingScopeLabel · Davao North territory only · order create date</p>
-        </div>
-        <span class="text-xs px-2.5 py-1.5 rounded-full"
-              style="color: var(--theme-text-muted); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
-            Davao North focus
-        </span>
-    </div>
-
-    @if (Model.TerritoryBucketRows.Count == 0 || Model.TerritoryBucketLabels.Count == 0)
-    {
-        <p class="text-sm py-6 text-center" style="color: var(--theme-text-muted);">No territory aging rows for this year.</p>
-    }
-    else
-    {
-        <div class="aging-scroll-wrap">
-            <table class="w-full text-xs border-collapse min-w-[980px]">
-                <thead>
-                <tr style="border-bottom: 1px solid var(--theme-surface-border);">
-                    <th class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim); text-align: left;">AREA/TERRITORY</th>
-                    @foreach (var b in Model.TerritoryBucketLabels)
-                    {
-                        <th class="text-right py-2 px-2 font-semibold whitespace-nowrap" style="color: var(--theme-text-muted);">@b</th>
-                    }
-                    <th class="text-right py-2 pl-2 font-semibold whitespace-nowrap" style="color: var(--theme-accent);">Total</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var row in Model.TerritoryBucketRows)
-                {
-                    <tr class="border-b" style="border-color: var(--theme-surface-border);">
-                        <td class="text-left py-2 pr-3 aging-sticky-metric font-medium" style="color: var(--theme-text-dim); text-align: left;">@row.TerritoryLabel</td>
-                        @foreach (var value in row.BucketCounts)
-                        {
-                            <td class="text-right py-2 px-2 font-mono" style="color: var(--theme-text-dim);">@value</td>
-                        }
-                        <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@row.Total</td>
-                    </tr>
-                }
-                <tr style="border-top: 1px solid var(--theme-surface-border);">
-                    <td class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text); text-align: left;">Grand Total</td>
-                    @foreach (var value in Model.TerritoryBucketGrandTotals)
-                    {
-                        <td class="text-right py-2 px-2 font-mono font-semibold" style="color: var(--theme-text);">@value</td>
-                    }
-                    <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@Model.TerritoryBucketGrandTotal</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    }
-</div>
-
 <!-- Detail rows -->
 <div id="aging-detail-section" class="aging-card aging-detail-section rounded-xl p-6 mb-10 fade-in">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -769,12 +769,12 @@
                         @if (Model.DetailSort == "asc")
                         {
                             <option value="desc">Oldest first</option>
-                            <option value="asc" selected>1 day first</option>
+                            <option value="asc" selected>Newest first</option>
                         }
                         else
                         {
                             <option value="desc" selected>Oldest first</option>
-                            <option value="asc">1 day first</option>
+                            <option value="asc">Newest first</option>
                         }
                     </select>
                 </form>
