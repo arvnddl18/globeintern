@@ -57,6 +57,20 @@
         transform: translateY(2px);
         pointer-events: none;
     }
+    .aging-detail-row.status-delayed { background: var(--aging-row-delayed-bg); }
+    .aging-detail-row.status-pending { background: var(--aging-row-pending-bg); }
+    .aging-detail-row.status-ongoing { background: var(--aging-row-ongoing-bg); }
+    .aging-detail-row.status-unassigned { background: var(--aging-row-unassigned-bg); }
+    .aging-detail-row.status-cancelled { background: var(--aging-row-cancelled-bg); }
+    .aging-detail-row.status-completed { background: var(--aging-row-completed-bg); }
+    .aging-detail-row.status-other { background: var(--aging-row-other-bg); }
+    .aging-detail-row.status-delayed td.aging-sticky-metric { background: var(--aging-row-delayed-sticky-bg) !important; }
+    .aging-detail-row.status-pending td.aging-sticky-metric { background: var(--aging-row-pending-sticky-bg) !important; }
+    .aging-detail-row.status-ongoing td.aging-sticky-metric { background: var(--aging-row-ongoing-sticky-bg) !important; }
+    .aging-detail-row.status-unassigned td.aging-sticky-metric { background: var(--aging-row-unassigned-sticky-bg) !important; }
+    .aging-detail-row.status-cancelled td.aging-sticky-metric { background: var(--aging-row-cancelled-sticky-bg) !important; }
+    .aging-detail-row.status-completed td.aging-sticky-metric { background: var(--aging-row-completed-sticky-bg) !important; }
+    .aging-detail-row.status-other td.aging-sticky-metric { background: var(--aging-row-other-sticky-bg) !important; }
     .aging-day-table th,
     .aging-day-table td {
         transition: background-color 0.15s ease;
@@ -835,7 +849,7 @@
             <tr style="border-bottom: 1px solid var(--theme-surface-border);">
                 <th class="text-left py-2 pr-2 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim);">Workorder</th>
                 <th class="text-left py-2 pr-2" style="color: var(--theme-text-muted);">Order created</th>
-                <th class="text-right py-2 pr-2 font-mono" style="color: var(--theme-text-muted);">Age (d)</th>
+                <th class="text-center py-2 pr-2 font-mono" style="color: var(--theme-text-muted);">Age (d)</th>
                 <th class="text-left py-2 pr-2" style="color: var(--theme-text-muted);">Bucket</th>
                 <th class="text-left py-2 pr-2" style="color: var(--theme-text-muted);">Status</th>
                 <th class="text-left py-2" style="color: var(--theme-text-muted);">Skillset</th>
@@ -844,12 +858,32 @@
             <tbody id="aging-detail-body">
             @foreach (var r in Model.DetailRows)
             {
-                <tr class="aging-detail-row border-b" style="border-color: var(--theme-surface-border);" data-skill="@r.SkillKind">
+                var statusKey = (r.Status ?? string.Empty).Trim().ToLowerInvariant() switch
+                {
+                    "delayed" => "delayed",
+                    "pending" => "pending",
+                    "ongoing" => "ongoing",
+                    "unassigned" => "unassigned",
+                    "cancelled" => "cancelled",
+                    "completed" => "completed",
+                    _ => "other"
+                };
+                var statusTextStyle = statusKey switch
+                {
+                    "delayed" => "color: var(--aging-text-delayed);",
+                    "pending" => "color: var(--aging-text-pending);",
+                    "ongoing" => "color: var(--aging-text-ongoing);",
+                    "unassigned" => "color: var(--aging-text-unassigned);",
+                    "cancelled" => "color: var(--aging-text-cancelled);",
+                    "completed" => "color: var(--aging-text-completed);",
+                    _ => "color: var(--aging-text-other);"
+                };
+                <tr class="aging-detail-row border-b status-@statusKey" style="border-color: var(--theme-surface-border);" data-skill="@r.SkillKind">
                     <td class="py-2 pr-2 aging-sticky-metric font-mono" style="color: var(--theme-text);">@r.WorkOrder</td>
                     <td class="py-2 pr-2" style="color: var(--theme-text-dim);">@r.OrderCreateDateRaw</td>
-                    <td class="text-right py-2 pr-2 font-mono">@r.AgeDays</td>
+                    <td class="text-center py-2 pr-2 font-mono">@r.AgeDays</td>
                     <td class="py-2 pr-2">@r.AgingBucket</td>
-                    <td class="py-2 pr-2">@r.Status</td>
+                    <td class="py-2 pr-2 font-medium" style="@statusTextStyle">@r.Status</td>
                     <td class="py-2" style="color: var(--theme-text-dim);">@r.Skillset</td>
                 </tr>
             }
