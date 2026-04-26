@@ -234,8 +234,20 @@
                                 Admin · New user
                             </a>
                         }
-                        <span class="text-xs px-2 py-1 rounded-md" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">@User.Identity.Name</span>
-                        <form asp-controller="Account" asp-action="Logout" method="post" class="inline">
+                        
+<span class="text-xs px-2 py-1 rounded-md" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">
+    @User.Identity.Name
+</span>
+
+<a asp-controller="Report"
+   asp-action="DailyProductivity"
+   class="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+   style="color: var(--theme-accent); background: var(--theme-accent-soft); border: 1px solid var(--theme-surface-border);">
+    <i data-lucide="bar-chart-3" style="width:14px; height:14px;"></i>
+    Daily Productivity
+</a>
+
+<form asp-controller="Account" asp-action="Logout" method="post" class="inline">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer" style="color: var(--theme-accent); background: var(--theme-accent-soft); border: 1px solid var(--theme-surface-border);">
                                 Log out

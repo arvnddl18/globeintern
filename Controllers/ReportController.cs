@@ -10,6 +10,7 @@ using SlotAd_Globe.Data;
 using SlotAd_Globe.Models;
 using SlotAd_Globe.Options;
 using SlotAd_Globe.Services;
+using Microsoft.VisualBasic.FileIO;
 
 namespace SlotAd_Globe.Controllers;
 
@@ -70,6 +71,19 @@ public class ReportController : Controller
         }
     }
     // #endregion
+    private static int ParseInt(string? v) => int.TryParse(v, out var r) ? r : 0;
+
+    private static bool ParseBool(string? v)
+    {
+        if (string.IsNullOrWhiteSpace(v)) return false;
+        v = v.ToLower();
+        return v == "true" || v == "1" || v == "yes";
+    }
+
+    private static DateTime? ParseDate(string? v)
+    {
+        return DateTime.TryParse(v, out var d) ? d : null;
+    }
 
     [HttpGet("[action]")]
     public IActionResult Upload()
@@ -536,48 +550,48 @@ public class ReportController : Controller
         try
         {
             var hm = await _csvService.ExtractHeatmapSnapshotAsync(csvPath);
-            kpi.HeatmapNapDots            = hm.HeatmapNapDots;
-            kpi.HeatmapNapDotNames        = hm.HeatmapNapDotNames;
-            kpi.HeatmapNapDotDpids        = hm.HeatmapNapDotDpids;
-            kpi.HeatmapNapDotSkillsets    = hm.HeatmapNapDotSkillsets;
-            kpi.HeatmapNapDotTerritories  = hm.HeatmapNapDotTerritories;
-            kpi.HeatmapNapDotStatuses     = hm.HeatmapNapDotStatuses;
-            kpi.HeatmapHasCoordinates     = hm.HeatmapHasCoordinates;
-            kpi.HeatmapTotalAppointments  = hm.HeatmapTotalAppointments;
-            kpi.HeatmapRepairCount        = hm.HeatmapRepairCount;
-            kpi.HeatmapInstallCount       = hm.HeatmapInstallCount;
+            kpi.HeatmapNapDots = hm.HeatmapNapDots;
+            kpi.HeatmapNapDotNames = hm.HeatmapNapDotNames;
+            kpi.HeatmapNapDotDpids = hm.HeatmapNapDotDpids;
+            kpi.HeatmapNapDotSkillsets = hm.HeatmapNapDotSkillsets;
+            kpi.HeatmapNapDotTerritories = hm.HeatmapNapDotTerritories;
+            kpi.HeatmapNapDotStatuses = hm.HeatmapNapDotStatuses;
+            kpi.HeatmapHasCoordinates = hm.HeatmapHasCoordinates;
+            kpi.HeatmapTotalAppointments = hm.HeatmapTotalAppointments;
+            kpi.HeatmapRepairCount = hm.HeatmapRepairCount;
+            kpi.HeatmapInstallCount = hm.HeatmapInstallCount;
             kpi.HeatmapTerritoryDistribution = hm.HeatmapTerritoryDistribution;
-            kpi.HeatmapAppointmentsByDate    = hm.HeatmapAppointmentsByDate;
-            kpi.HeatmapJoinDateInts          = hm.HeatmapJoinDateInts;
-            kpi.HeatmapJoinDpids             = hm.HeatmapJoinDpids;
-            kpi.HeatmapJoinFixDescriptions   = hm.HeatmapJoinFixDescriptions;
-            kpi.HeatmapJoinTerritories       = hm.HeatmapJoinTerritories;
-            kpi.HeatmapJoinSkillsets         = hm.HeatmapJoinSkillsets;
-            kpi.HeatmapJoinStatuses          = hm.HeatmapJoinStatuses;
+            kpi.HeatmapAppointmentsByDate = hm.HeatmapAppointmentsByDate;
+            kpi.HeatmapJoinDateInts = hm.HeatmapJoinDateInts;
+            kpi.HeatmapJoinDpids = hm.HeatmapJoinDpids;
+            kpi.HeatmapJoinFixDescriptions = hm.HeatmapJoinFixDescriptions;
+            kpi.HeatmapJoinTerritories = hm.HeatmapJoinTerritories;
+            kpi.HeatmapJoinSkillsets = hm.HeatmapJoinSkillsets;
+            kpi.HeatmapJoinStatuses = hm.HeatmapJoinStatuses;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to extract unfiltered heatmap snapshot; falling back to SA-filtered data.");
-            kpi.HeatmapNapDots            = kpi.NapDots;
-            kpi.HeatmapNapDotNames        = kpi.NapDotNames;
-            kpi.HeatmapNapDotDpids        = kpi.NapDotDpids;
-            kpi.HeatmapNapDotSkillsets    = kpi.NapDotSkillsets;
-            kpi.HeatmapNapDotTerritories  = kpi.NapDotTerritories;
-            kpi.HeatmapNapDotStatuses     = kpi.NapDotStatuses;
-            kpi.HeatmapHasCoordinates     = kpi.HasCoordinates;
-            kpi.HeatmapTotalAppointments  = kpi.TotalAppointments;
-            kpi.HeatmapRepairCount        = kpi.RepairSkillsetCount;
-            kpi.HeatmapInstallCount       = kpi.SkillsetDistribution
+            kpi.HeatmapNapDots = kpi.NapDots;
+            kpi.HeatmapNapDotNames = kpi.NapDotNames;
+            kpi.HeatmapNapDotDpids = kpi.NapDotDpids;
+            kpi.HeatmapNapDotSkillsets = kpi.NapDotSkillsets;
+            kpi.HeatmapNapDotTerritories = kpi.NapDotTerritories;
+            kpi.HeatmapNapDotStatuses = kpi.NapDotStatuses;
+            kpi.HeatmapHasCoordinates = kpi.HasCoordinates;
+            kpi.HeatmapTotalAppointments = kpi.TotalAppointments;
+            kpi.HeatmapRepairCount = kpi.RepairSkillsetCount;
+            kpi.HeatmapInstallCount = kpi.SkillsetDistribution
                 .Where(kv => kv.Key.Contains("Install", StringComparison.OrdinalIgnoreCase))
                 .Sum(kv => kv.Value);
             kpi.HeatmapTerritoryDistribution = kpi.TerritoryDistribution;
-            kpi.HeatmapAppointmentsByDate    = kpi.AppointmentsByDate;
-            kpi.HeatmapJoinDateInts          = [];
-            kpi.HeatmapJoinDpids             = [];
-            kpi.HeatmapJoinFixDescriptions   = [];
-            kpi.HeatmapJoinTerritories       = [];
-            kpi.HeatmapJoinSkillsets         = [];
-            kpi.HeatmapJoinStatuses          = [];
+            kpi.HeatmapAppointmentsByDate = kpi.AppointmentsByDate;
+            kpi.HeatmapJoinDateInts = [];
+            kpi.HeatmapJoinDpids = [];
+            kpi.HeatmapJoinFixDescriptions = [];
+            kpi.HeatmapJoinTerritories = [];
+            kpi.HeatmapJoinSkillsets = [];
+            kpi.HeatmapJoinStatuses = [];
         }
 
         await PopulateDashboardContextAsync(token!, kpi, cancellationToken);
@@ -651,23 +665,23 @@ public class ReportController : Controller
                 "This file was detected as All Pending. Compliance rules still apply where completion time is present; other rows may show N/A.";
         }
 
-        /* ── Archived dashboards: heatmap fields may be absent in old JSON; fall back to SA data ── */
+            /* ── Archived dashboards: heatmap fields may be absent in old JSON; fall back to SA data ── */
         if (kpi.HeatmapNapDots.Count == 0)
         {
-            kpi.HeatmapNapDots            = kpi.NapDots;
-            kpi.HeatmapNapDotNames        = kpi.NapDotNames;
-            kpi.HeatmapNapDotDpids        = kpi.NapDotDpids;
-            kpi.HeatmapNapDotSkillsets    = kpi.NapDotSkillsets;
-            kpi.HeatmapNapDotTerritories  = kpi.NapDotTerritories;
-            kpi.HeatmapNapDotStatuses     = kpi.NapDotStatuses;
-            kpi.HeatmapHasCoordinates     = kpi.HasCoordinates;
-            kpi.HeatmapTotalAppointments  = kpi.TotalAppointments;
-            kpi.HeatmapRepairCount        = kpi.RepairSkillsetCount;
-            kpi.HeatmapInstallCount       = kpi.SkillsetDistribution
+            kpi.HeatmapNapDots = kpi.NapDots;
+            kpi.HeatmapNapDotNames = kpi.NapDotNames;
+            kpi.HeatmapNapDotDpids = kpi.NapDotDpids;
+            kpi.HeatmapNapDotSkillsets = kpi.NapDotSkillsets;
+            kpi.HeatmapNapDotTerritories = kpi.NapDotTerritories;
+            kpi.HeatmapNapDotStatuses = kpi.NapDotStatuses;
+            kpi.HeatmapHasCoordinates = kpi.HasCoordinates;
+            kpi.HeatmapTotalAppointments = kpi.TotalAppointments;
+            kpi.HeatmapRepairCount = kpi.RepairSkillsetCount;
+            kpi.HeatmapInstallCount = kpi.SkillsetDistribution
                 .Where(kv => kv.Key.Contains("Install", StringComparison.OrdinalIgnoreCase))
                 .Sum(kv => kv.Value);
             kpi.HeatmapTerritoryDistribution = kpi.TerritoryDistribution;
-            kpi.HeatmapAppointmentsByDate    = kpi.AppointmentsByDate;
+            kpi.HeatmapAppointmentsByDate = kpi.AppointmentsByDate;
         }
 
         await PopulateDashboardContextAsync(token, kpi, cancellationToken);
@@ -1295,5 +1309,114 @@ public class ReportController : Controller
         }
 
         return "all";
+    }
+    // 
+    // 
+    // Daily Productivity
+    // 
+    // 
+    // 
+    [HttpGet("DailyProductivity")]
+    public IActionResult DailyProductivity()
+    {
+        ViewData["ActiveTab"] = "dailyProductivity";
+        return View(new DailyProductivityUploadModel());
+    }
+
+    [HttpPost("DailyProductivity/Upload")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UploadDailyProductivity(DailyProductivityUploadModel model)
+    {
+        ViewData["ActiveTab"] = "dailyproductivity";
+
+        if (!ModelState.IsValid)
+            return View("DailyProductivity", model);
+
+        var file = model.ProductivityFile;
+
+        if (file == null || file.Length == 0)
+        {
+            ModelState.AddModelError(nameof(model.ProductivityFile), "Please upload a valid file.");
+            return View("DailyProductivity", model);
+        }
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+        if (extension != ".csv")
+        {
+            ModelState.AddModelError(nameof(model.ProductivityFile), "CSV only for now.");
+            return View("DailyProductivity", model);
+        }
+
+        var rows = new List<TechnicianProductivityRow>();
+        
+        using var parser = new TextFieldParser(file.OpenReadStream());
+
+        parser.TextFieldType = FieldType.Delimited;
+        parser.SetDelimiters(",");
+        parser.HasFieldsEnclosedInQuotes = true;
+
+        if (!parser.EndOfData)
+            parser.ReadFields();
+            while (!parser.EndOfData)
+            {
+                var values = parser.ReadFields();
+
+                if (values == null || values.Length == 0)
+                continue;
+                rows.Add(new TechnicianProductivityRow
+                {
+                    TechnicianName = values.ElementAtOrDefault(0)?.Trim() ?? "",
+                    IsRescueTechnician = ParseBool(values.ElementAtOrDefault(1)),
+                    Status = values.ElementAtOrDefault(2)?.Trim() ?? "",
+                    CheckInTime = ParseDate(values.ElementAtOrDefault(3)),
+                    CheckOutTime = ParseDate(values.ElementAtOrDefault(4)),
+
+                    TotalWorkOrdersToday = ParseInt(values.ElementAtOrDefault(5)),
+                    Ongoing = ParseInt(values.ElementAtOrDefault(6)),
+                    Pending = ParseInt(values.ElementAtOrDefault(7)),
+                    Completed = ParseInt(values.ElementAtOrDefault(8)),
+                    Cancelled = ParseInt(values.ElementAtOrDefault(9)),
+                    Delayed = ParseInt(values.ElementAtOrDefault(10)),
+                    OnHold = ParseInt(values.ElementAtOrDefault(11)),
+                    RescheduledWithNewAppointmentDate = ParseInt(values.ElementAtOrDefault(12)),
+                    DelayedWithNewAppointmentDate = ParseInt(values.ElementAtOrDefault(13))
+                });
+            }
+
+            ViewBag.Rows = rows;
+            ViewBag.Names = rows.Select(x => x.TechnicianName).ToList();
+            ViewBag.Completed = rows.Select(x => x.Completed).ToList();
+            ViewBag.Pending = rows.Select(x => x.Pending).ToList();
+            ViewBag.Ongoing = rows.Select(x => x.Ongoing).ToList();
+            ViewBag.Delayed = rows.Select(x => x.Delayed).ToList();
+            ViewBag.TotalTech = rows.Count(x =>
+                !string.IsNullOrEmpty(x.Status) &&
+                x.Status.Trim().ToUpper() == "TIMED IN");
+            ViewBag.TotalCompleted = rows.Sum(x => x.Completed);
+            ViewBag.TotalPending = rows.Sum(x => x.Pending);
+            ViewBag.TotalDelayed = rows.Sum(x => x.Delayed);
+            ViewBag.TotalWorkOrders = rows.Sum(x => x.TotalWorkOrdersToday);
+            ViewBag.TotalCancelled = rows.Sum(x => x.Cancelled);
+            ViewBag.TotalOngoing = rows.Sum(x => x.Ongoing);
+            ViewBag.TotalOnHold = rows.Sum(x => x.OnHold);
+            ViewBag.TotalRescheduled = rows.Sum(x => x.RescheduledWithNewAppointmentDate);
+            ViewBag.TotalDelayedNewAppt = rows.Sum(x => x.DelayedWithNewAppointmentDate);
+            ViewBag.ActiveTech = rows.Count(x =>
+                x.Status?.Trim().Equals("TIMED IN", StringComparison.OrdinalIgnoreCase) == true);
+            ViewBag.InactiveTech = rows.Count(x =>
+                x.Status?.Trim().Equals("INACTIVE", StringComparison.OrdinalIgnoreCase) == true);
+            ViewBag.OffDayTech = rows.Count(x =>
+                x.Status?.Trim().Equals("OFF DAY", StringComparison.OrdinalIgnoreCase) == true);
+
+            var totalOrders = rows.Sum(x => x.TotalWorkOrdersToday);
+            var completed = rows.Sum(x => x.Completed);
+
+            ViewBag.CompletionRate = totalOrders > 0
+                ? Math.Round((completed / (double)totalOrders) * 100, 1)
+                : 0;
+            ViewBag.Message = $"Processed {rows.Count} technician records from {file.FileName}";
+
+            return View("DailyProductivity", model);
     }
 }

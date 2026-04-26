@@ -1,0 +1,476 @@
+@model SlotAd_Globe.Models.DailyProductivityUploadModel
+
+@{
+    ViewData["Title"] = "DailyProductivity";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+}
+
+<style>
+    :root[data-theme="light"] header h1 {
+        color: #1f2937 !important;
+    }
+
+    :root[data-theme="light"] header p {
+        color: #475569 !important;
+    }
+
+    :root[data-theme="light"] #drop-zone {
+        background: #ffffff !important;
+        border-color: #cbd5e1 !important;
+        backdrop-filter: none !important;
+    }
+
+    :root[data-theme="light"] #upload-prompt {
+        color: #334155 !important;
+    }
+
+    :root[data-theme="light"] #upload-icon {
+        background: rgba(79, 70, 229, 0.12) !important;
+    }
+
+    :root[data-theme="light"] #drop-zone p[style*="color: #5a5a7e"] {
+        color: #64748b !important;
+    }
+
+    :root[data-theme="light"] #file-info > div,
+    :root[data-theme="light"] #stats-section > div,
+    :root[data-theme="light"] #progress-section > div {
+        background: #ffffff !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    :root[data-theme="light"] #file-name-display,
+    :root[data-theme="light"] #stat-name,
+    :root[data-theme="light"] #stat-size,
+    :root[data-theme="light"] #stat-type,
+    :root[data-theme="light"] #progress-label {
+        color: #1f2937 !important;
+    }
+
+    :root[data-theme="light"] #file-meta,
+    :root[data-theme="light"] #submit-hint,
+    :root[data-theme="light"] #progress-detail,
+    :root[data-theme="light"] #stats-section p[style*="color: #6a6a8e"] {
+        color: #64748b !important;
+    }
+
+    :root[data-theme="light"] #progress-pct {
+        color: #4338ca !important;
+    }
+
+    :root[data-theme="light"] #progress-section div[style*="background: #1a1a32"] {
+        background: #e2e8f0 !important;
+    }
+</style>
+
+<section class="slide-up">
+    <h1 class="text-2xl font-bold mb-3">Daily Productivity</h1>
+    <p style="color: var(--theme-text-muted);">
+        This page will display charts based on the uploaded raw CSV file.
+    </p>
+</section>
+
+<form id="uploadForm"
+      asp-controller="Report"
+      asp-action="UploadDailyProductivity"
+      method="post"
+      enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+
+    <section class="slide-up" style="animation-delay: 0.1s;">
+        <div id="drop-zone"
+             class="relative rounded-2xl border-2 border-dashed p-8 sm:p-12 text-center cursor-pointer transition-all duration-300"
+             style="border-color: #2a2a4a; background: rgba(22, 22, 42, 0.6); backdrop-filter: blur(12px);"
+             onclick="document.getElementById('ProductivityFile').click()">
+
+            <input asp-for="ProductivityFile"
+                   type="file"
+                   accept=".csv,.xlsx"
+                   class="hidden"
+                   id="ProductivityFile" />
+
+            <div id="upload-icon"
+                 class="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+                 style="background: rgba(99, 102, 241, 0.1);">
+                <i data-lucide="upload-cloud" style="width:28px; height:28px; color: #6366f1;"></i>
+            </div>
+
+            <p id="upload-prompt" class="text-base font-medium mb-2" style="color: #c8c8e0;">
+                Drop your CSV or XLSX file here or click to browse
+            </p>
+
+            <p class="text-sm" style="color: #5a5a7e;">
+                Supports .csv and .xlsx files &bull; Max 500MB
+            </p>
+
+            <span asp-validation-for="ProductivityFile" class="text-red-400 text-sm mt-2 block"></span>
+        </div>
+    </section>
+
+    <div class="mt-6 text-center">
+        <button type="submit"
+                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold transition-colors"
+                style="color: white; background: var(--theme-accent);">
+            <i data-lucide="bar-chart-3" style="width:16px; height:16px;"></i>
+            Generate Visualization
+        </button>
+    </div>
+</form>
+
+@if (ViewBag.Message != null)
+{
+    <div class="mt-4 text-green-400">
+        @ViewBag.Message
+    </div>
+}
+
+@if (ViewBag.Rows != null)
+{
+    <section class="mt-8 space-y-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold">Technician Performance Overview</h1>
+                <p class="text-sm" style="color: var(--theme-text-muted);">
+                    Daily productivity visualization from uploaded CSV
+                </p>
+            </div>
+
+            <div class="text-xs" style="color: var(--theme-text-muted);">
+                Last updated: @DateTime.Now.ToString("hh:mm tt")
+            </div>
+        </div>
+
+        <!-- Filter Row -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <select class="px-3 py-2 rounded-lg" style="background: var(--theme-nav-pill);">
+                <option>All Teams</option>
+            </select>
+
+            <button class="px-4 py-2 rounded-lg font-semibold"
+                    style="background: var(--theme-accent); color: white;">
+                Apply Filters
+            </button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div class="p-4 rounded-xl" style="background: var(--theme-nav-pill);">
+                <p class="text-xs">Active Technicians</p>
+                <h2 class="text-2xl font-bold">@ViewBag.TotalTech</h2>
+            </div>
+
+            <div class="p-4 rounded-xl" style="background: var(--theme-nav-pill);">
+                <p class="text-xs">Total Work Orders</p>
+                <h2 class="text-2xl font-bold">@ViewBag.TotalWorkOrders</h2>
+            </div>
+
+            <div class="p-4 rounded-xl" style="background: var(--theme-nav-pill);">
+                <p class="text-xs">Completed</p>
+                <h2 class="text-2xl font-bold">@ViewBag.TotalCompleted</h2>
+            </div>
+
+            <div class="p-4 rounded-xl" style="background: var(--theme-nav-pill);">
+                <p class="text-xs">Pending</p>
+                <h2 class="text-2xl font-bold">@ViewBag.TotalPending</h2>
+            </div>
+
+            <div class="p-4 rounded-xl" style="background: var(--theme-nav-pill);">
+                <p class="text-xs">Delayed</p>
+                <h2 class="text-2xl font-bold">@ViewBag.TotalDelayed</h2>
+            </div>
+
+            <div class="p-4 rounded-xl" style="background: var(--theme-nav-pill);">
+                <p class="text-xs">Cancelled</p>
+                <h2 class="text-2xl font-bold">@ViewBag.TotalCancelled</h2>
+            </div>
+
+            <div class="p-4 rounded-xl" style="background: var(--theme-nav-pill);">
+                <p class="text-xs">Completion Rate</p>
+                <h2 class="text-2xl font-bold">@ViewBag.CompletionRate%</h2>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="p-5 rounded-xl" style="background: var(--theme-nav-pill);">
+                <h3 class="font-semibold mb-4">Overall Work Order Status</h3>
+                <canvas id="statusDonutChart"></canvas>
+            </div>
+
+            <div class="p-5 rounded-xl" style="background: var(--theme-nav-pill);">
+                <h3 class="font-semibold mb-4">Technician Status Overview</h3>
+                <canvas id="technicianStatusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="p-5 rounded-xl overflow-x-auto" style="background: var(--theme-nav-pill);">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                <h3 class="font-semibold">All Technicians</h3>
+
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <select id="statusFilter"
+                            class="px-3 py-2 rounded-lg text-sm"
+                            style="background: var(--theme-bg);">
+                        <option value="ALL">All Statuses</option>
+                        <option value="TIMED IN">Timed In</option>
+                        <option value="OFF DAY">Off Day</option>
+                        <option value="INACTIVE">Inactive</option>
+                    </select>
+
+                    <input id="technicianSearch"
+                           type="text"
+                           placeholder="Search technician..."
+                           class="px-3 py-2 rounded-lg text-sm"
+                           style="background: var(--theme-bg);" />
+                </div>
+            </div>
+
+            <table class="w-full text-sm">
+                <thead>
+                    <tr style="color: var(--theme-text-muted);">
+                        <th class="text-left py-2">Technician Name</th>
+                        <th>Total Work Orders</th>
+                        <th>Ongoing</th>
+                        <th>Pending</th>
+                        <th>Completed</th>
+                        <th>Cancelled</th>
+                        <th>Delayed</th>
+                        <th>On Hold</th>
+                        <th>Rescheduled</th>
+                    </tr>
+                </thead>
+
+                <tbody id="technicianTableBody">
+                    @foreach (var r in ViewBag.Rows)
+                    {
+                        <tr class="technician-row border-t"
+                            data-name="@r.TechnicianName"
+                            data-status="@r.Status"
+                            style="border-color: var(--theme-surface-border);">
+                            <td class="py-2 font-medium">@r.TechnicianName</td>
+                            <td>@r.TotalWorkOrdersToday</td>
+                            <td>@r.Ongoing</td>
+                            <td>@r.Pending</td>
+                            <td>@r.Completed</td>
+                            <td>@r.Cancelled</td>
+                            <td>@r.Delayed</td>
+                            <td>@r.OnHold</td>
+                            <td>@r.RescheduledWithNewAppointmentDate</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <p id="tableCountText" class="text-xs mt-3" style="color: var(--theme-text-muted);"></p>
+
+            <div class="flex items-center justify-end gap-2 mt-3">
+                <button id="prevPage"
+                        class="px-3 py-1 rounded-lg text-sm"
+                        style="background: var(--theme-bg);">
+                    Prev
+                </button>
+
+                <span id="pageInfo" class="text-sm"></span>
+
+                <button id="nextPage"
+                        class="px-3 py-1 rounded-lg text-sm"
+                        style="background: var(--theme-bg);">
+                    Next
+                </button>
+            </div>
+        </div>
+    </section>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        var dropZone = document.getElementById('drop-zone');
+        var fileInput = document.getElementById('ProductivityFile');
+        var statusFilter = document.getElementById('statusFilter');
+        var technicianSearch = document.getElementById('technicianSearch');
+        var tableCountText = document.getElementById('tableCountText');
+
+        var currentPage = 1;
+        var rowsPerPage = 15;
+
+        function getFilteredRows() {
+            var selectedStatus = statusFilter.value.toUpperCase();
+            var searchText = technicianSearch.value.toLowerCase().trim();
+
+            return Array.from(document.querySelectorAll('.technician-row')).filter(function (row) {
+                var name = row.dataset.name.toLowerCase();
+                var status = row.dataset.status.toUpperCase().trim();
+
+                var matchesStatus = selectedStatus === 'ALL' || status === selectedStatus;
+                var matchesSearch = name.includes(searchText);
+
+                return matchesStatus && matchesSearch;
+            });
+        }
+
+        function renderTable() {
+            var allRows = Array.from(document.querySelectorAll('.technician-row'));
+            var filteredRows = getFilteredRows();
+
+            allRows.forEach(r => r.style.display = 'none');
+
+            var start = (currentPage - 1) * rowsPerPage;
+            var end = start + rowsPerPage;
+
+            var pageRows = filteredRows.slice(start, end);
+
+            pageRows.forEach(r => r.style.display = '');
+
+            var totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+
+            document.getElementById('pageInfo').textContent =
+                `Page ${currentPage} of ${totalPages || 1}`;
+
+            tableCountText.textContent =
+                `Showing ${pageRows.length} of ${filteredRows.length} technicians`;
+
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+        }
+
+        function resetToFirstPage() {
+            currentPage = 1;
+            renderTable();
+        }
+
+        statusFilter.addEventListener('change', resetToFirstPage);
+        technicianSearch.addEventListener('input', resetToFirstPage);
+
+        document.getElementById('prevPage').addEventListener('click', function () {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', function () {
+            var total = getFilteredRows().length;
+            var totalPages = Math.ceil(total / rowsPerPage);
+
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        });
+
+        renderTable();
+
+        dropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drop-zone-active');
+        });
+
+        dropZone.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drop-zone-active');
+        });
+
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drop-zone-active');
+
+            var file = e.dataTransfer.files[0];
+
+            if (file && file.name.match(/\.(csv|xlsx)$/i)) {
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                onFileSelected(file);
+            } else {
+                showToast('Please drop a .csv or .xlsx file', 'error');
+            }
+        });
+
+        fileInput.addEventListener('change', function () {
+            if (this.files.length > 0) {
+                onFileSelected(this.files[0]);
+            }
+        });
+
+        function onFileSelected(file) {
+            dropZone.style.borderColor = '#22c55e';
+            document.getElementById('upload-prompt').textContent = 'File selected! Ready to upload.';
+
+            showToast('File loaded: ' + file.name, 'success');
+            lucide.createIcons();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        lucide.createIcons();
+    </script>
+
+    @if (ViewBag.Rows != null)
+    {
+        <script>
+            const statusCtx = document.getElementById('statusDonutChart');
+
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending', 'Ongoing', 'Delayed', 'Cancelled', 'On Hold', 'Rescheduled'],
+                    datasets: [{
+                        data: [
+                            @ViewBag.TotalCompleted,
+                            @ViewBag.TotalPending,
+                            @ViewBag.TotalOngoing,
+                            @ViewBag.TotalDelayed,
+                            @ViewBag.TotalCancelled,
+                            @ViewBag.TotalOnHold,
+                            @ViewBag.TotalRescheduled
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            const techStatusCtx = document.getElementById('technicianStatusChart');
+
+            new Chart(techStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Timed In', 'Inactive', 'Off Day'],
+                    datasets: [{
+                        data: [
+                            @ViewBag.ActiveTech,
+                            @ViewBag.InactiveTech,
+                            @ViewBag.OffDayTech
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        </script>
+    }
+}
