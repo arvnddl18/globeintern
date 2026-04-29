@@ -57,6 +57,20 @@
         transform: translateY(2px);
         pointer-events: none;
     }
+    .aging-detail-row.status-delayed { background: var(--aging-row-delayed-bg); }
+    .aging-detail-row.status-pending { background: var(--aging-row-pending-bg); }
+    .aging-detail-row.status-ongoing { background: var(--aging-row-ongoing-bg); }
+    .aging-detail-row.status-unassigned { background: var(--aging-row-unassigned-bg); }
+    .aging-detail-row.status-cancelled { background: var(--aging-row-cancelled-bg); }
+    .aging-detail-row.status-completed { background: var(--aging-row-completed-bg); }
+    .aging-detail-row.status-other { background: var(--aging-row-other-bg); }
+    .aging-detail-row.status-delayed td.aging-sticky-metric { background: var(--aging-row-delayed-sticky-bg) !important; }
+    .aging-detail-row.status-pending td.aging-sticky-metric { background: var(--aging-row-pending-sticky-bg) !important; }
+    .aging-detail-row.status-ongoing td.aging-sticky-metric { background: var(--aging-row-ongoing-sticky-bg) !important; }
+    .aging-detail-row.status-unassigned td.aging-sticky-metric { background: var(--aging-row-unassigned-sticky-bg) !important; }
+    .aging-detail-row.status-cancelled td.aging-sticky-metric { background: var(--aging-row-cancelled-sticky-bg) !important; }
+    .aging-detail-row.status-completed td.aging-sticky-metric { background: var(--aging-row-completed-sticky-bg) !important; }
+    .aging-detail-row.status-other td.aging-sticky-metric { background: var(--aging-row-other-sticky-bg) !important; }
     .aging-day-table th,
     .aging-day-table td {
         transition: background-color 0.15s ease;
@@ -166,6 +180,7 @@
         --aging-row-ongoing-bg: rgba(59, 130, 246, 0.26);
         --aging-row-unassigned-bg: rgba(14, 165, 233, 0.26);
         --aging-row-cancelled-bg: rgba(244, 63, 94, 0.26);
+        --aging-row-completed-bg: rgba(16, 185, 129, 0.24);
         --aging-row-other-bg: rgba(139, 92, 246, 0.22);
 
         --aging-row-total-sticky-bg: #353a4f;
@@ -174,6 +189,7 @@
         --aging-row-ongoing-sticky-bg: #2a4674;
         --aging-row-unassigned-sticky-bg: #164e63;
         --aging-row-cancelled-sticky-bg: #5c2a35;
+        --aging-row-completed-sticky-bg: #1f564b;
         --aging-row-other-sticky-bg: #3d2f55;
 
         --aging-text-total: #e5e7eb;
@@ -182,6 +198,7 @@
         --aging-text-ongoing: #bfdbfe;
         --aging-text-unassigned: #a5f3fc;
         --aging-text-cancelled: #fecdd3;
+        --aging-text-completed: #bbf7d0;
         --aging-text-other: #e9d5ff;
     }
     :root[data-theme="light"] {
@@ -191,6 +208,7 @@
         --aging-row-ongoing-bg: rgba(191, 219, 254, 0.90);
         --aging-row-unassigned-bg: rgba(165, 243, 252, 0.92);
         --aging-row-cancelled-bg: rgba(254, 205, 211, 0.92);
+        --aging-row-completed-bg: rgba(187, 247, 208, 0.90);
         --aging-row-other-bg: rgba(221, 214, 254, 0.92);
 
         --aging-row-total-sticky-bg: #dbe1ec;
@@ -199,6 +217,7 @@
         --aging-row-ongoing-sticky-bg: #bfdbfe;
         --aging-row-unassigned-sticky-bg: #a5f3fc;
         --aging-row-cancelled-sticky-bg: #fecdd3;
+        --aging-row-completed-sticky-bg: #bbf7d0;
         --aging-row-other-sticky-bg: #e9d5ff;
 
         --aging-text-total: #111827;
@@ -207,6 +226,7 @@
         --aging-text-ongoing: #1e3a8a;
         --aging-text-unassigned: #155e75;
         --aging-text-cancelled: #9f1239;
+        --aging-text-completed: #14532d;
         --aging-text-other: #5b21b6;
         --aging-metric-text: #0f172a;
     }
@@ -220,6 +240,7 @@
     .aging-day-table tbody tr.aging-row-ongoing { background: var(--aging-row-ongoing-bg); }
     .aging-day-table tbody tr.aging-row-unassigned { background: var(--aging-row-unassigned-bg); }
     .aging-day-table tbody tr.aging-row-cancelled { background: var(--aging-row-cancelled-bg); }
+    .aging-day-table tbody tr.aging-row-completed { background: var(--aging-row-completed-bg); }
     .aging-day-table tbody tr.aging-row-other { background: var(--aging-row-other-bg); }
 
     .aging-day-table tbody tr.aging-row-total td.aging-sticky-metric { background: var(--aging-row-total-sticky-bg) !important; }
@@ -228,6 +249,7 @@
     .aging-day-table tbody tr.aging-row-ongoing td.aging-sticky-metric { background: var(--aging-row-ongoing-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-unassigned td.aging-sticky-metric { background: var(--aging-row-unassigned-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-cancelled td.aging-sticky-metric { background: var(--aging-row-cancelled-sticky-bg) !important; }
+    .aging-day-table tbody tr.aging-row-completed td.aging-sticky-metric { background: var(--aging-row-completed-sticky-bg) !important; }
     .aging-day-table tbody tr.aging-row-other td.aging-sticky-metric { background: var(--aging-row-other-sticky-bg) !important; }
 
     .aging-kpi-card {
@@ -326,12 +348,69 @@
     </section>
 </div>
 
+<!-- Territory aging buckets -->
+<div class="aging-card rounded-2xl p-6 mb-10 fade-in">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
+        <div>
+            <h2 class="text-base font-semibold" style="color: var(--theme-text);">Area/Territory aging buckets</h2>
+            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.AgingScopeLabel · Davao North territory only · order create date</p>
+        </div>
+        <span class="text-xs px-2.5 py-1.5 rounded-full"
+              style="color: var(--theme-text-muted); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
+            Davao North focus
+        </span>
+    </div>
+
+    @if (Model.TerritoryBucketRows.Count == 0 || Model.TerritoryBucketLabels.Count == 0)
+    {
+        <p class="text-sm py-6 text-center" style="color: var(--theme-text-muted);">No territory aging rows for this year.</p>
+    }
+    else
+    {
+        <div class="aging-scroll-wrap">
+            <table class="w-full text-xs border-collapse min-w-[980px]">
+                <thead>
+                <tr style="border-bottom: 1px solid var(--theme-surface-border);">
+                    <th class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim); text-align: left;">AREA/TERRITORY</th>
+                    @foreach (var b in Model.TerritoryBucketLabels)
+                    {
+                        <th class="text-right py-2 px-2 font-semibold whitespace-nowrap" style="color: var(--theme-text-muted);">@b</th>
+                    }
+                    <th class="text-right py-2 pl-2 font-semibold whitespace-nowrap" style="color: var(--theme-accent);">Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.TerritoryBucketRows)
+                {
+                    <tr class="border-b" style="border-color: var(--theme-surface-border);">
+                        <td class="text-left py-2 pr-3 aging-sticky-metric font-medium" style="color: var(--theme-text-dim); text-align: left;">@row.TerritoryLabel</td>
+                        @foreach (var value in row.BucketCounts)
+                        {
+                            <td class="text-right py-2 px-2 font-mono" style="color: var(--theme-text-dim);">@value</td>
+                        }
+                        <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@row.Total</td>
+                    </tr>
+                }
+                <tr style="border-top: 1px solid var(--theme-surface-border);">
+                    <td class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text); text-align: left;">Grand Total</td>
+                    @foreach (var value in Model.TerritoryBucketGrandTotals)
+                    {
+                        <td class="text-right py-2 px-2 font-mono font-semibold" style="color: var(--theme-text);">@value</td>
+                    }
+                    <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@Model.TerritoryBucketGrandTotal</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
 <!-- Month + day-to-day -->
 <div id="aging-day-section" class="aging-card rounded-2xl p-6 mb-10 fade-in">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
             <h2 class="text-base font-semibold mb-1" style="color: var(--theme-text);">Day-to-Day Operational Report</h2>
-            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.SelectedMonthLabel · counts by last update date · days run through today for the selected month (filter by year, month, and optional day)</p>
+            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.SelectedMonthLabel · Repair only · counts by appointment date (fallback: last update date) · days run through today for the selected month (filter by year, month, and optional day)</p>
         </div>
         <div class="flex flex-nowrap items-center gap-2 sm:gap-3 max-w-full min-w-0 overflow-x-auto pb-0.5">
             <form method="get" asp-controller="Report" asp-action="OperationalDashboard" asp-route-token="@Model.ReportToken" class="flex flex-nowrap items-center gap-2 shrink-0" data-ajax-day="true">
@@ -476,6 +555,7 @@
                         "ongoing" => "color: var(--aging-text-ongoing);",
                         "unassigned" => "color: var(--aging-text-unassigned);",
                         "cancelled" => "color: var(--aging-text-cancelled);",
+                        "completed" => "color: var(--aging-text-completed);",
                         "other" => "color: var(--aging-text-other);",
                         _ => "color: var(--aging-text-total);"
                     };
@@ -486,6 +566,7 @@
                         "ongoing" => "color: var(--aging-text-ongoing);",
                         "unassigned" => "color: var(--aging-text-unassigned);",
                         "cancelled" => "color: var(--aging-text-cancelled);",
+                        "completed" => "color: var(--aging-text-completed);",
                         "other" => "color: var(--aging-text-other);",
                         _ => "color: var(--aging-text-total);"
                     };
@@ -496,6 +577,7 @@
                         "ongoing" => "color: var(--aging-text-ongoing);",
                         "unassigned" => "color: var(--aging-text-unassigned);",
                         "cancelled" => "color: var(--aging-text-cancelled);",
+                        "completed" => "color: var(--aging-text-completed);",
                         "other" => "color: var(--aging-text-other);",
                         _ => "color: var(--aging-text-total);"
                     };
@@ -506,6 +588,7 @@
                         "ongoing" => "aging-row-ongoing",
                         "unassigned" => "aging-row-unassigned",
                         "cancelled" => "aging-row-cancelled",
+                        "completed" => "aging-row-completed",
                         "other" => "aging-row-other",
                         _ => "aging-row-total"
                     };
@@ -522,7 +605,7 @@
                         <td class="py-2 pl-2 font-mono aging-total-col" style="@totalStyle; font-weight: 500;">@row.RowTotal</td>
                     </tr>
                 }
-                <tr style="border-top: 1px solid var(--theme-surface-border); background: rgba(148, 163, 184, 0.12);">
+                <tr data-grand-total="true" style="border-top: 1px solid var(--theme-surface-border); background: rgba(148, 163, 184, 0.12);">
                     <td class="py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text);">Grand Total</td>
                     @{
                         var gtColIdx = 0;
@@ -629,63 +712,6 @@
     }
 </div>
 
-<!-- Territory aging buckets -->
-<div class="aging-card rounded-2xl p-6 mb-10 fade-in">
-    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
-        <div>
-            <h2 class="text-base font-semibold" style="color: var(--theme-text);">Area/Territory aging buckets</h2>
-            <p class="text-xs" style="color: var(--theme-text-muted);">@Model.AgingScopeLabel · Davao North territory only · order create date</p>
-        </div>
-        <span class="text-xs px-2.5 py-1.5 rounded-full"
-              style="color: var(--theme-text-muted); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
-            Davao North focus
-        </span>
-    </div>
-
-    @if (Model.TerritoryBucketRows.Count == 0 || Model.TerritoryBucketLabels.Count == 0)
-    {
-        <p class="text-sm py-6 text-center" style="color: var(--theme-text-muted);">No territory aging rows for this year.</p>
-    }
-    else
-    {
-        <div class="aging-scroll-wrap">
-            <table class="w-full text-xs border-collapse min-w-[980px]">
-                <thead>
-                <tr style="border-bottom: 1px solid var(--theme-surface-border);">
-                    <th class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim); text-align: left;">AREA/TERRITORY</th>
-                    @foreach (var b in Model.TerritoryBucketLabels)
-                    {
-                        <th class="text-right py-2 px-2 font-semibold whitespace-nowrap" style="color: var(--theme-text-muted);">@b</th>
-                    }
-                    <th class="text-right py-2 pl-2 font-semibold whitespace-nowrap" style="color: var(--theme-accent);">Total</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var row in Model.TerritoryBucketRows)
-                {
-                    <tr class="border-b" style="border-color: var(--theme-surface-border);">
-                        <td class="text-left py-2 pr-3 aging-sticky-metric font-medium" style="color: var(--theme-text-dim); text-align: left;">@row.TerritoryLabel</td>
-                        @foreach (var value in row.BucketCounts)
-                        {
-                            <td class="text-right py-2 px-2 font-mono" style="color: var(--theme-text-dim);">@value</td>
-                        }
-                        <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@row.Total</td>
-                    </tr>
-                }
-                <tr style="border-top: 1px solid var(--theme-surface-border);">
-                    <td class="text-left py-2 pr-3 aging-sticky-metric font-semibold" style="color: var(--theme-text); text-align: left;">Grand Total</td>
-                    @foreach (var value in Model.TerritoryBucketGrandTotals)
-                    {
-                        <td class="text-right py-2 px-2 font-mono font-semibold" style="color: var(--theme-text);">@value</td>
-                    }
-                    <td class="text-right py-2 pl-2 font-mono font-semibold" style="color: var(--theme-accent);">@Model.TerritoryBucketGrandTotal</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    }
-</div>
-
 <!-- Detail rows -->
 <div id="aging-detail-section" class="aging-card aging-detail-section rounded-xl p-6 mb-10 fade-in">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -696,7 +722,7 @@
                 var endIdx = Math.Min(Model.DetailRowTotal, (Model.DetailPage * Model.DetailPageSize));
             }
             <p class="text-xs mt-1" style="color: var(--theme-text-muted);">
-                Showing @startIdx-@endIdx of @Model.DetailRowTotal rows (sorted by age).
+                Showing @startIdx-@endIdx of @Model.DetailRowTotal rows (sorted by age @((Model.DetailSort == "asc") ? "ascending" : "descending")).
             </p>
         </div>
         <div class="flex flex-wrap gap-3 text-xs items-center" style="color: var(--theme-text-muted);">
@@ -749,6 +775,22 @@
                             <option value="20" selected>20</option>
                         }
                     </select>
+                    <label class="text-xs font-medium ml-1" style="color: var(--theme-text-muted);">Bucket</label>
+                    <select name="detailSort"
+                            class="text-sm rounded-lg px-2.5 py-1.5 border"
+                            style="background: var(--theme-bg); color: var(--theme-text); border-color: var(--theme-surface-border);"
+                            onchange="this.form.submit()">
+                        @if (Model.DetailSort == "asc")
+                        {
+                            <option value="desc">Oldest first</option>
+                            <option value="asc" selected>Newest first</option>
+                        }
+                        else
+                        {
+                            <option value="desc" selected>Oldest first</option>
+                            <option value="asc">Newest first</option>
+                        }
+                    </select>
                 </form>
                 @{
                     var prevPage = Math.Max(1, Model.DetailPage - 1);
@@ -769,6 +811,7 @@
                    asp-route-dailyYear="@Model.SelectedDailyYear" asp-route-dailyMonth="@Model.SelectedDailyMonth"
                    asp-route-dailyDay="@Model.SelectedDailyFocusDay"
                    asp-route-agingYear="@Model.SelectedAgingYear"
+                   asp-route-detailSort="@Model.DetailSort"
                    asp-route-page="@prevPage" asp-route-pageSize="@Model.DetailPageSize"
                    data-ajax-detail-link="true"
                    class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
@@ -790,6 +833,7 @@
                    asp-route-dailyYear="@Model.SelectedDailyYear" asp-route-dailyMonth="@Model.SelectedDailyMonth"
                    asp-route-dailyDay="@Model.SelectedDailyFocusDay"
                    asp-route-agingYear="@Model.SelectedAgingYear"
+                   asp-route-detailSort="@Model.DetailSort"
                    asp-route-page="@nextPage" asp-route-pageSize="@Model.DetailPageSize"
                    data-ajax-detail-link="true"
                    class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
@@ -803,9 +847,9 @@
         <table class="w-full text-xs border-collapse min-w-[720px]">
             <thead>
             <tr style="border-bottom: 1px solid var(--theme-surface-border);">
-                <th class="text-left py-2 pr-2 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim);">Appointment</th>
+                <th class="text-left py-2 pr-2 aging-sticky-metric font-semibold" style="color: var(--theme-text-dim);">Workorder</th>
                 <th class="text-left py-2 pr-2" style="color: var(--theme-text-muted);">Order created</th>
-                <th class="text-right py-2 pr-2 font-mono" style="color: var(--theme-text-muted);">Age (d)</th>
+                <th class="text-center py-2 pr-2 font-mono" style="color: var(--theme-text-muted);">Age (d)</th>
                 <th class="text-left py-2 pr-2" style="color: var(--theme-text-muted);">Bucket</th>
                 <th class="text-left py-2 pr-2" style="color: var(--theme-text-muted);">Status</th>
                 <th class="text-left py-2" style="color: var(--theme-text-muted);">Skillset</th>
@@ -814,12 +858,32 @@
             <tbody id="aging-detail-body">
             @foreach (var r in Model.DetailRows)
             {
-                <tr class="aging-detail-row border-b" style="border-color: var(--theme-surface-border);" data-skill="@r.SkillKind">
-                    <td class="py-2 pr-2 aging-sticky-metric font-mono" style="color: var(--theme-text);">@r.AppointmentId</td>
+                var statusKey = (r.Status ?? string.Empty).Trim().ToLowerInvariant() switch
+                {
+                    "delayed" => "delayed",
+                    "pending" => "pending",
+                    "ongoing" => "ongoing",
+                    "unassigned" => "unassigned",
+                    "cancelled" => "cancelled",
+                    "completed" => "completed",
+                    _ => "other"
+                };
+                var statusTextStyle = statusKey switch
+                {
+                    "delayed" => "color: var(--aging-text-delayed);",
+                    "pending" => "color: var(--aging-text-pending);",
+                    "ongoing" => "color: var(--aging-text-ongoing);",
+                    "unassigned" => "color: var(--aging-text-unassigned);",
+                    "cancelled" => "color: var(--aging-text-cancelled);",
+                    "completed" => "color: var(--aging-text-completed);",
+                    _ => "color: var(--aging-text-other);"
+                };
+                <tr class="aging-detail-row border-b status-@statusKey" style="border-color: var(--theme-surface-border);" data-skill="@r.SkillKind">
+                    <td class="py-2 pr-2 aging-sticky-metric font-mono" style="color: var(--theme-text);">@r.WorkOrder</td>
                     <td class="py-2 pr-2" style="color: var(--theme-text-dim);">@r.OrderCreateDateRaw</td>
-                    <td class="text-right py-2 pr-2 font-mono">@r.AgeDays</td>
+                    <td class="text-center py-2 pr-2 font-mono">@r.AgeDays</td>
                     <td class="py-2 pr-2">@r.AgingBucket</td>
-                    <td class="py-2 pr-2">@r.Status</td>
+                    <td class="py-2 pr-2 font-medium" style="@statusTextStyle">@r.Status</td>
                     <td class="py-2" style="color: var(--theme-text-dim);">@r.Skillset</td>
                 </tr>
             }

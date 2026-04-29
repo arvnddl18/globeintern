@@ -312,7 +312,8 @@ public class ReportController : Controller
         [FromQuery] int? agingYear = null,
         [FromQuery] int? agingMonth = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? detailSort = null)
     {
         if (!TryGetCurrentUserId(out var userId))
             return RedirectToAction(nameof(Upload));
@@ -402,8 +403,14 @@ public class ReportController : Controller
                     agingMonth,
                     page,
                     pageSize,
+                    detailSort,
                     dailyDay,
                     HttpContext.RequestAborted);
+            }
+            catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                // Expected when user changes filters quickly or navigates away.
+                _logger.LogDebug("Operation aging request was canceled for token {Token}", agingToken);
             }
             catch (Exception ex)
             {
