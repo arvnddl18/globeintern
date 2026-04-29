@@ -84,4 +84,8 @@ public interface ICsvProcessingService
         int detailPageSize = 20,
         int? dailyFocusDay = null,
         CancellationToken cancellationToken = default);
+
+    Task<CleanedDataSummary> CleanAndAppendRawDataAsync(
+        Stream rawStream,
+        CancellationToken cancellationToken = default);
 }

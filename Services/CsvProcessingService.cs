@@ -545,8 +545,6 @@ public class CsvProcessingService : ICsvProcessingService
 
             var (tier, reason) = ClassifyCompliance(
                 isDelayed,
-                status,
-                completedValue,
                 rowDate,
                 isAmSlot,
                 rawCompletion);
@@ -637,8 +635,6 @@ public class CsvProcessingService : ICsvProcessingService
 
     private static (string Tier, string Reason) ClassifyCompliance(
         bool isDelayed,
-        string status,
-        string completedValue,
         DateOnly appointmentDate,
         bool appointmentIsAm,
         string rawCompletion)
@@ -646,19 +642,23 @@ public class CsvProcessingService : ICsvProcessingService
         if (isDelayed)
             return ("Fail", "Delayed");
 
-        var isCompleted = string.Equals(status, completedValue, StringComparison.OrdinalIgnoreCase);
         var hasCompletion = TryParseCompletionDateTime(rawCompletion, out var cdt);
 
         if (hasCompletion)
         {
-            var compDate = DateOnly.FromDateTime(cdt);
-            if (isCompleted && compDate != appointmentDate)
+            var completionDate = DateOnly.FromDateTime(cdt);
+            if (completionDate != appointmentDate)
                 return ("Fail", "CompletedWrongDate");
 
-            var completionIsAm = cdt.Hour < 12;
-            if (appointmentIsAm == completionIsAm)
-                return ("Pass", "");
-            return ("Fail", "SlotMismatch");
+            // Business rule: completion at or after 12:59 PM is treated as PM.
+            var completionTime = TimeOnly.FromDateTime(cdt);
+            var completionIsAm = completionTime < new TimeOnly(12, 59);
+            // Mentor formula:
+            // AM -> PM = Fail
+            // AM -> AM, PM -> AM, PM -> PM = Pass
+            if (appointmentIsAm && !completionIsAm)
+                return ("Fail", "SlotMismatch");
+            return ("Pass", "");
         }
 
         return ("N/A", "");
@@ -2384,6 +2384,137 @@ public class CsvProcessingService : ICsvProcessingService
             return true;
         }
         return false;
+    }
+
+    public async Task<CleanedDataSummary> CleanAndAppendRawDataAsync(Stream rawStream, CancellationToken cancellationToken = default)
+    {
+        var requiredHeaders = new[]
+        {
+            "source", "workodernumber", "workordertype", "appointmentid", "appointmentdate",
+            "customername", "customeraddress", "customertype", "customersubtype", "serviceidnumber",
+            "accountnumber", "skillset", "status", "substatus", "fix description", "mainplan",
+            "territory", "facilityname", "longitude", "latitude", "reasoncode", "cabinetid",
+            "cabinettype", "cabinetaddress", "cabinetport", "lcpname", "dpid", "ppoeusername",
+            "userid", "ordercreatedate", "createdate", "lastupdatedate", "completiondate", "protocol"
+        };
+
+        var cleanedDataDir = Path.Combine(_config.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports");
+        Directory.CreateDirectory(cleanedDataDir);
+        var cleanedDataPath = Path.Combine(cleanedDataDir, "CleanedDataMaster.csv");
+
+        var existingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int totalCleanedRowsNow = 0;
+
+        if (File.Exists(cleanedDataPath))
+        {
+            using var fs = new FileStream(cleanedDataPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var sr = new StreamReader(fs);
+            using var existingCsv = new CsvReader(sr, DefaultCsvConfig);
+            
+            await existingCsv.ReadAsync();
+            existingCsv.ReadHeader();
+            while (await existingCsv.ReadAsync())
+            {
+                var id = existingCsv.GetField("appointmentid");
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    existingIds.Add(id);
+                }
+                totalCleanedRowsNow++;
+            }
+        }
+
+        using var rawReader = new StreamReader(rawStream, Encoding.UTF8, true, 1024 * 1024);
+        using var csv = new CsvReader(rawReader, DefaultCsvConfig);
+
+        await csv.ReadAsync();
+        csv.ReadHeader();
+
+        var headerIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var actualHeaders = csv.HeaderRecord;
+        if (actualHeaders != null)
+        {
+            for (int i = 0; i < actualHeaders.Length; i++)
+            {
+                var normalizedHeader = actualHeaders[i].Replace(" ", "").Replace("_", "").ToLowerInvariant();
+                foreach (var req in requiredHeaders)
+                {
+                    var normReq = req.Replace(" ", "").Replace("_", "").ToLowerInvariant();
+                    if (normalizedHeader == normReq)
+                    {
+                        headerIndices[req] = i;
+                        break;
+                    }
+                }
+            }
+        }
+
+        var territoryIdx = headerIndices.GetValueOrDefault("territory", -1);
+        var appointmentIdIdx = headerIndices.GetValueOrDefault("appointmentid", -1);
+
+        int totalProcessed = 0;
+        int newAdded = 0;
+        int duplicates = 0;
+
+        var fileExists = File.Exists(cleanedDataPath);
+        using var outStream = new FileStream(cleanedDataPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+        using var writer = new StreamWriter(outStream, Encoding.UTF8);
+        using var outCsv = new CsvWriter(writer, DefaultCsvConfig);
+
+        if (!fileExists)
+        {
+            foreach (var h in requiredHeaders)
+            {
+                outCsv.WriteField(h);
+            }
+            await outCsv.NextRecordAsync();
+        }
+
+        while (await csv.ReadAsync())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            totalProcessed++;
+
+            if (territoryIdx == -1 || appointmentIdIdx == -1) continue;
+
+            var territory = csv.GetField(territoryIdx) ?? "";
+            if (territory.IndexOf("DAVAO NORTH", StringComparison.OrdinalIgnoreCase) < 0)
+                continue;
+
+            var id = csv.GetField(appointmentIdIdx) ?? "";
+            if (string.IsNullOrWhiteSpace(id)) continue;
+
+            if (existingIds.Contains(id))
+            {
+                duplicates++;
+                continue;
+            }
+
+            existingIds.Add(id);
+            newAdded++;
+            totalCleanedRowsNow++;
+
+            foreach (var h in requiredHeaders)
+            {
+                if (headerIndices.TryGetValue(h, out int idx))
+                {
+                    outCsv.WriteField(csv.GetField(idx));
+                }
+                else
+                {
+                    outCsv.WriteField("");
+                }
+            }
+            await outCsv.NextRecordAsync();
+        }
+
+        return new CleanedDataSummary
+        {
+            TotalRowsProcessed = totalProcessed,
+            NewRowsAdded = newAdded,
+            DuplicateRowsSkipped = duplicates,
+            TotalCleanedRowsNow = totalCleanedRowsNow
+        };
     }
 
     private sealed class FilteredRow

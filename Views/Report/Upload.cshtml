@@ -54,10 +54,10 @@
 
 <header class="text-center mb-10 slide-up">
     <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3" style="color: #f0f0f8;">
-        CSV / XLSX &rarr; Report Converter
+        Raw Data Cleaner
     </h1>
     <p class="text-base sm:text-lg max-w-lg mx-auto" style="color: #7a7a9e;">
-        Upload your pending CSV or XLSX file and generate a formatted Excel report.
+        Upload your raw data file to extract, filter to DAVAO NORTH, and append to the master cleaned data.
     </p>
 </header>
 
@@ -70,7 +70,7 @@
     </div>
 }
 
-<form asp-action="Upload" asp-controller="Report" method="post" enctype="multipart/form-data" id="uploadForm">
+<form asp-action="UploadRawDataCleaner" asp-controller="Report" method="post" enctype="multipart/form-data" id="uploadForm">
     @Html.AntiForgeryToken()
 
     <section class="slide-up" style="animation-delay: 0.1s;">
@@ -134,10 +134,10 @@
                 class="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 pulse-glow cursor-pointer"
                 style="background: #6366f1; color: #fff;">
             <i data-lucide="upload" style="width:18px; height:18px;"></i>
-            <span id="submit-btn-text">Upload &amp; Extract Filters</span>
+            <span id="submit-btn-text">Clean &amp; Append Data</span>
         </button>
         <p id="submit-hint" class="text-xs mt-3" style="color: #5a5a7e;">
-            The file will be processed on the server to extract filter options.
+            The file will be cleaned, filtered, and appended to the master data.
         </p>
 
         <div id="progress-section" class="hidden mt-5 max-w-md mx-auto">
@@ -250,10 +250,10 @@
                     (remaining > 0 ? '  ~' + Math.ceil(remaining) + 's remaining' : '');
 
                 if (pct >= 100) {
-                    document.getElementById('progress-label').textContent = 'Processing file on server...';
-                    document.getElementById('submit-btn-text').innerHTML = '<span class="spinner"></span> Extracting filters...';
+                    document.getElementById('progress-label').textContent = 'Cleaning data on server...';
+                    document.getElementById('submit-btn-text').innerHTML = '<span class="spinner"></span> Cleaning...';
                     document.getElementById('progress-detail').textContent =
-                        'Upload complete. Saving and scanning the file for filter options — large files (50MB+) can take several minutes; please wait.';
+                        'Upload complete. Extracting, filtering, and appending to the master data. Please wait.';
                 }
             });
 
@@ -265,7 +265,7 @@
                 } else {
                     btn.disabled = false;
                     btn.style.opacity = '1';
-                    document.getElementById('submit-btn-text').innerHTML = 'Upload &amp; Extract Filters';
+                    document.getElementById('submit-btn-text').innerHTML = 'Clean &amp; Append Data';
                     document.getElementById('progress-section').classList.add('hidden');
                     document.getElementById('submit-hint').classList.remove('hidden');
                     showToast('Upload failed (' + xhr.status + '). Please try again.', 'error');
@@ -275,7 +275,7 @@
             xhr.addEventListener('error', function () {
                 btn.disabled = false;
                 btn.style.opacity = '1';
-                document.getElementById('submit-btn-text').innerHTML = 'Upload &amp; Extract Filters';
+                document.getElementById('submit-btn-text').innerHTML = 'Clean &amp; Append Data';
                 document.getElementById('progress-section').classList.add('hidden');
                 document.getElementById('submit-hint').classList.remove('hidden');
                 showToast('Network error. Please check your connection and try again.', 'error');

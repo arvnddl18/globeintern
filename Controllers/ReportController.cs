@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Security.Claims;
+using CsvHelper;
+using CsvHelper.Configuration;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
@@ -82,35 +84,138 @@ public class ReportController : Controller
     [HttpPost("[action]")]
     [ValidateAntiForgeryToken]
     [DisableRequestSizeLimit]
-    public async Task<IActionResult> Upload(CsvUploadViewModel model)
+    public async Task<IActionResult> UploadRawDataCleaner(CsvUploadViewModel model)
     {
         if (!ModelState.IsValid)
-            return View(model);
+            return View("Upload", model);
 
         if (model.CsvFile is null || model.CsvFile.Length == 0)
         {
             ModelState.AddModelError(nameof(model.CsvFile), "The uploaded file is empty.");
-            return View(model);
+            return View("Upload", model);
+        }
+
+        try
+        {
+            await using var uploadStream = model.CsvFile.OpenReadStream();
+            var summary = await _csvService.CleanAndAppendRawDataAsync(uploadStream, HttpContext.RequestAborted);
+            
+            TempData["CleanDataSummary"] = JsonSerializer.Serialize(summary);
+
+            return RedirectToAction(nameof(CleanedDataExport));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing Raw Data Cleaner upload");
+            ModelState.AddModelError(string.Empty, $"Error processing CSV: {ex.Message}");
+            return View("Upload", model);
+        }
+    }
+
+    [HttpGet("[action]")]
+    public IActionResult CleanedDataExport()
+    {
+        if (TempData["CleanDataSummary"] is string summaryJson)
+        {
+            var summary = JsonSerializer.Deserialize<CleanedDataSummary>(summaryJson);
+            return View(summary);
+        }
+        return View(new CleanedDataSummary());
+    }
+
+    [HttpGet("[action]")]
+    public IActionResult DownloadCleanedDataCsv()
+    {
+        var cleanedDataDir = Path.Combine(_configuration.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports");
+        var cleanedDataPath = Path.Combine(cleanedDataDir, "CleanedDataMaster.csv");
+
+        if (!System.IO.File.Exists(cleanedDataPath))
+        {
+            TempData["Error"] = "No cleaned data available.";
+            return RedirectToAction(nameof(CleanedDataExport));
+        }
+
+        var fs = new FileStream(cleanedDataPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        return File(fs, "text/csv", "CleanedDataMaster.csv");
+    }
+
+    [HttpGet("[action]")]
+    public async Task<IActionResult> DownloadCleanedDataXlsx()
+    {
+        var cleanedDataDir = Path.Combine(_configuration.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports");
+        var cleanedDataPath = Path.Combine(cleanedDataDir, "CleanedDataMaster.csv");
+
+        if (!System.IO.File.Exists(cleanedDataPath))
+        {
+            TempData["Error"] = "No cleaned data available.";
+            return RedirectToAction(nameof(CleanedDataExport));
+        }
+
+        using var fs = new FileStream(cleanedDataPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var sr = new StreamReader(fs, Encoding.UTF8);
+        using var csv = new CsvReader(sr, new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true, BadDataFound = null });
+
+        var ms = new MemoryStream();
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("CleanedData");
+
+        await csv.ReadAsync();
+        csv.ReadHeader();
+        var headers = csv.HeaderRecord;
+        if (headers != null)
+        {
+            for (int i = 0; i < headers.Length; i++)
+            {
+                ws.Cell(1, i + 1).Value = headers[i];
+            }
+        }
+
+        int rowNum = 2;
+        while (await csv.ReadAsync())
+        {
+            for (int i = 0; i < (headers?.Length ?? 0); i++)
+            {
+                ws.Cell(rowNum, i + 1).Value = csv.GetField(i);
+            }
+            rowNum++;
+        }
+
+        ws.Columns().AdjustToContents();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+
+        return File(ms, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "CleanedDataMaster.xlsx");
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    [DisableRequestSizeLimit]
+    public async Task<IActionResult> UploadKpi(IFormFile? csvFile)
+    {
+        if (csvFile is null || csvFile.Length == 0)
+        {
+            TempData["Error"] = "The uploaded file is empty.";
+            return RedirectToAction(nameof(Dashboard));
         }
 
         try
         {
             _sessionStore.CleanupExpiredSessions();
-            await using var uploadStream = model.CsvFile.OpenReadStream();
+            await using var uploadStream = csvFile.OpenReadStream();
             var token = await _sessionStore.CreateSessionFromCsvAsync(
                 uploadStream,
-                model.CsvFile.FileName,
+                csvFile.FileName,
                 HttpContext.RequestAborted);
 
             if (!_sessionStore.TryGetCsvPath(token, out var csvPath))
             {
-                ModelState.AddModelError(string.Empty, "Could not store the uploaded file.");
-                return View(model);
+                TempData["Error"] = "Could not store the uploaded file.";
+                return RedirectToAction(nameof(Dashboard));
             }
 
             var detectedKind = await _csvService.DetectCsvSourceKindAsync(
                 csvPath,
-                model.CsvFile.FileName,
+                csvFile.FileName,
                 HttpContext.RequestAborted);
             await _sessionStore.SetCsvSourceKindAsync(token, detectedKind, HttpContext.RequestAborted);
 
@@ -131,9 +236,9 @@ public class ReportController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing uploaded CSV");
-            ModelState.AddModelError(string.Empty, $"Error processing CSV: {ex.Message}");
-            return View(model);
+            _logger.LogError(ex, "Error processing uploaded KPI CSV");
+            TempData["Error"] = $"Error processing CSV: {ex.Message}";
+            return RedirectToAction(nameof(Dashboard));
         }
     }
 
