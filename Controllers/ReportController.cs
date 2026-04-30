@@ -1467,4 +1467,61 @@ public class ReportController : Controller
 
         return "all";
     }
+    [HttpGet("Dashboard/{token}/RecurringTickets")]
+    public async Task<IActionResult> GetRecurringTickets(
+        string token,
+        string filterMode = "all",
+        string? selectedDate = null,
+        string? dateRangeStart = null,
+        string? dateRangeEnd = null,
+        int page = 1,
+        int pageSize = 20,
+        int? minGap = null,
+        int? maxGap = null)
+    {
+        if (!_sessionStore.TryGetCsvPath(token, out var csvPath))
+            return NotFound("Session expired or CSV not found.");
+
+        DateOnly? s = string.IsNullOrEmpty(selectedDate) ? null : DateOnly.Parse(selectedDate);
+        DateOnly? rs = string.IsNullOrEmpty(dateRangeStart) ? null : DateOnly.Parse(dateRangeStart);
+        DateOnly? re = string.IsNullOrEmpty(dateRangeEnd) ? null : DateOnly.Parse(dateRangeEnd);
+
+        var (items, total) = await _csvService.GetPaginatedRecurringTicketsAsync(
+            csvPath, filterMode, s, rs, re, page, pageSize, minGap, maxGap, HttpContext.RequestAborted);
+
+        return Json(new { items, total });
+    }
+
+    [HttpGet("Dashboard/{token}/ExportRecurringTickets")]
+    public async Task<IActionResult> ExportRecurringTickets(
+        string token,
+        string format = "csv",
+        string filterMode = "all",
+        string? selectedDate = null,
+        string? dateRangeStart = null,
+        string? dateRangeEnd = null,
+        int? minGap = null,
+        int? maxGap = null)
+    {
+        if (!_sessionStore.TryGetCsvPath(token, out var csvPath))
+            return NotFound("Session expired or CSV not found.");
+
+        DateOnly? s = string.IsNullOrEmpty(selectedDate) ? null : DateOnly.Parse(selectedDate);
+        DateOnly? rs = string.IsNullOrEmpty(dateRangeStart) ? null : DateOnly.Parse(dateRangeStart);
+        DateOnly? re = string.IsNullOrEmpty(dateRangeEnd) ? null : DateOnly.Parse(dateRangeEnd);
+
+        var filtered = await _csvService.GetFilteredRecurringTicketsAsync(
+            csvPath, filterMode, s, rs, re, minGap, maxGap, HttpContext.RequestAborted);
+
+        if (string.Equals(format, "xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            var stream = await _csvService.GenerateRecurringTicketsXlsxAsync(filtered);
+            return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"RecurringTickets_{token}.xlsx");
+        }
+        else
+        {
+            var stream = await _csvService.GenerateRecurringTicketsCsvAsync(filtered);
+            return File(stream, "text/csv", $"RecurringTickets_{token}.csv");
+        }
+    }
 }

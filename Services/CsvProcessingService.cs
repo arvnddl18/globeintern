@@ -253,6 +253,7 @@ public class CsvProcessingService : ICsvProcessingService
         var napDotTerritories = new List<string>(capacity: Math.Min(maxDots, 4096));
         var napDotStatuses = new List<string>(capacity: Math.Min(maxDots, 4096));
 
+
         while (await csv.ReadAsync())
         {
             var rawAppointmentDate = csv.GetField(appointmentDateCol) ?? "";
@@ -463,6 +464,7 @@ public class CsvProcessingService : ICsvProcessingService
         var napDotSkillsets2 = new List<string>(capacity: Math.Min(maxDots, 4096));
         var napDotTerritories2 = new List<string>(capacity: Math.Min(maxDots, 4096));
         var napDotStatuses2 = new List<string>(capacity: Math.Min(maxDots, 4096));
+
 
         while (await csv.ReadAsync())
         {
@@ -1415,6 +1417,7 @@ public class CsvProcessingService : ICsvProcessingService
             "single" when single.HasValue => rowDate == single.Value,
             "range" => (!rangeStart.HasValue || rowDate >= rangeStart.Value)
                     && (!rangeEnd.HasValue || rowDate <= rangeEnd.Value),
+            "monthly" when single.HasValue => rowDate.Year == single.Value.Year && rowDate.Month == single.Value.Month,
             _ => true
         };
     }
@@ -2458,7 +2461,7 @@ public class CsvProcessingService : ICsvProcessingService
     {
         var requiredHeaders = new[]
         {
-            "source", "workodernumber", "workordertype", "appointmentid", "appointmentdate",
+            "source", "workordernumber", "workordertype", "appointmentid", "appointmentdate",
             "customername", "customeraddress", "customertype", "customersubtype", "serviceidnumber",
             "accountnumber", "skillset", "status", "substatus", "fix description", "mainplan",
             "territory", "facilityname", "longitude", "latitude", "reasoncode", "cabinetid",
@@ -2583,6 +2586,245 @@ public class CsvProcessingService : ICsvProcessingService
             DuplicateRowsSkipped = duplicates,
             TotalCleanedRowsNow = totalCleanedRowsNow
         };
+    }
+
+    /// <summary>
+    /// Analyses ticket history grouped by service ID.
+    /// For each service ID with 2+ tickets, finds the earliest Install/Repair
+    /// and each subsequent Repair ticket, producing a RecurringTicketRow.
+    /// </summary>
+    private static List<RecurringTicketRow> BuildRecurringTickets(
+        Dictionary<string, List<(DateOnly Date, string Skillset, string Status, string AppointmentId, string WorkOrder, string CustomerName, string CustomerAddress, string Territory, string FacilityName, string DpId)>> serviceTickets)
+    {
+        var result = new List<RecurringTicketRow>();
+
+        foreach (var (svcId, tickets) in serviceTickets)
+        {
+            if (tickets.Count < 2) continue;
+
+            var sorted = tickets.OrderBy(t => t.Date).ToList();
+            var initial = sorted[0];
+
+            for (int i = 1; i < sorted.Count; i++)
+            {
+                var later = sorted[i];
+                // Only flag if the later ticket is a Repair
+                if (later.Skillset.IndexOf("Repair", StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                // Must be a different day
+                var gap = later.Date.DayNumber - initial.Date.DayNumber;
+                if (gap <= 0) continue;
+
+                result.Add(new RecurringTicketRow
+                {
+                    ServiceIdNumber       = svcId,
+                    CustomerName          = initial.CustomerName,
+                    CustomerAddress       = initial.CustomerAddress,
+                    Territory             = initial.Territory,
+                    FacilityName          = initial.FacilityName,
+                    DpId                  = initial.DpId,
+                    InitialTicketDate     = initial.Date.ToString("yyyy-MM-dd"),
+                    InitialSkillset       = initial.Skillset,
+                    InitialStatus         = initial.Status,
+                    InitialAppointmentId  = initial.AppointmentId,
+                    InitialWorkOrderNumber = initial.WorkOrder,
+                    RecurringTicketDate   = later.Date.ToString("yyyy-MM-dd"),
+                    RecurringSkillset     = later.Skillset,
+                    RecurringStatus       = later.Status,
+                    RecurringAppointmentId = later.AppointmentId,
+                    RecurringWorkOrderNumber = later.WorkOrder,
+                    DaysBetween           = gap
+                });
+            }
+        }
+
+        return result.OrderByDescending(r => r.DaysBetween).ToList();
+    }
+
+    public async Task<(List<RecurringTicketRow> Items, int TotalCount)> GetPaginatedRecurringTicketsAsync(
+        string csvFilePath,
+        string filterMode = "all",
+        DateOnly? selectedDate = null,
+        DateOnly? dateRangeStart = null,
+        DateOnly? dateRangeEnd = null,
+        int page = 1,
+        int pageSize = 20,
+        int? minGap = null,
+        int? maxGap = null,
+        CancellationToken cancellationToken = default)
+    {
+        var allFiltered = await GetFilteredRecurringTicketsAsync(csvFilePath, filterMode, selectedDate, dateRangeStart, dateRangeEnd, minGap, maxGap, cancellationToken);
+        var paged = allFiltered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return (paged, allFiltered.Count);
+    }
+
+    public async Task<List<RecurringTicketRow>> GetFilteredRecurringTicketsAsync(
+        string csvFilePath,
+        string filterMode = "all",
+        DateOnly? selectedDate = null,
+        DateOnly? dateRangeStart = null,
+        DateOnly? dateRangeEnd = null,
+        int? minGap = null,
+        int? maxGap = null,
+        CancellationToken cancellationToken = default)
+    {
+        var all = await BuildAllRecurringTicketsInternalAsync(csvFilePath, cancellationToken);
+        return all.Where(r => {
+            if (!DateOnly.TryParse(r.RecurringTicketDate, out var d)) return false;
+            
+            bool dateMatches = MatchesDateFilter(d, filterMode, selectedDate, dateRangeStart, dateRangeEnd);
+            if (!dateMatches) return false;
+
+            if (minGap.HasValue && r.DaysBetween < minGap.Value) return false;
+            if (maxGap.HasValue && r.DaysBetween > maxGap.Value) return false;
+
+            return true;
+        }).ToList();
+    }
+
+    private async Task<List<RecurringTicketRow>> BuildAllRecurringTicketsInternalAsync(string csvFilePath, CancellationToken cancellationToken)
+    {
+        using var fileStream = new FileStream(csvFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536, useAsync: true);
+        using var reader = new StreamReader(fileStream);
+        using var csv = new CsvReader(reader, DefaultCsvConfig);
+
+        await csv.ReadAsync();
+        csv.ReadHeader();
+
+        var headers = csv.HeaderRecord;
+        var appointmentDateCol = Col("AppointmentDateColumn");
+        var skillsetCol = Col("SkillsetColumn");
+        var statusCol = Col("StatusColumn");
+        var appointmentIdCol = Col("AppointmentIdColumn");
+        var workOrderCol = ColOr("WorkOrderColumn", appointmentIdCol);
+        
+        var serviceIdCol = FindCoordColumn(headers, null, "serviceidnumber", "service_id_number", "serviceid");
+        var customerNameCol = FindCoordColumn(headers, null, "customername", "customer_name");
+        var customerAddrCol = FindCoordColumn(headers, null, "customeraddress", "customer_address");
+        var territoryCol = Col("TerritoryColumn");
+        var facilityCol = FindCoordColumn(headers, _config["CsvMapping:FacilityNameColumn"], "facilityname", "facility_name", "facility", "name");
+        var dpidCol = FindCoordColumn(headers, null, "dpid");
+
+        var serviceTickets = new Dictionary<string, List<(DateOnly Date, string Skillset, string Status, string AppointmentId, string WorkOrder, string CustomerName, string CustomerAddress, string Territory, string FacilityName, string DpId)>>(StringComparer.OrdinalIgnoreCase);
+
+        while (await csv.ReadAsync())
+        {
+            var rawDate = csv.GetField(appointmentDateCol) ?? "";
+            if (!TryExtractDate(rawDate, out var rowDate)) continue;
+
+            var skillset = csv.GetField(skillsetCol) ?? "";
+            var status = (csv.GetField(statusCol) ?? "").Trim();
+            var appointmentId = csv.GetField(appointmentIdCol) ?? "";
+            var workOrder = csv.GetField(workOrderCol) ?? appointmentId;
+            var territory = csv.GetField(territoryCol) ?? "";
+
+            if (serviceIdCol is not null)
+            {
+                var svcId = (csv.GetField(serviceIdCol) ?? "").Trim();
+                if (!string.IsNullOrEmpty(svcId) && (skillset.IndexOf("Install", StringComparison.OrdinalIgnoreCase) >= 0 || skillset.IndexOf("Repair", StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    if (!serviceTickets.TryGetValue(svcId, out var list))
+                    {
+                        list = new();
+                        serviceTickets[svcId] = list;
+                    }
+                    list.Add((
+                        Date: rowDate,
+                        Skillset: skillset,
+                        Status: status,
+                        AppointmentId: appointmentId,
+                        WorkOrder: workOrder,
+                        CustomerName: customerNameCol is not null ? (csv.GetField(customerNameCol) ?? "").Trim() : "",
+                        CustomerAddress: customerAddrCol is not null ? (csv.GetField(customerAddrCol) ?? "").Trim() : "",
+                        Territory: territory,
+                        FacilityName: facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "",
+                        DpId: dpidCol is not null ? (csv.GetField(dpidCol) ?? "").Trim() : ""
+                    ));
+                }
+            }
+        }
+
+        return BuildRecurringTickets(serviceTickets);
+    }
+
+    public async Task<MemoryStream> GenerateRecurringTicketsCsvAsync(List<RecurringTicketRow> rows)
+    {
+        var ms = new MemoryStream();
+        await using (var sw = new StreamWriter(ms, Encoding.UTF8, 1024, leaveOpen: true))
+        await using (var csv = new CsvWriter(sw, CultureInfo.InvariantCulture))
+        {
+            csv.WriteField("Service ID");
+            csv.WriteField("Customer Name");
+            csv.WriteField("Address");
+            csv.WriteField("Territory");
+            csv.WriteField("Facility");
+            csv.WriteField("Initial Date");
+            csv.WriteField("Initial WO#");
+            csv.WriteField("Initial Skillset");
+            csv.WriteField("Recurring Date");
+            csv.WriteField("Recurring WO#");
+            csv.WriteField("Recurring Skillset");
+            csv.WriteField("Gap (Days)");
+            await csv.NextRecordAsync();
+
+            foreach (var r in rows)
+            {
+                csv.WriteField(r.ServiceIdNumber);
+                csv.WriteField(r.CustomerName);
+                csv.WriteField(r.CustomerAddress);
+                csv.WriteField(r.Territory);
+                csv.WriteField(r.FacilityName);
+                csv.WriteField(r.InitialTicketDate);
+                csv.WriteField(r.InitialWorkOrderNumber);
+                csv.WriteField(r.InitialSkillset);
+                csv.WriteField(r.RecurringTicketDate);
+                csv.WriteField(r.RecurringWorkOrderNumber);
+                csv.WriteField(r.RecurringSkillset);
+                csv.WriteField(r.DaysBetween);
+                await csv.NextRecordAsync();
+            }
+        }
+        ms.Position = 0;
+        return ms;
+    }
+
+    public async Task<MemoryStream> GenerateRecurringTicketsXlsxAsync(List<RecurringTicketRow> rows)
+    {
+        var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Recurring Tickets");
+
+        var headers = new[] { "Service ID", "Customer Name", "Address", "Territory", "Facility", "Initial Date", "Initial WO#", "Initial Skillset", "Recurring Date", "Recurring WO#", "Recurring Skillset", "Gap (Days)" };
+        for (int i = 0; i < headers.Length; i++)
+            ws.Cell(1, i + 1).Value = headers[i];
+
+        var headerRange = ws.Range(1, 1, 1, headers.Length);
+        headerRange.Style.Font.Bold = true;
+        headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#16162a");
+        headerRange.Style.Font.FontColor = XLColor.White;
+
+        for (int i = 0; i < rows.Count; i++)
+        {
+            var r = rows[i];
+            ws.Cell(i + 2, 1).Value = r.ServiceIdNumber;
+            ws.Cell(i + 2, 2).Value = r.CustomerName;
+            ws.Cell(i + 2, 3).Value = r.CustomerAddress;
+            ws.Cell(i + 2, 4).Value = r.Territory;
+            ws.Cell(i + 2, 5).Value = r.FacilityName;
+            ws.Cell(i + 2, 6).Value = r.InitialTicketDate;
+            ws.Cell(i + 2, 7).Value = r.InitialWorkOrderNumber;
+            ws.Cell(i + 2, 8).Value = r.InitialSkillset;
+            ws.Cell(i + 2, 9).Value = r.RecurringTicketDate;
+            ws.Cell(i + 2, 10).Value = r.RecurringWorkOrderNumber;
+            ws.Cell(i + 2, 11).Value = r.RecurringSkillset;
+            ws.Cell(i + 2, 12).Value = r.DaysBetween;
+        }
+
+        ws.Columns().AdjustToContents();
+        var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        ms.Position = 0;
+        return ms;
     }
 
     private sealed class FilteredRow

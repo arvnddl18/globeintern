@@ -89,4 +89,29 @@ public interface ICsvProcessingService
     Task<CleanedDataSummary> CleanAndAppendRawDataAsync(
         Stream rawStream,
         CancellationToken cancellationToken = default);
+
+    Task<(List<RecurringTicketRow> Items, int TotalCount)> GetPaginatedRecurringTicketsAsync(
+        string csvFilePath,
+        string filterMode = "all",
+        DateOnly? selectedDate = null,
+        DateOnly? dateRangeStart = null,
+        DateOnly? dateRangeEnd = null,
+        int page = 1,
+        int pageSize = 20,
+        int? minGap = null,
+        int? maxGap = null,
+        CancellationToken cancellationToken = default);
+
+    Task<List<RecurringTicketRow>> GetFilteredRecurringTicketsAsync(
+        string csvFilePath,
+        string filterMode = "all",
+        DateOnly? selectedDate = null,
+        DateOnly? dateRangeStart = null,
+        DateOnly? dateRangeEnd = null,
+        int? minGap = null,
+        int? maxGap = null,
+        CancellationToken cancellationToken = default);
+
+    Task<MemoryStream> GenerateRecurringTicketsCsvAsync(List<RecurringTicketRow> rows);
+    Task<MemoryStream> GenerateRecurringTicketsXlsxAsync(List<RecurringTicketRow> rows);
 }

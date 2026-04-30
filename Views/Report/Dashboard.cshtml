@@ -102,14 +102,323 @@
     }
 
     :root[data-theme="light"] #slot-adherence-report,
-    :root[data-theme="light"] #heatmap-analysis-report {
+    :root[data-theme="light"] #heatmap-analysis-report,
+    :root[data-theme="light"] #recurring-tickets-report {
         background: #f0f3fb !important;
         border-color: var(--dash-card-border) !important;
     }
 
     :root[data-theme="light"] #slot-adherence-report > div:first-child,
-    :root[data-theme="light"] #heatmap-analysis-report > div:first-child {
+    :root[data-theme="light"] #heatmap-analysis-report > div:first-child,
+    :root[data-theme="light"] #recurring-tickets-report > div:first-child {
         border-bottom-color: var(--dash-card-border) !important;
+    }
+
+    /* ── Recurring Tickets table styles ── */
+    #recurring-tickets-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 12px;
+    }
+    #recurring-tickets-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #16162a;
+        color: #8a8ab0;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid #2a2a4a;
+        white-space: nowrap;
+    }
+    #recurring-tickets-table tbody td {
+        padding: 8px 12px;
+        color: #c8c8e0;
+        border-bottom: 1px solid rgba(42,42,74,0.4);
+        white-space: nowrap;
+    }
+    #recurring-tickets-table tbody tr:hover {
+        background: rgba(99, 102, 241, 0.06);
+    }
+    .rt-badge-days {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-size: 10px;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .rt-badge-days.rt-warn  { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .rt-badge-days.rt-danger { background: rgba(239,68,68,0.15); color: #f87171; }
+    .rt-badge-days.rt-info   { background: rgba(99,102,241,0.12); color: #a5b4fc; }
+    .rt-skillset-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 600;
+    }
+    .rt-skillset-install { background: rgba(30,144,255,0.12); color: #60a5fa; }
+    .rt-skillset-repair  { background: rgba(249,115,22,0.12); color: #fb923c; }
+    #recurring-tickets-scroll {
+        max-height: 420px;
+        overflow-y: auto;
+        border-radius: 8px;
+        border: 1px solid #2a2a4a;
+    }
+    #recurring-tickets-scroll::-webkit-scrollbar { width: 5px; }
+    #recurring-tickets-scroll::-webkit-scrollbar-thumb { background: #3b3b5c; border-radius: 4px; }
+    #recurring-tickets-scroll::-webkit-scrollbar-track { background: #0d0d1a; border-radius: 4px; }
+
+    :root[data-theme="light"] #recurring-tickets-table thead th {
+        background: #e8ecf4;
+        color: #475569;
+        border-bottom-color: #d8deea;
+    }
+    :root[data-theme="light"] #recurring-tickets-table tbody td {
+        color: #1f2a44;
+        border-bottom-color: #e2e8f0;
+    }
+    :root[data-theme="light"] #recurring-tickets-table tbody tr:hover {
+        background: rgba(79, 70, 229, 0.04);
+    }
+    :root[data-theme="light"] #recurring-tickets-scroll {
+        border-color: #d8deea;
+    }
+    :root[data-theme="light"] #recurring-tickets-scroll::-webkit-scrollbar-thumb { background: #b8c5da; }
+    :root[data-theme="light"] #recurring-tickets-scroll::-webkit-scrollbar-track { background: #eef2f7; }
+    :root[data-theme="light"] .rt-badge-days.rt-warn  { background: rgba(245,158,11,0.1); color: #b45309; }
+    :root[data-theme="light"] .rt-badge-days.rt-danger { background: rgba(239,68,68,0.1); color: #dc2626; }
+    :root[data-theme="light"] .rt-badge-days.rt-info   { background: rgba(79,70,229,0.08); color: #4f46e5; }
+    :root[data-theme="light"] .rt-skillset-install { background: rgba(30,144,255,0.08); color: #2563eb; }
+    :root[data-theme="light"] .rt-skillset-repair  { background: rgba(249,115,22,0.08); color: #ea580c; }
+
+    /* ── Recurring Tickets dynamic UI (Pill Radios) ── */
+    .rt-filter-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        background: rgba(99, 102, 241, 0.05);
+        color: #a5b4fc;
+        cursor: pointer;
+        user-select: none;
+    }
+    .rt-filter-pill:hover {
+        background: rgba(99, 102, 241, 0.12);
+        border-color: rgba(99, 102, 241, 0.4);
+        color: #c7d2fe;
+    }
+    .rt-filter-pill.active {
+        background: rgba(99, 102, 241, 0.25);
+        border-color: #818cf8;
+        color: #ffffff;
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+    }
+    .rt-radio-circle {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 1.5px solid #6366f1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+    .rt-filter-pill.active .rt-radio-circle {
+        border-color: #6366f1;
+    }
+    .rt-radio-circle::after {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #6366f1;
+        transform: scale(0);
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .rt-filter-pill.active .rt-radio-circle::after {
+        transform: scale(1);
+    }
+
+    :root[data-theme="light"] .rt-filter-pill {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #334155;
+    }
+    :root[data-theme="light"] .rt-filter-pill:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+    :root[data-theme="light"] .rt-filter-pill.active {
+        background: #eef2ff;
+        border-color: #4f46e5;
+        color: #1e1b4b;
+    }
+    :root[data-theme="light"] .rt-radio-circle {
+        border-color: #94a3b8;
+    }
+    :root[data-theme="light"] .rt-filter-pill.active .rt-radio-circle {
+        border-color: #6366f1;
+    }
+
+    /* ── Filter Modal ── */
+    #rt-filter-modal {
+        transition: opacity 0.3s ease;
+    }
+    #rt-filter-modal.hidden {
+        opacity: 0;
+        pointer-events: none;
+        display: flex !important; /* Keep it flex but invisible */
+    }
+    #rt-modal-content {
+        transform: scale(0.95) translateY(10px);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #rt-filter-modal:not(.hidden) #rt-modal-content {
+        transform: scale(1) translateY(0);
+    }
+
+    :root[data-theme="light"] #rt-modal-content {
+        background: #ffffff;
+        border-color: #e2e8f0;
+    }
+    :root[data-theme="light"] #rt-modal-content h3 { color: #1e293b; }
+    :root[data-theme="light"] #rt-modal-selection { background: #f8fafc; border-color: #e2e8f0; }
+
+    :root[data-theme="light"] #rt-open-filters {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        color: #475569;
+    }
+    :root[data-theme="light"] #rt-open-filters:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+    :root[data-theme="light"] #rt-filter-count {
+        background: #6366f1;
+        color: white;
+    }
+
+    :root[data-theme="light"] .rt-input {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        color: #1e293b;
+    }
+    :root[data-theme="light"] .rt-input:focus {
+        border-color: #6366f1;
+        background: #ffffff;
+    }
+
+    :root[data-theme="light"] #rt-filter-reset {
+        border-color: #e2e8f0;
+        color: #64748b;
+    }
+    :root[data-theme="light"] #rt-filter-reset:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+
+    .rt-input {
+        background: rgba(15, 15, 30, 0.45);
+        color: #f0f0f8;
+        border: 1px solid #2a2a4a;
+        border-radius: 10px;
+        font-size: 13px;
+        padding: 8px 14px;
+        outline: none;
+        transition: all 0.2s;
+    }
+    .rt-input:focus {
+        border-color: #6366f1;
+        background: rgba(15, 15, 30, 0.6);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    }
+    :root[data-theme="light"] .rt-input {
+        background: #ffffff;
+        color: #1f2a44;
+        border-color: #e2e8f0;
+    }
+    :root[data-theme="light"] .rt-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.05);
+    }
+    .rt-pagination-btn {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 500;
+        background: rgba(15, 15, 30, 0.6);
+        color: #c8c8e0;
+        border: 1px solid #2a2a4a;
+        transition: all 0.2s;
+    }
+    .rt-pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .rt-pagination-btn:not(:disabled):hover {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: #6366f1;
+    }
+    :root[data-theme="light"] .rt-pagination-btn {
+        background: #ffffff;
+        color: #475569;
+        border-color: #d8deea;
+    }
+    .rt-export-btn {
+        display: inline-flex;
+        items-center;
+        gap: 8px;
+        padding: 8px 18px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .rt-export-csv { 
+        background: rgba(99, 102, 241, 0.08); 
+        color: #818cf8; 
+        border: 1px solid rgba(99, 102, 241, 0.2); 
+    }
+    .rt-export-csv:hover {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+    }
+    .rt-export-xlsx { 
+        background: rgba(16, 185, 129, 0.08); 
+        color: #34d399; 
+        border: 1px solid rgba(16, 185, 129, 0.2); 
+    }
+    .rt-export-xlsx:hover {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    :root[data-theme="light"] .rt-export-csv { 
+        background: #f5f3ff; 
+        color: #4f46e5; 
+        border-color: #ddd6fe;
+    }
+    :root[data-theme="light"] .rt-export-xlsx { 
+        background: #f0fdf4; 
+        color: #15803d; 
+        border-color: #bbf7d0;
     }
 
     :root[data-theme="light"] #hm-indep-filter {
@@ -1947,6 +2256,196 @@
 </div>
 <!-- ═══════════════════════════════════════════════════════════════════════════
      END: Heatmap Analysis Container
+     ═══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     START: Recurring Tickets Report
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="recurring-tickets-report" class="mb-10 rounded-2xl p-8" style="background: rgba(15,15,35,0.4); border: 1px solid #2a2a4a; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);">
+    <!-- ── Header Section ── -->
+    <div class="flex flex-col xl:flex-row xl:items-start justify-between gap-8 mb-8 pb-8" style="border-bottom: 1px solid #2a2a4a;">
+        <!-- Left Side: Identity -->
+        <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25);">
+                <i data-lucide="repeat-2" style="width:28px; height:28px; color: #f97316;"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold tracking-tight" style="color: #f0f0f8;">Recurring Tickets</h2>
+                <div id="rt-count-badge" class="text-[11px] font-black uppercase tracking-[0.15em] mt-1" style="color: #fb923c;">LOADING INSTANCES...</div>
+            </div>
+        </div>
+        
+        <!-- Right Side: Controls Row -->
+        <div class="flex-1 max-w-4xl">
+            <div class="flex items-end gap-4">
+                <!-- Filter Trigger Group -->
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider pl-1" style="color: #cbd5e1;">
+                        <i data-lucide="sliders-horizontal" class="w-3 h-3"></i>
+                        <span>Refine Search</span>
+                    </div>
+                    <button id="rt-open-filters" class="flex items-center gap-3 px-5 py-2.5 rounded-xl border border-[#2a2a4a] bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 transition-all font-bold text-sm">
+                        <i data-lucide="filter" class="w-4 h-4"></i>
+                        <span>Filter Results</span>
+                        <span id="rt-filter-count" class="hidden ml-1 px-1.5 py-0.5 rounded-md bg-indigo-500 text-white text-[10px]">0</span>
+                    </button>
+                </div>
+
+                <!-- Search Group -->
+                <div class="flex-1 flex flex-col gap-2">
+                    <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider pl-1" style="color: #cbd5e1;">
+                        <i data-lucide="search" class="w-3 h-3"></i>
+                        <span>Quick Find</span>
+                    </div>
+                    <div class="relative">
+                        <input type="text" id="rt-search" placeholder="Search service, name, address..."
+                               class="rt-input w-full pl-10 h-[42px]" />
+                        <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#818cf8]"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Description -->
+    <div class="flex items-start gap-3 mb-6 p-4 rounded-xl" style="background: rgba(99, 102, 241, 0.03); border: 1px solid rgba(99, 102, 241, 0.1);">
+        <i data-lucide="info" class="w-4 h-4 mt-0.5 text-[#6366f1]"></i>
+        <p class="text-sm leading-relaxed" style="color: #cbd5e1;">
+            Analyzing Service IDs that were initially <strong>Installed</strong> or <strong>Repaired</strong>, then subsequently received another <strong>Repair</strong> ticket. Use the <strong>Filter Results</strong> button to refine by date range or the <strong>day gap</strong> between tickets.
+        </p>
+    </div>
+
+    <!-- Table Container -->
+    <div id="recurring-tickets-scroll" class="relative group">
+        <div id="rt-loader" class="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[2px] hidden rounded-lg">
+            <div class="flex flex-col items-center gap-3">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
+                <span class="text-xs font-medium text-indigo-300 tracking-widest uppercase">Fetching Data...</span>
+            </div>
+        </div>
+        <table id="recurring-tickets-table">
+            <thead>
+                <tr>
+                    <th>Service ID</th>
+                    <th>Customer Name</th>
+                    <th>Address</th>
+                    <th>Territory</th>
+                    <th>Facility</th>
+                    <th>Initial Date</th>
+                    <th>Initial WO#</th>
+                    <th>Initial Skillset</th>
+                    <th>Recurring Date</th>
+                    <th>Recurring WO#</th>
+                    <th>Recurring Skillset</th>
+                    <th>Gap</th>
+                </tr>
+            </thead>
+            <tbody id="rt-tbody">
+                <tr>
+                    <td colspan="10" class="text-center py-10" style="color: #5a5a7e;">Initializing data...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-2">
+        <!-- Pagination -->
+        <div class="flex items-center gap-2">
+            <button id="rt-prev-page" class="rt-pagination-btn disabled:opacity-30 disabled:cursor-not-allowed">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                <span>Previous</span>
+            </button>
+            <div id="rt-page-info" class="text-xs font-bold tracking-widest uppercase px-4 text-gray-400">Page 1 of 1</div>
+            <button id="rt-next-page" class="rt-pagination-btn disabled:opacity-30 disabled:cursor-not-allowed">
+                <span>Next</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Exports -->
+        <div class="flex items-center gap-3">
+            <button id="rt-export-csv" class="rt-export-btn rt-export-csv flex items-center gap-2">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>CSV</span>
+            </button>
+            <button id="rt-export-xlsx" class="rt-export-btn rt-export-xlsx flex items-center gap-2">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                <span>Excel</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Filter Modal ── -->
+<div id="rt-filter-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="rt-modal-overlay"></div>
+    <div id="rt-modal-content" class="relative bg-[#16162a] border border-[#2a2a4a] rounded-2xl w-full max-w-md p-7 shadow-2xl overflow-hidden">
+         <!-- Title -->
+         <div class="flex items-center justify-between mb-8">
+             <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-600/20 flex items-center justify-center">
+                    <i data-lucide="sliders-horizontal" class="w-5 h-5 text-indigo-400"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Filter Report</h3>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Refine recurring data</p>
+                </div>
+             </div>
+             <button id="rt-modal-close" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                 <i data-lucide="x" class="w-5 h-5 text-gray-400"></i>
+             </button>
+         </div>
+
+         <!-- Date Filter Mode -->
+         <div class="mb-6">
+             <label class="text-[10px] font-bold uppercase tracking-[0.15em] text-indigo-400 mb-3 block">Date Selection Mode</label>
+             <div class="flex flex-wrap gap-2">
+                <label class="rt-filter-pill active" data-mode="all">
+                    <span class="rt-radio-circle"></span>
+                    <span>All Dates</span>
+                </label>
+                <label class="rt-filter-pill" data-mode="single">
+                    <span class="rt-radio-circle"></span>
+                    <span>Specific Date</span>
+                </label>
+                <label class="rt-filter-pill" data-mode="range">
+                    <span class="rt-radio-circle"></span>
+                    <span>Date Range</span>
+                </label>
+             </div>
+         </div>
+
+         <!-- Dynamic Date Controls -->
+         <div id="rt-modal-selection" class="mb-6 p-4 rounded-xl bg-black/20 border border-white/5 hidden">
+             <div id="rt-date-controls" class="flex flex-col gap-3">
+                 <!-- Injected by JS -->
+             </div>
+         </div>
+
+         <!-- Gap Filter -->
+         <div class="mb-8">
+             <label class="text-[10px] font-bold uppercase tracking-[0.15em] text-indigo-400 mb-3 block">Day Gap (Window)</label>
+             <div class="grid grid-cols-2 gap-4">
+                 <div class="flex flex-col gap-2">
+                     <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Min Days</span>
+                     <input type="number" id="rt-min-gap" class="rt-input w-full" placeholder="0" />
+                 </div>
+                 <div class="flex flex-col gap-2">
+                     <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Max Days</span>
+                     <input type="number" id="rt-max-gap" class="rt-input w-full" placeholder="Any" />
+                 </div>
+             </div>
+         </div>
+
+         <!-- Footer -->
+         <div class="flex items-center gap-3 pt-4 border-t border-white/5">
+             <button id="rt-filter-reset" class="flex-1 py-3 rounded-xl border border-[#2a2a4a] text-sm font-bold text-gray-400 hover:bg-white/5 transition-colors uppercase tracking-widest">Reset</button>
+             <button id="rt-filter-apply" class="flex-[2] py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-black text-white transition-all shadow-lg shadow-indigo-600/20 uppercase tracking-widest">Apply Filters</button>
+         </div>
+    </div>
+</div>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     END: Recurring Tickets Report
      ═══════════════════════════════════════════════════════════════════════════ -->
 
 <section class="flex flex-wrap items-center justify-center gap-4 mb-4 fade-in" style="animation-delay: 0.3s;">
@@ -3885,6 +4384,244 @@
                     }
                 });
             }
+        })();
+
+        /* ── Recurring Tickets dynamic loading, pagination, and filtering ── */
+        (function () {
+            var token = '@Model.ReportToken';
+            var currentPage = 1;
+            var pageSize = 20;
+            var filterMode = 'all';
+            var selectedDate = '';
+            var dateRangeStart = '';
+            var dateRangeEnd = '';
+            var minGap = null;
+            var maxGap = null;
+            var totalCount = 0;
+
+            var elements = {
+                tbody: document.getElementById('rt-tbody'),
+                countBadge: document.getElementById('rt-count-badge'),
+                pageInfo: document.getElementById('rt-page-info'),
+                prevBtn: document.getElementById('rt-prev-page'),
+                nextBtn: document.getElementById('rt-next-page'),
+                loader: document.getElementById('rt-loader'),
+                
+                // Modal elements
+                modal: document.getElementById('rt-filter-modal'),
+                modalContent: document.getElementById('rt-modal-content'),
+                openModalBtn: document.getElementById('rt-open-filters'),
+                closeModalBtn: document.getElementById('rt-modal-close'),
+                overlay: document.getElementById('rt-modal-overlay'),
+                selectionContainer: document.getElementById('rt-modal-selection'),
+                dateControls: document.getElementById('rt-date-controls'),
+                minGapInput: document.getElementById('rt-min-gap'),
+                maxGapInput: document.getElementById('rt-max-gap'),
+                resetBtn: document.getElementById('rt-filter-reset'),
+                applyBtn: document.getElementById('rt-filter-apply'),
+                filterCount: document.getElementById('rt-filter-count'),
+
+                searchInput: document.getElementById('rt-search'),
+                exportCsv: document.getElementById('rt-export-csv'),
+                exportXlsx: document.getElementById('rt-export-xlsx')
+            };
+
+            function renderDateInputs() {
+                var html = '';
+                var isVisible = false;
+
+                if (filterMode === 'single') {
+                    html = '<div class="flex flex-col gap-1.5"><span class="text-[10px] font-bold text-indigo-400/70 uppercase">Date</span><input type="date" id="rt-date-single" class="rt-input w-full" value="' + selectedDate + '" /></div>';
+                    isVisible = true;
+                } else if (filterMode === 'range') {
+                    html = '<div class="flex flex-col gap-1.5"><span class="text-[10px] font-bold text-indigo-400/70 uppercase">Start Date</span><input type="date" id="rt-date-start" class="rt-input w-full" value="' + dateRangeStart + '" /></div>' +
+                           '<div class="flex flex-col gap-1.5"><span class="text-[10px] font-bold text-indigo-400/70 uppercase">End Date</span><input type="date" id="rt-date-end" class="rt-input w-full" value="' + dateRangeEnd + '" /></div>';
+                    isVisible = true;
+                }
+
+                elements.dateControls.innerHTML = html;
+                elements.selectionContainer.classList.toggle('hidden', !isVisible);
+
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+
+            async function fetchData() {
+                elements.loader.classList.remove('hidden');
+                try {
+                    var url = '/Report/Dashboard/' + token + '/RecurringTickets?' +
+                        'filterMode=' + filterMode +
+                        '&selectedDate=' + selectedDate +
+                        '&dateRangeStart=' + dateRangeStart +
+                        '&dateRangeEnd=' + dateRangeEnd +
+                        '&minGap=' + (minGap || '') +
+                        '&maxGap=' + (maxGap || '') +
+                        '&page=' + currentPage +
+                        '&pageSize=' + pageSize;
+
+                    var response = await fetch(url);
+                    if (!response.ok) throw new Error('Fetch failed');
+                    var data = await response.json();
+                    
+                    renderTable(data.items);
+                    totalCount = data.total;
+                    updateUI();
+                } catch (err) {
+                    console.error(err);
+                    elements.tbody.innerHTML = '<tr><td colspan="12" class="text-center py-10 text-red-400">Error loading data.</td></tr>';
+                } finally {
+                    elements.loader.classList.add('hidden');
+                }
+            }
+
+            function renderTable(items) {
+                if (!items || items.length === 0) {
+                    elements.tbody.innerHTML = '<tr><td colspan="12" class="text-center py-10" style="color: #5a5a7e;">No recurring tickets found for this period.</td></tr>';
+                    return;
+                }
+
+                var html = '';
+                items.forEach(function(row) {
+                    var badgeClass = row.daysBetween >= 90 ? 'rt-danger' : (row.daysBetween >= 30 ? 'rt-warn' : 'rt-info');
+                    var initTag = row.initialSkillset.toLowerCase().includes('install') ? 'rt-skillset-install' : 'rt-skillset-repair';
+                    
+                    html += '<tr>' +
+                        '<td><span class="font-mono font-bold text-xs" style="color: #a5b4fc;">' + row.serviceIdNumber + '</span></td>' +
+                        '<td>' + row.customerName + '</td>' +
+                        '<td class="max-w-[150px] truncate" title="' + row.customerAddress + '">' + row.customerAddress + '</td>' +
+                        '<td>' + row.territory + '</td>' +
+                        '<td>' + row.facilityName + '</td>' +
+                        '<td><span class="font-mono text-xs">' + row.initialTicketDate + '</span></td>' +
+                        '<td><span class="text-[10px] font-bold text-gray-400">' + row.initialWorkOrderNumber + '</span></td>' +
+                        '<td><span class="rt-skillset-tag ' + initTag + '">' + row.initialSkillset + '</span></td>' +
+                        '<td><span class="font-mono text-xs">' + row.recurringTicketDate + '</span></td>' +
+                        '<td><span class="text-[10px] font-bold text-indigo-300">' + row.recurringWorkOrderNumber + '</span></td>' +
+                        '<td><span class="rt-skillset-tag rt-skillset-repair">' + row.recurringSkillset + '</span></td>' +
+                        '<td><span class="rt-badge-days ' + badgeClass + '">' + row.daysBetween + ' d</span></td>' +
+                    '</tr>';
+                });
+                elements.tbody.innerHTML = html;
+            }
+
+            function updateUI() {
+                var totalPages = Math.ceil(totalCount / pageSize) || 1;
+                elements.countBadge.innerText = totalCount + ' INSTANCE(S)';
+                elements.pageInfo.textContent = 'Page ' + currentPage + ' of ' + totalPages;
+                elements.prevBtn.disabled = currentPage <= 1;
+                elements.nextBtn.disabled = currentPage >= totalPages;
+                
+                // Active filter count
+                var count = 0;
+                if (filterMode !== 'all') count++;
+                if (minGap) count++;
+                if (maxGap) count++;
+                
+                if (count > 0) {
+                    elements.filterCount.textContent = count;
+                    elements.filterCount.classList.remove('hidden');
+                } else {
+                    elements.filterCount.classList.add('hidden');
+                }
+
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+
+            function reload() {
+                currentPage = 1;
+                fetchData();
+            }
+
+            // Modal Controls
+            elements.openModalBtn.addEventListener('click', function() {
+                elements.modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            });
+            
+            var closeModal = function() {
+                elements.modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            };
+            elements.closeModalBtn.addEventListener('click', closeModal);
+            elements.overlay.addEventListener('click', closeModal);
+
+            // Filter Pills inside Modal
+            elements.modal.querySelectorAll('.rt-filter-pill').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    elements.modal.querySelectorAll('.rt-filter-pill').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    filterMode = btn.dataset.mode;
+                    renderDateInputs();
+                });
+            });
+
+            elements.applyBtn.addEventListener('click', function() {
+                // Read dates from dynamic inputs if they exist
+                if (filterMode === 'single') {
+                    selectedDate = document.getElementById('rt-date-single').value;
+                } else if (filterMode === 'range') {
+                    dateRangeStart = document.getElementById('rt-date-start').value;
+                    dateRangeEnd = document.getElementById('rt-date-end').value;
+                }
+
+                minGap = elements.minGapInput.value ? parseInt(elements.minGapInput.value) : null;
+                maxGap = elements.maxGapInput.value ? parseInt(elements.maxGapInput.value) : null;
+                
+                closeModal();
+                reload();
+            });
+
+            elements.resetBtn.addEventListener('click', function() {
+                filterMode = 'all';
+                selectedDate = '';
+                dateRangeStart = '';
+                dateRangeEnd = '';
+                minGap = null;
+                maxGap = null;
+                
+                elements.minGapInput.value = '';
+                elements.maxGapInput.value = '';
+                elements.modal.querySelectorAll('.rt-filter-pill').forEach(b => b.classList.remove('active'));
+                elements.modal.querySelector('[data-mode="all"]').classList.add('active');
+                
+                renderDateInputs();
+                closeModal();
+                reload();
+            });
+
+            elements.prevBtn.addEventListener('click', function() {
+                if (currentPage > 1) { currentPage--; fetchData(); }
+            });
+
+            elements.nextBtn.addEventListener('click', function() {
+                var totalPages = Math.ceil(totalCount / pageSize);
+                if (currentPage < totalPages) { currentPage++; fetchData(); }
+            });
+
+            elements.searchInput.addEventListener('input', function() {
+                var query = this.value.toLowerCase().trim();
+                var rows = elements.tbody.querySelectorAll('tr');
+                rows.forEach(function(row) {
+                    if (row.cells.length < 12) return;
+                    row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+                });
+            });
+
+            function exportData(format) {
+                var url = '/Report/Dashboard/' + token + '/ExportRecurringTickets?' +
+                    'format=' + format +
+                    '&filterMode=' + filterMode +
+                    '&selectedDate=' + selectedDate +
+                    '&dateRangeStart=' + dateRangeStart +
+                    '&dateRangeEnd=' + dateRangeEnd +
+                    '&minGap=' + (minGap || '') +
+                    '&maxGap=' + (maxGap || '');
+                window.location.href = url;
+            }
+
+            elements.exportCsv.addEventListener('click', function() { exportData('csv'); });
+            elements.exportXlsx.addEventListener('click', function() { exportData('xlsx'); });
+
+            // Initial load
+            fetchData();
         })();
     </script>
 }

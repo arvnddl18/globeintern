@@ -216,11 +216,22 @@
         <nav class="slide-up mb-10" style="border-bottom: 1px solid var(--theme-surface-border);">
             <!-- Top bar: controls -->
             <div class="flex flex-wrap items-center justify-between gap-3 pb-3">
-                <a asp-controller="Report" asp-action="Upload" class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">
-                    <span class="inline-flex items-center gap-1.5">
-                        <i data-lucide="upload" style="width:14px; height:14px;"></i> New upload
-                    </span>
-                </a>
+                <div class="flex items-center gap-4">
+                    <a asp-controller="Report" asp-action="Dashboard" class="flex items-center gap-2 group">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
+                            <i data-lucide="globe" style="width:18px; height:18px;"></i>
+                        </div>
+                        <span class="text-lg font-black tracking-tighter" style="color: var(--theme-text);">
+                            SlotAd <span class="text-indigo-500">Globe</span>
+                        </span>
+                    </a>
+                    <div class="h-6 w-px bg-current opacity-10 hidden sm:block"></div>
+                    <a asp-controller="Report" asp-action="Upload" class="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">
+                        <span class="inline-flex items-center gap-1.5">
+                            <i data-lucide="upload" style="width:14px; height:14px;"></i> New upload
+                        </span>
+                    </a>
+                </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <button type="button" id="theme-toggle-btn" class="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer" style="color: var(--theme-text-dim); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
                         <i id="theme-toggle-icon" data-lucide="moon" style="width:14px; height:14px;"></i>

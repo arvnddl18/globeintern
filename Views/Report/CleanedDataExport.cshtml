@@ -2,119 +2,242 @@
 
 @{
     ViewData["Title"] = "Cleaned Data Export";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+    ViewData["ActiveTab"] = "kpi"; // Show the tabs to allow easy navigation back
 }
 
 <style>
-    .export-card {
-        background: #1e1e2d;
-        border: 1px solid #2a2a4a;
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 24px;
+    .export-container {
+        max-width: 1000px;
+        margin: 0 auto;
     }
 
-    :root[data-theme="light"] .export-card {
-        background: #ffffff;
-        border-color: #d8deea;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    .glass-card {
+        background: var(--theme-surface-soft);
+        border: 1px solid var(--theme-surface-border);
+        backdrop-filter: blur(12px);
+        border-radius: 24px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
     }
-    
-    :root[data-theme="light"] .text-white {
-        color: #1f2a44 !important;
-    }
-    
-    .stat-box {
-        background: #2a2a4a;
-        border-radius: 8px;
-        padding: 16px;
+
+    .stat-card {
+        background: var(--theme-surface);
+        border: 1px solid var(--theme-surface-border);
+        border-radius: 20px;
+        padding: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         text-align: center;
     }
-    
-    :root[data-theme="light"] .stat-box {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-    }
-    
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #a5b4fc;
-    }
-    
-    :root[data-theme="light"] .stat-value {
-        color: #4f46e5;
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--theme-accent);
+        box-shadow: 0 12px 20px -8px var(--theme-accent-soft);
     }
 
-    :root[data-theme="light"] .text-gray {
-        color: #4a5568 !important;
+    .stat-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        items-center;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+
+    .stat-value {
+        font-family: var(--font-mono);
+        font-size: 2.25rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-bottom: 4px;
+        color: var(--theme-text);
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--theme-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .download-btn {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+
+    .download-btn:active {
+        transform: scale(0.98);
+    }
+
+    .btn-csv {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        border: 1.5px solid rgba(59, 130, 246, 0.4);
+    }
+    
+    .btn-csv:hover {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .btn-xlsx {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1.5px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-xlsx:hover {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
+    }
+
+    .btn-dashboard {
+        background: var(--theme-accent);
+        color: white;
+        box-shadow: 0 4px 14px 0 var(--theme-accent-soft);
+    }
+
+    .btn-dashboard:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    :root[data-theme="light"] .stat-value {
+        color: var(--theme-text);
     }
 </style>
 
-<div class="max-w-4xl mx-auto py-8">
-    <header class="text-center mb-10 slide-up">
-        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3 text-white">
-            Cleaned Data Export
+<div class="export-container fade-in">
+    <!-- Header Section -->
+    <header class="text-center mb-12 slide-up">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-4" 
+             style="background: var(--theme-accent-soft); color: var(--theme-accent);">
+            <i data-lucide="check-circle-2" style="width:14px; height:14px;"></i>
+            <span>PROCESS COMPLETE</span>
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-black tracking-tight mb-4" style="color: var(--theme-text);">
+            Data Cleansing Summary
         </h1>
-        <p class="text-base sm:text-lg max-w-lg mx-auto text-gray" style="color: #7a7a9e;">
-            Download your master cleaned dataset
+        <p class="text-lg max-w-2xl mx-auto" style="color: var(--theme-text-dim);">
+            Your raw data has been successfully filtered to <span class="font-bold px-1.5 py-0.5 rounded" style="background: var(--theme-accent-soft); color: var(--theme-accent);">DAVAO NORTH</span> and integrated into the master repository.
         </p>
     </header>
 
     @if (TempData["Error"] is string err)
     {
-        <div class="mb-6 fade-in rounded-xl px-4 py-3 flex items-center gap-2 text-sm font-medium"
-             style="background: #7f1d1d; border: 1px solid #ef4444; color: #fff;">
-            <i data-lucide="alert-circle" style="width:16px; height:16px; flex-shrink:0;"></i>
-            <span>@err</span>
+        <div class="mb-8 slide-up rounded-2xl px-6 py-4 flex items-center gap-4 border"
+             style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444;">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center bg-red-500/20">
+                <i data-lucide="alert-triangle" style="width:20px; height:20px;"></i>
+            </div>
+            <div class="flex-1">
+                <p class="font-bold">Process Notice</p>
+                <p class="text-sm opacity-90">@err</p>
+            </div>
         </div>
     }
 
-    @if (Model.TotalRowsProcessed > 0 || Model.TotalCleanedRowsNow > 0)
-    {
-        <div class="export-card slide-up" style="animation-delay: 0.1s;">
-            <h2 class="text-xl font-bold mb-4 text-white">Last Upload Summary</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="stat-box">
-                    <div class="stat-value">@Model.TotalRowsProcessed.ToString("N0")</div>
-                    <div class="text-sm mt-1 text-gray" style="color: #7a7a9e;">Rows Processed</div>
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div class="stat-card slide-up" style="animation-delay: 0.1s;">
+            <div class="stat-icon-wrapper bg-blue-500/10 text-blue-500">
+                <i data-lucide="files" style="width:24px; height:24px;"></i>
+            </div>
+            <div class="stat-value">@Model.TotalRowsProcessed.ToString("N0")</div>
+            <div class="stat-label">Processed</div>
+        </div>
+
+        <div class="stat-card slide-up" style="animation-delay: 0.1s;">
+            <div class="stat-icon-wrapper bg-emerald-500/10 text-emerald-500">
+                <i data-lucide="plus-circle" style="width:24px; height:24px;"></i>
+            </div>
+            <div class="stat-value text-emerald-500">@Model.NewRowsAdded.ToString("N0")</div>
+            <div class="stat-label">New Added</div>
+        </div>
+
+        <div class="stat-card slide-up" style="animation-delay: 0.2s;">
+            <div class="stat-icon-wrapper bg-rose-500/10 text-rose-500">
+                <i data-lucide="copy-minus" style="width:24px; height:24px;"></i>
+            </div>
+            <div class="stat-value text-rose-500">@Model.DuplicateRowsSkipped.ToString("N0")</div>
+            <div class="stat-label">Skipped</div>
+        </div>
+
+        <div class="stat-card slide-up" style="animation-delay: 0.2s;">
+            <div class="stat-icon-wrapper bg-indigo-500/10 text-indigo-500">
+                <i data-lucide="database" style="width:24px; height:24px;"></i>
+            </div>
+            <div class="stat-value">@Model.TotalCleanedRowsNow.ToString("N0")</div>
+            <div class="stat-label">Master Total</div>
+        </div>
+    </div>
+
+    <!-- Action Section -->
+    <div class="glass-card slide-up" style="animation-delay: 0.3s;">
+        <div class="p-8 sm:p-10">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-10">
+                <div class="flex-1 text-center lg:text-left">
+                    <h2 class="text-2xl font-extrabold mb-3" style="color: var(--theme-text);">Master Data Repository</h2>
+                    <p class="text-base mb-6" style="color: var(--theme-text-dim);">
+                        Access the updated master dataset containing all historical Davao North appointments. You can export this data for offline analysis or return to the dashboard for live visualization.
+                    </p>
+                    
+                    <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4">
+                        <a asp-action="DownloadCleanedDataCsv" asp-controller="Report"
+                           class="download-btn btn-csv inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl text-base font-bold transition-all">
+                            <i data-lucide="download" style="width:20px; height:20px;"></i>
+                            <span>Download CSV</span>
+                        </a>
+                        
+                        <a asp-action="DownloadCleanedDataXlsx" asp-controller="Report"
+                           class="download-btn btn-xlsx inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl text-base font-bold transition-all">
+                            <i data-lucide="file-spreadsheet" style="width:20px; height:20px;"></i>
+                            <span>Download XLSX</span>
+                        </a>
+                    </div>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-value" style="color: #34d399;">@Model.NewRowsAdded.ToString("N0")</div>
-                    <div class="text-sm mt-1 text-gray" style="color: #7a7a9e;">New Rows Added</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value" style="color: #f87171;">@Model.DuplicateRowsSkipped.ToString("N0")</div>
-                    <div class="text-sm mt-1 text-gray" style="color: #7a7a9e;">Duplicates Skipped</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value">@Model.TotalCleanedRowsNow.ToString("N0")</div>
-                    <div class="text-sm mt-1 text-gray" style="color: #7a7a9e;">Total Cleaned Rows</div>
+
+                <div class="w-full lg:w-px h-px lg:h-40 bg-current opacity-10"></div>
+
+                <div class="flex flex-col items-center gap-4">
+                    <p class="text-sm font-semibold uppercase tracking-widest" style="color: var(--theme-text-muted);">Quick Navigation</p>
+                    <a asp-action="Dashboard" asp-controller="Report"
+                       class="download-btn btn-dashboard inline-flex items-center gap-3 px-10 py-5 rounded-2xl text-lg font-black transition-all">
+                        <i data-lucide="layout-dashboard" style="width:24px; height:24px;"></i>
+                        <span>Go to Dashboard</span>
+                    </a>
+                    <p class="text-xs text-center max-w-[200px]" style="color: var(--theme-text-muted);">
+                        View live analytics and charts for the updated data.
+                    </p>
                 </div>
             </div>
-            
-            <p class="text-sm mb-6 text-gray" style="color: #7a7a9e;">
-                Only rows with Territory <span class="font-bold text-white">DAVAO NORTH</span> were kept. Duplicate Appointment IDs were skipped.
+        </div>
+        
+        <!-- Footer Tip -->
+        <div class="px-8 py-4 bg-black/5 dark:bg-white/5 border-t border-inherit flex items-center justify-center gap-3">
+            <i data-lucide="lightbulb" class="text-amber-500" style="width:16px; height:16px;"></i>
+            <p class="text-xs font-medium" style="color: var(--theme-text-muted);">
+                Pro tip: The dashboard filters are automatically updated to include your newly uploaded data.
             </p>
-        </div>
-    }
-
-    <div class="export-card slide-up flex flex-col md:flex-row justify-between items-center" style="animation-delay: 0.2s;">
-        <div>
-            <h2 class="text-xl font-bold mb-2 text-white">Download Master Data</h2>
-            <p class="text-sm mb-4 md:mb-0 text-gray" style="color: #7a7a9e;">Export the accumulated cleaned data.</p>
-        </div>
-        <div class="flex gap-4">
-            <a asp-action="DownloadCleanedDataCsv" asp-controller="Report"
-               class="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-colors"
-               style="background: rgba(99, 102, 241, 0.12); color: #a5b4fc; border: 1px solid #4f46e5;">
-                <i data-lucide="download" style="width:18px; height:18px;"></i> Download .CSV
-            </a>
-            
-            <a asp-action="DownloadCleanedDataXlsx" asp-controller="Report"
-               class="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200"
-               style="background: #6366f1; color: #fff;">
-                <i data-lucide="file-spreadsheet" style="width:18px; height:18px;"></i> Download .XLSX
-            </a>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Trigger lucide icons just in case
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
+}
+

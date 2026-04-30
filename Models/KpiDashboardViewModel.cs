@@ -128,4 +128,7 @@ public class KpiDashboardViewModel
     public List<string> HeatmapJoinTerritories { get; set; } = [];
     public List<string> HeatmapJoinSkillsets { get; set; } = [];
     public List<string> HeatmapJoinStatuses { get; set; } = [];
+
+    // ── Recurring Tickets: service IDs that had Install/Repair then another Repair later ──
+    public List<RecurringTicketRow> RecurringTickets { get; set; } = [];
 }
