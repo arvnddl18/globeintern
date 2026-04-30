@@ -338,7 +338,15 @@
         font-size: 13px;
         padding: 8px 14px;
         outline: none;
-        transition: all 0.2s;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .rt-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236366f1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1rem;
+        padding-right: 2.5rem;
     }
     .rt-input:focus {
         border-color: #6366f1;
@@ -353,6 +361,22 @@
     :root[data-theme="light"] .rt-input:focus {
         border-color: #6366f1;
         box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.05);
+    }
+    .rt-input::-webkit-calendar-picker-indicator {
+        background: transparent;
+        bottom: 0;
+        color: transparent;
+        cursor: pointer;
+        height: auto;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: auto;
+    }
+    .relative .rt-input {
+        position: relative;
+        z-index: 1;
     }
     .rt-pagination-btn {
         padding: 6px 14px;
@@ -2342,7 +2366,7 @@
             </thead>
             <tbody id="rt-tbody">
                 <tr>
-                    <td colspan="10" class="text-center py-10" style="color: #5a5a7e;">Initializing data...</td>
+                    <td colspan="12" class="text-center py-10" style="color: #5a5a7e;">Initializing data...</td>
                 </tr>
             </tbody>
         </table>
@@ -2377,9 +2401,9 @@
 </div>
 
 <!-- ── Filter Modal ── -->
-<div id="rt-filter-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
-    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="rt-modal-overlay"></div>
-    <div id="rt-modal-content" class="relative bg-[#16162a] border border-[#2a2a4a] rounded-2xl w-full max-w-md p-7 shadow-2xl overflow-hidden">
+<div id="rt-filter-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden transition-all duration-300">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" id="rt-modal-overlay"></div>
+    <div id="rt-modal-content" class="relative bg-[#16162a] border border-[#2a2a4a] rounded-2xl w-full max-w-md p-7 shadow-2xl overflow-hidden transition-all duration-300 transform scale-95 opacity-0">
          <!-- Title -->
          <div class="flex items-center justify-between mb-8">
              <div class="flex items-center gap-3">
@@ -4386,9 +4410,9 @@
             }
         })();
 
-        /* ── Recurring Tickets dynamic loading, pagination, and filtering ── */
         (function () {
             var token = '@Model.ReportToken';
+            var rtAvailableDates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvailableDates));
             var currentPage = 1;
             var pageSize = 20;
             var filterMode = 'all';
@@ -4431,11 +4455,27 @@
                 var isVisible = false;
 
                 if (filterMode === 'single') {
-                    html = '<div class="flex flex-col gap-1.5"><span class="text-[10px] font-bold text-indigo-400/70 uppercase">Date</span><input type="date" id="rt-date-single" class="rt-input w-full" value="' + selectedDate + '" /></div>';
+                    html = '<div class="flex flex-col gap-1.5">' +
+                           '<span class="text-[10px] font-bold text-indigo-400/70 uppercase tracking-wider">Date</span>' +
+                           '<select id="rt-date-single" class="rt-input rt-select w-full">' +
+                           '<option value="">-- Choose a date --</option>' +
+                           rtAvailableDates.map(d => '<option value="' + d + '" ' + (d === selectedDate ? 'selected' : '') + '>' + d + '</option>').join('') +
+                           '</select></div>';
                     isVisible = true;
                 } else if (filterMode === 'range') {
-                    html = '<div class="flex flex-col gap-1.5"><span class="text-[10px] font-bold text-indigo-400/70 uppercase">Start Date</span><input type="date" id="rt-date-start" class="rt-input w-full" value="' + dateRangeStart + '" /></div>' +
-                           '<div class="flex flex-col gap-1.5"><span class="text-[10px] font-bold text-indigo-400/70 uppercase">End Date</span><input type="date" id="rt-date-end" class="rt-input w-full" value="' + dateRangeEnd + '" /></div>';
+                    html = '<div class="grid grid-cols-2 gap-3">' +
+                           '<div class="flex flex-col gap-1.5">' +
+                           '<span class="text-[10px] font-bold text-indigo-400/70 uppercase tracking-wider">From</span>' +
+                           '<div class="relative">' +
+                           '<input type="date" id="rt-date-start" class="rt-input w-full pl-9" value="' + dateRangeStart + '" />' +
+                           '<i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400/50"></i>' +
+                           '</div></div>' +
+                           '<div class="flex flex-col gap-1.5">' +
+                           '<span class="text-[10px] font-bold text-indigo-400/70 uppercase tracking-wider">To</span>' +
+                           '<div class="relative">' +
+                           '<input type="date" id="rt-date-end" class="rt-input w-full pl-9" value="' + dateRangeEnd + '" />' +
+                           '<i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400/50"></i>' +
+                           '</div></div></div>';
                     isVisible = true;
                 }
 
@@ -4533,11 +4573,17 @@
             // Modal Controls
             elements.openModalBtn.addEventListener('click', function() {
                 elements.modal.classList.remove('hidden');
+                setTimeout(() => {
+                    elements.modalContent.classList.remove('scale-95', 'opacity-0');
+                }, 10);
                 document.body.style.overflow = 'hidden';
             });
             
             var closeModal = function() {
-                elements.modal.classList.add('hidden');
+                elements.modalContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    elements.modal.classList.add('hidden');
+                }, 300);
                 document.body.style.overflow = '';
             };
             elements.closeModalBtn.addEventListener('click', closeModal);
