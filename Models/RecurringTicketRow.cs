@@ -12,6 +12,8 @@ public class RecurringTicketRow
     public string Territory { get; set; } = "";
     public string FacilityName { get; set; } = "";
     public string DpId { get; set; } = "";
+    public string CabinetId { get; set; } = "";
+    public string Team { get; set; } = "";
 
     /// <summary>First Install/Repair ticket date (formatted).</summary>
     public string InitialTicketDate { get; set; } = "";

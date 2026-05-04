@@ -90,7 +90,7 @@ public interface ICsvProcessingService
         Stream rawStream,
         CancellationToken cancellationToken = default);
 
-    Task<(List<RecurringTicketRow> Items, int TotalCount)> GetPaginatedRecurringTicketsAsync(
+    Task<(List<RecurringTicketRow> Items, int TotalCount, RecurringTicketsSummary Summary)> GetPaginatedRecurringTicketsAsync(
         string csvFilePath,
         string filterMode = "all",
         DateOnly? selectedDate = null,

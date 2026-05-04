@@ -2466,7 +2466,7 @@ public class CsvProcessingService : ICsvProcessingService
             "accountnumber", "skillset", "status", "substatus", "fix description", "mainplan",
             "territory", "facilityname", "longitude", "latitude", "reasoncode", "cabinetid",
             "cabinettype", "cabinetaddress", "cabinetport", "lcpname", "dpid", "ppoeusername",
-            "userid", "ordercreatedate", "createdate", "lastupdatedate", "completiondate", "protocol"
+            "userid", "ordercreatedate", "createdate", "lastupdatedate", "completiondate", "protocol", "team"
         };
 
         var cleanedDataDir = Path.Combine(_config.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports");
@@ -2594,7 +2594,7 @@ public class CsvProcessingService : ICsvProcessingService
     /// and each subsequent Repair ticket, producing a RecurringTicketRow.
     /// </summary>
     private static List<RecurringTicketRow> BuildRecurringTickets(
-        Dictionary<string, List<(DateOnly Date, string Skillset, string Status, string AppointmentId, string WorkOrder, string CustomerName, string CustomerAddress, string Territory, string FacilityName, string DpId)>> serviceTickets)
+        Dictionary<string, List<(DateOnly Date, string Skillset, string Status, string AppointmentId, string WorkOrder, string CustomerName, string CustomerAddress, string Territory, string FacilityName, string DpId, string CabinetId, string Team)>> serviceTickets)
     {
         var result = new List<RecurringTicketRow>();
 
@@ -2624,6 +2624,8 @@ public class CsvProcessingService : ICsvProcessingService
                     Territory             = initial.Territory,
                     FacilityName          = initial.FacilityName,
                     DpId                  = initial.DpId,
+                    CabinetId             = initial.CabinetId,
+                    Team                  = initial.Team,
                     InitialTicketDate     = initial.Date.ToString("yyyy-MM-dd"),
                     InitialSkillset       = initial.Skillset,
                     InitialStatus         = initial.Status,
@@ -2642,7 +2644,7 @@ public class CsvProcessingService : ICsvProcessingService
         return result.OrderByDescending(r => r.DaysBetween).ToList();
     }
 
-    public async Task<(List<RecurringTicketRow> Items, int TotalCount)> GetPaginatedRecurringTicketsAsync(
+    public async Task<(List<RecurringTicketRow> Items, int TotalCount, RecurringTicketsSummary Summary)> GetPaginatedRecurringTicketsAsync(
         string csvFilePath,
         string filterMode = "all",
         DateOnly? selectedDate = null,
@@ -2656,7 +2658,40 @@ public class CsvProcessingService : ICsvProcessingService
     {
         var allFiltered = await GetFilteredRecurringTicketsAsync(csvFilePath, filterMode, selectedDate, dateRangeStart, dateRangeEnd, minGap, maxGap, cancellationToken);
         var paged = allFiltered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-        return (paged, allFiltered.Count);
+
+        var summary = new RecurringTicketsSummary
+        {
+            TotalRecurringTickets = allFiltered.Count
+        };
+
+        if (allFiltered.Count > 0)
+        {
+            summary.TopNaps = allFiltered
+                .Where(r => !string.IsNullOrWhiteSpace(r.FacilityName))
+                .GroupBy(r => r.FacilityName)
+                .OrderByDescending(g => g.Count())
+                .Take(10)
+                .Select(g => new TopRankItem { Name = g.Key, Count = g.Count() })
+                .ToList();
+
+            summary.TopCabinets = allFiltered
+                .Where(r => !string.IsNullOrWhiteSpace(r.CabinetId))
+                .GroupBy(r => r.CabinetId)
+                .OrderByDescending(g => g.Count())
+                .Take(10)
+                .Select(g => new TopRankItem { Name = g.Key, Count = g.Count() })
+                .ToList();
+
+            summary.TopTechTeams = allFiltered
+                .Where(r => !string.IsNullOrWhiteSpace(r.Team))
+                .GroupBy(r => r.Team)
+                .OrderByDescending(g => g.Count())
+                .Take(10)
+                .Select(g => new TopRankItem { Name = g.Key, Count = g.Count() })
+                .ToList();
+        }
+
+        return (paged, allFiltered.Count, summary);
     }
 
     public async Task<List<RecurringTicketRow>> GetFilteredRecurringTicketsAsync(
@@ -2705,8 +2740,10 @@ public class CsvProcessingService : ICsvProcessingService
         var territoryCol = Col("TerritoryColumn");
         var facilityCol = FindCoordColumn(headers, _config["CsvMapping:FacilityNameColumn"], "facilityname", "facility_name", "facility", "name");
         var dpidCol = FindCoordColumn(headers, null, "dpid");
+        var cabinetCol = FindCoordColumn(headers, null, "cabinetid", "cabinet_id", "cabinet");
+        var teamCol = FindCoordColumn(headers, null, "team", "team_name", "tech_team");
 
-        var serviceTickets = new Dictionary<string, List<(DateOnly Date, string Skillset, string Status, string AppointmentId, string WorkOrder, string CustomerName, string CustomerAddress, string Territory, string FacilityName, string DpId)>>(StringComparer.OrdinalIgnoreCase);
+        var serviceTickets = new Dictionary<string, List<(DateOnly Date, string Skillset, string Status, string AppointmentId, string WorkOrder, string CustomerName, string CustomerAddress, string Territory, string FacilityName, string DpId, string CabinetId, string Team)>>(StringComparer.OrdinalIgnoreCase);
 
         while (await csv.ReadAsync())
         {
@@ -2739,7 +2776,9 @@ public class CsvProcessingService : ICsvProcessingService
                         CustomerAddress: customerAddrCol is not null ? (csv.GetField(customerAddrCol) ?? "").Trim() : "",
                         Territory: territory,
                         FacilityName: facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "",
-                        DpId: dpidCol is not null ? (csv.GetField(dpidCol) ?? "").Trim() : ""
+                        DpId: dpidCol is not null ? (csv.GetField(dpidCol) ?? "").Trim() : "",
+                        CabinetId: cabinetCol is not null ? (csv.GetField(cabinetCol) ?? "").Trim() : "",
+                        Team: teamCol is not null ? (csv.GetField(teamCol) ?? "").Trim() : ""
                     ));
                 }
             }

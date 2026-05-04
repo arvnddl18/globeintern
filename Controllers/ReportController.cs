@@ -112,6 +112,32 @@ public class ReportController : Controller
         }
     }
 
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    public IActionResult ClearStoredData()
+    {
+        try
+        {
+            var cleanedDataDir = Path.Combine(_configuration.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports");
+            var cleanedDataPath = Path.Combine(cleanedDataDir, "CleanedDataMaster.csv");
+            if (System.IO.File.Exists(cleanedDataPath))
+            {
+                System.IO.File.Delete(cleanedDataPath);
+                TempData["Success"] = "Stored master data has been cleared successfully. You can now upload from a clean state.";
+            }
+            else
+            {
+                TempData["Success"] = "No stored master data found. You are already at a clean state.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing stored data");
+            TempData["Error"] = $"Error clearing data: {ex.Message}";
+        }
+        return RedirectToAction(nameof(Upload));
+    }
+
     [HttpGet("[action]")]
     public IActionResult CleanedDataExport()
     {
@@ -1486,10 +1512,10 @@ public class ReportController : Controller
         DateOnly? rs = string.IsNullOrEmpty(dateRangeStart) ? null : DateOnly.Parse(dateRangeStart);
         DateOnly? re = string.IsNullOrEmpty(dateRangeEnd) ? null : DateOnly.Parse(dateRangeEnd);
 
-        var (items, total) = await _csvService.GetPaginatedRecurringTicketsAsync(
+        var (items, total, summary) = await _csvService.GetPaginatedRecurringTicketsAsync(
             csvPath, filterMode, s, rs, re, page, pageSize, minGap, maxGap, HttpContext.RequestAborted);
 
-        return Json(new { items, total });
+        return Json(new { items, total, summary });
     }
 
     [HttpGet("Dashboard/{token}/ExportRecurringTickets")]

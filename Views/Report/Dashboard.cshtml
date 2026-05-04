@@ -334,9 +334,9 @@
         background: rgba(15, 15, 30, 0.45);
         color: #f0f0f8;
         border: 1px solid #2a2a4a;
-        border-radius: 10px;
+        border-radius: 12px;
         font-size: 13px;
-        padding: 8px 14px;
+        padding: 10px 16px;
         outline: none;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -443,6 +443,36 @@
         background: #f0fdf4; 
         color: #15803d; 
         border-color: #bbf7d0;
+    }
+
+    /* Recurring Insights Light Mode Overrides */
+    :root[data-theme="light"] .rt-rank-item {
+        border-bottom-color: rgba(0, 0, 0, 0.05);
+    }
+    :root[data-theme="light"] .rt-rank-item span.text-gray-300 {
+        color: #334155 !important;
+    }
+    :root[data-theme="light"] .rt-rank-item span.text-gray-600 {
+        color: #94a3b8 !important;
+    }
+    :root[data-theme="light"] #rt-summary-container > div {
+        background: #ffffff !important;
+        border-color: #e2e8f0 !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    }
+    :root[data-theme="light"] #rt-total-summary {
+        color: #1e293b !important;
+    }
+    :root[data-theme="light"] .bg-indigo-600\/5 {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+    }
+    :root[data-theme="light"] .bg-\[\#1a1a3a\]\/30 {
+        background: #ffffff !important;
+        border-color: #e2e8f0 !important;
+    }
+    :root[data-theme="light"] .text-gray-500.font-bold.uppercase {
+        color: #64748b !important;
     }
 
     :root[data-theme="light"] #hm-indep-filter {
@@ -1184,6 +1214,52 @@
         background: rgba(79, 70, 229, 0.1) !important;
         color: #4f46e5 !important;
         border-color: #d8deea !important;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.4);
+    }
+
+    .rt-rank-item {
+        position: relative;
+        padding: 10px 4px;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .rt-rank-item:last-child {
+        border-bottom: none;
+    }
+    .rt-rank-item:hover {
+        transform: translateX(6px);
+    }
+    .rt-rank-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 2px;
+        border-radius: 2px;
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0.6;
+    }
+
+    #recurring-tickets-table th {
+        padding: 16px 20px;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+    }
+    #recurring-tickets-table td {
+        padding: 18px 20px;
+        font-size: 13px;
     }
 </style>
 
@@ -2337,6 +2413,73 @@
         <p class="text-sm leading-relaxed" style="color: #cbd5e1;">
             Analyzing Service IDs that were initially <strong>Installed</strong> or <strong>Repaired</strong>, then subsequently received another <strong>Repair</strong> ticket. Use the <strong>Filter Results</strong> button to refine by date range or the <strong>day gap</strong> between tickets.
         </p>
+    </div>
+
+    <!-- Insights Section -->
+    <div class="mb-10">
+        <div class="flex items-center gap-2 mb-6">
+            <div class="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
+            <h3 class="text-lg font-bold text-white uppercase tracking-wider">Recurring Insights</h3>
+            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest ml-2 px-2 py-0.5 rounded bg-white/5 border border-white/10">Top Rankings</span>
+        </div>
+
+        <!-- Total Count Strip -->
+        <div class="flex items-center justify-center gap-8 mb-10 py-8 rounded-3xl bg-indigo-600/5 border border-indigo-600/10 shadow-inner">
+            <div class="flex flex-col items-center">
+                <p class="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400/60 mb-2">Total Recurring Instances</p>
+                <h4 id="rt-total-summary" class="text-5xl font-black text-white tracking-tighter">0</h4>
+            </div>
+        </div>
+
+        <div id="rt-summary-container" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Top NAP List -->
+            <div class="rounded-2xl p-6 bg-[#1a1a3a]/30 border border-white/5 shadow-2xl backdrop-blur-md">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                        <i data-lucide="award" class="w-6 h-6 text-emerald-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-400">Facilities</p>
+                        <p class="text-[9px] text-gray-500 font-bold">TOP RECURRING SITES</p>
+                    </div>
+                </div>
+                <div id="rt-nap-ranking" class="space-y-1 max-h-[350px] overflow-y-auto custom-scrollbar pr-3">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+
+            <!-- Top Cabinet List -->
+            <div class="rounded-2xl p-6 bg-[#1a1a3a]/30 border border-white/5 shadow-2xl backdrop-blur-md">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                        <i data-lucide="box" class="w-6 h-6 text-amber-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Cabinets</p>
+                        <p class="text-[9px] text-gray-500 font-bold">HARDWARE RANKING</p>
+                    </div>
+                </div>
+                <div id="rt-cabinet-ranking" class="space-y-1 max-h-[350px] overflow-y-auto custom-scrollbar pr-3">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+
+            <!-- Top Tech List -->
+            <div class="rounded-2xl p-6 bg-[#1a1a3a]/30 border border-white/5 shadow-2xl backdrop-blur-md">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                        <i data-lucide="users" class="w-6 h-6 text-rose-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-black uppercase tracking-[0.2em] text-rose-400">Technicians</p>
+                        <p class="text-[9px] text-gray-500 font-bold">TEAM PERFORMANCE</p>
+                    </div>
+                </div>
+                <div id="rt-tech-ranking" class="space-y-1 max-h-[350px] overflow-y-auto custom-scrollbar pr-3">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Table Container -->
@@ -4447,7 +4590,13 @@
 
                 searchInput: document.getElementById('rt-search'),
                 exportCsv: document.getElementById('rt-export-csv'),
-                exportXlsx: document.getElementById('rt-export-xlsx')
+                exportXlsx: document.getElementById('rt-export-xlsx'),
+
+                // Summary elements
+                totalSummary: document.getElementById('rt-total-summary'),
+                napRanking: document.getElementById('rt-nap-ranking'),
+                cabinetRanking: document.getElementById('rt-cabinet-ranking'),
+                techRanking: document.getElementById('rt-tech-ranking')
             };
 
             function renderDateInputs() {
@@ -4503,6 +4652,7 @@
                     var data = await response.json();
                     
                     renderTable(data.items);
+                    renderSummary(data.summary);
                     totalCount = data.total;
                     updateUI();
                 } catch (err) {
@@ -4511,6 +4661,39 @@
                 } finally {
                     elements.loader.classList.add('hidden');
                 }
+            }
+
+            function renderSummary(summary) {
+                if (!summary) return;
+                
+                elements.totalSummary.textContent = summary.totalRecurringTickets.toLocaleString();
+                
+                function createRankingHtml(list, colorClass, barBg) {
+                    if (!list || list.length === 0) return '<p class="text-[10px] text-gray-500 italic py-4 text-center">No data available</p>';
+                    
+                    const maxCount = list[0].count;
+                    return list.map((item, idx) => {
+                        const percentage = (item.count / maxCount) * 100;
+                        return `
+                            <div class="rt-rank-item group">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <span class="text-[10px] font-bold text-gray-600 group-hover:text-indigo-400 transition-colors w-4">#${idx + 1}</span>
+                                        <span class="text-[11px] font-medium text-gray-300 truncate" title="${item.name}">${item.name}</span>
+                                    </div>
+                                    <span class="text-[11px] font-black ${colorClass}">${item.count.toLocaleString()}</span>
+                                </div>
+                                <div class="w-full h-[1px] bg-white/5 rounded-full overflow-hidden mt-1 relative">
+                                    <div class="rt-rank-bar ${barBg}" style="width: ${percentage}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                elements.napRanking.innerHTML = createRankingHtml(summary.topNaps, 'text-emerald-400', 'bg-emerald-500');
+                elements.cabinetRanking.innerHTML = createRankingHtml(summary.topCabinets, 'text-amber-400', 'bg-amber-500');
+                elements.techRanking.innerHTML = createRankingHtml(summary.topTechTeams, 'text-rose-400', 'bg-rose-500');
             }
 
             function renderTable(items) {

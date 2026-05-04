@@ -90,6 +90,15 @@
             <span class="font-medium text-sm">@errorMsg</span>
         </div>
     }
+    
+    @if (TempData["Success"] is string successMsg)
+    {
+        <div class="mb-6 fade-in rounded-2xl px-5 py-4 flex items-center gap-3 border"
+             style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.2); color: #22c55e;">
+            <i data-lucide="check-circle" style="width:20px; height:20px; flex-shrink:0;"></i>
+            <span class="font-medium text-sm">@successMsg</span>
+        </div>
+    }
 
     <form asp-action="UploadRawDataCleaner" asp-controller="Report" method="post" enctype="multipart/form-data" id="uploadForm">
         @Html.AntiForgeryToken()
@@ -201,6 +210,25 @@
             </a>
         </section>
     </form>
+
+    <!-- Danger Zone -->
+    <section id="danger-zone" class="mt-12 pt-8 border-t border-inherit text-center slide-up" style="animation-delay: 0.3s;">
+        <p class="text-sm font-bold uppercase tracking-widest mb-6" style="color: var(--theme-text-muted);">Danger Zone</p>
+        <div class="max-w-md mx-auto p-6 rounded-2xl" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.15);">
+            <i data-lucide="alert-triangle" class="mx-auto mb-3" style="width:24px; height:24px; color: #ef4444;"></i>
+            <h4 class="text-base font-bold mb-2" style="color: #ef4444;">Clear Master Data</h4>
+            <p class="text-sm mb-6 opacity-80" style="color: var(--theme-text-dim);">
+                This will permanently delete the compiled CleanedDataMaster file. All accumulated data will be lost, and you will start fresh from the next upload.
+            </p>
+            <form asp-action="ClearStoredData" asp-controller="Report" method="post" onsubmit="return confirm('Are you sure you want to delete all stored master data? This cannot be undone.');">
+                <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all w-full sm:w-auto"
+                        style="background: #ef4444; color: white; box-shadow: 0 4px 14px 0 rgba(239,68,68,0.3);">
+                    <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                    <span>Delete All Processed Data</span>
+                </button>
+            </form>
+        </div>
+    </section>
 </div>
 
 @section Scripts {
