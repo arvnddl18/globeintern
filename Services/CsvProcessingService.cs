@@ -45,6 +45,7 @@ public class CsvProcessingService : ICsvProcessingService
         var orderCreateDates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var appointmentDateCol = Col("AppointmentDateColumn");
+        var lastUpdateDateCol = Col("LastUpdateDateColumn");
         var territoryCol = Col("TerritoryColumn");
         var statusCol = Col("StatusColumn");
         var subStatusCol = Col("SubStatusColumn");
@@ -70,8 +71,10 @@ public class CsvProcessingService : ICsvProcessingService
             if (rowCount % yieldEvery == 0)
                 await Task.Yield();
 
-            var rawDate = csv.GetField(appointmentDateCol) ?? "";
-            if (!TryExtractDate(rawDate, out var rowDate))
+            var rawApptDate = csv.GetField(appointmentDateCol) ?? "";
+            var rawLastUpdateDate = lastUpdateDateCol != null ? csv.GetField(lastUpdateDateCol) ?? "" : "";
+            
+            if (!TryParseCsvDateLoose(rawApptDate, out var rowDate) && !TryParseCsvDateLoose(rawLastUpdateDate, out rowDate))
                 continue;
 
             dates.Add(rowDate);
@@ -287,8 +290,10 @@ public class CsvProcessingService : ICsvProcessingService
                 if (TryParseCoord(rawLat, out var lat) && TryParseCoord(rawLng, out var lng))
                 {
                     napDots.Add([lat, lng, EncodeDateInt(rowDate)]);
-                    napDotNames.Add(facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "");
-                    napDotDpids.Add(dpidCol is not null ? (csv.GetField(dpidCol) ?? "").Trim() : "");
+                    var facVal = facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "";
+                    var dpidVal = dpidCol is not null ? (csv.GetField(dpidCol) ?? "").Trim() : "";
+                    napDotNames.Add(facVal);
+                    napDotDpids.Add(string.IsNullOrWhiteSpace(facVal) ? dpidVal : facVal);
                     napDotSkillsets.Add(skillset);
                     napDotTerritories.Add(territory);
                     napDotStatuses.Add(status);
@@ -500,8 +505,10 @@ public class CsvProcessingService : ICsvProcessingService
                 if (TryParseCoord(rawLat, out var lat) && TryParseCoord(rawLng, out var lng))
                 {
                     napDots.Add([lat, lng, EncodeDateInt(rowDate)]);
-                    napDotNames.Add(facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "");
-                    napDotDpids2.Add(dpidCol2 is not null ? (csv.GetField(dpidCol2) ?? "").Trim() : "");
+                    var facVal = facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "";
+                    var dpidVal = dpidCol2 is not null ? (csv.GetField(dpidCol2) ?? "").Trim() : "";
+                    napDotNames.Add(facVal);
+                    napDotDpids2.Add(string.IsNullOrWhiteSpace(facVal) ? dpidVal : facVal);
                     napDotSkillsets2.Add(skillset);
                     napDotTerritories2.Add(territory);
                     napDotStatuses2.Add(status);
@@ -1678,6 +1685,7 @@ public class CsvProcessingService : ICsvProcessingService
     public async Task<KpiDashboardViewModel> ExtractHeatmapSnapshotAsync(string csvFilePath)
     {
         var appointmentDateCol = Col("AppointmentDateColumn");
+        var lastUpdateCol      = Col("LastUpdateDateColumn");
         var territoryCol       = Col("TerritoryColumn");
         var statusCol          = Col("StatusColumn");
         var skillsetCol        = Col("SkillsetColumn");
@@ -1686,13 +1694,13 @@ public class CsvProcessingService : ICsvProcessingService
         var dateDist  = new SortedDictionary<string, int>(StringComparer.Ordinal);
         int total = 0, repair = 0, install = 0;
 
-        var maxDots   = int.TryParse(_config["CsvMapping:NapDotsMaxRows"], out var _md) ? _md : 12_000;
-        var dots      = new List<float[]>(Math.Min(maxDots, 4096));
-        var names     = new List<string>(Math.Min(maxDots, 4096));
-        var dpids     = new List<string>(Math.Min(maxDots, 4096));
-        var skillsets = new List<string>(Math.Min(maxDots, 4096));
-        var terrs     = new List<string>(Math.Min(maxDots, 4096));
-        var statuses  = new List<string>(Math.Min(maxDots, 4096));
+        var maxDots   = int.TryParse(_config["CsvMapping:NapDotsMaxRows"], out var _md) ? _md : 250_000;
+        var dots      = new List<float[]>(Math.Min(maxDots, 8192));
+        var names     = new List<string>(Math.Min(maxDots, 8192));
+        var dpids     = new List<string>(Math.Min(maxDots, 8192));
+        var skillsets = new List<string>(Math.Min(maxDots, 8192));
+        var terrs     = new List<string>(Math.Min(maxDots, 8192));
+        var statuses  = new List<string>(Math.Min(maxDots, 8192));
 
         using var fileStream = new FileStream(csvFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536, useAsync: true);
         using var reader     = new StreamReader(fileStream);
@@ -1708,18 +1716,23 @@ public class CsvProcessingService : ICsvProcessingService
         var dpidCol     = FindCoordColumn(headers, null, "dpid");
         var fixDescCol  = FindCoordColumn(headers, null, "fixdescription");
         var hasCoords   = latCol is not null && lngCol is not null;
-        var maxJoinRows = int.TryParse(_config["CsvMapping:HeatmapJoinMaxRows"], out var _mjr) ? _mjr : 120_000;
-        var joinDateInts = new List<int>(Math.Min(maxJoinRows, 8_192));
-        var joinDpids = new List<string>(Math.Min(maxJoinRows, 8_192));
-        var joinFixDescriptions = new List<string>(Math.Min(maxJoinRows, 8_192));
-        var joinTerritories = new List<string>(Math.Min(maxJoinRows, 8_192));
-        var joinSkillsets = new List<string>(Math.Min(maxJoinRows, 8_192));
-        var joinStatuses = new List<string>(Math.Min(maxJoinRows, 8_192));
+        var maxJoinRows = int.TryParse(_config["CsvMapping:HeatmapJoinMaxRows"], out var _mjr) ? _mjr : 2_000_000;
+        var joinDateInts = new List<int>(Math.Min(maxJoinRows, 32_768));
+        var joinDpids = new List<string>(Math.Min(maxJoinRows, 32_768));
+        var joinFixDescriptions = new List<string>(Math.Min(maxJoinRows, 32_768));
+        var joinTerritories = new List<string>(Math.Min(maxJoinRows, 32_768));
+        var joinSkillsets = new List<string>(Math.Min(maxJoinRows, 32_768));
+        var joinStatuses = new List<string>(Math.Min(maxJoinRows, 32_768));
+
+        int currentYear = DateTime.Now.Year;
 
         while (await csv.ReadAsync())
         {
-            var rawDate = csv.GetField(appointmentDateCol) ?? "";
-            if (!TryExtractDate(rawDate, out var rowDate)) continue;
+            var rawDate = csv.GetField(lastUpdateCol) ?? "";
+            if (!TryParseCsvDateLoose(rawDate, out var rowDate)) continue;
+            
+            // The user requested to restrict the heatmap to the current year to avoid dropdown clutter
+            if (rowDate.Year != currentYear) continue;
 
             total++;
             var territory = csv.GetField(territoryCol) ?? "";
@@ -1734,10 +1747,14 @@ public class CsvProcessingService : ICsvProcessingService
             if (skLower.Contains("repair",  StringComparison.Ordinal)) repair++;
             if (skLower.Contains("install", StringComparison.Ordinal)) install++;
 
+            var facVal = facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "";
+            var dpidVal = dpidCol is not null ? (csv.GetField(dpidCol) ?? "").Trim() : "";
+            var finalNapId = string.IsNullOrWhiteSpace(facVal) ? dpidVal : facVal;
+
             if (joinDateInts.Count < maxJoinRows)
             {
                 joinDateInts.Add((int)EncodeDateInt(rowDate));
-                joinDpids.Add(dpidCol is not null ? (csv.GetField(dpidCol) ?? "").Trim() : "");
+                joinDpids.Add(finalNapId);
                 joinFixDescriptions.Add(fixDescCol is not null ? (csv.GetField(fixDescCol) ?? "").Trim() : "");
                 joinTerritories.Add(territory);
                 joinSkillsets.Add(skillset);
@@ -1751,8 +1768,8 @@ public class CsvProcessingService : ICsvProcessingService
                 if (TryParseCoord(rawLat, out var lat) && TryParseCoord(rawLng, out var lng))
                 {
                     dots.Add([lat, lng, EncodeDateInt(rowDate)]);
-                    names.Add(facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "");
-                    dpids.Add(dpidCol is not null ? (csv.GetField(dpidCol) ?? "").Trim() : "");
+                    names.Add(facVal);
+                    dpids.Add(finalNapId);
                     skillsets.Add(skillset);
                     terrs.Add(territory);
                     statuses.Add(status);
@@ -2447,9 +2464,21 @@ public class CsvProcessingService : ICsvProcessingService
         result = default;
         if (string.IsNullOrWhiteSpace(raw))
             return false;
-        if (TryExtractDate(raw, out result))
+            
+        var trimmed = raw.Trim();
+        var datePart = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
+        string[] formats = { 
+            "M/d/yyyy", "MM/dd/yyyy", "M/dd/yyyy", "MM/d/yyyy", "yyyy-MM-dd", 
+            "d/M/yyyy", "dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy",
+            "M/d/yy", "MM/dd/yy", "M/dd/yy", "MM/d/yy",
+            "d/M/yy", "dd/MM/yy", "d/MM/yy", "dd/M/yy"
+        };
+        if (DateOnly.TryParseExact(datePart, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
             return true;
-        if (DateTime.TryParse(raw.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+
+        if (TryExtractDate(trimmed, out result))
+            return true;
+        if (DateTime.TryParse(trimmed, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
         {
             result = DateOnly.FromDateTime(dt);
             return true;

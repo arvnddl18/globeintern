@@ -1337,6 +1337,22 @@ public class ReportController : Controller
         var davao = MatchAvailableOption(opts.AvailableTerritories, "Davao North");
         if (davao is not null)
             opts.SelectedTerritories = [davao];
+
+        var install = MatchAvailableOption(opts.AvailableSkillsets, "Install");
+        var repair = MatchAvailableOption(opts.AvailableSkillsets, "Repair");
+        var skillsets = new List<string>();
+        if (install is not null) skillsets.Add(install);
+        if (repair is not null) skillsets.Add(repair);
+        if (skillsets.Count > 0)
+            opts.SelectedSkillsets = skillsets;
+
+        var cancelled = MatchAvailableOption(opts.AvailableStatuses, "Cancelled");
+        var completed = MatchAvailableOption(opts.AvailableStatuses, "Completed");
+        var statuses = new List<string>();
+        if (cancelled is not null) statuses.Add(cancelled);
+        if (completed is not null) statuses.Add(completed);
+        if (statuses.Count > 0)
+            opts.SelectedStatuses = statuses;
     }
 
     /// <summary>

@@ -30,16 +30,9 @@
         .OrderBy(x => x, StringComparer.Ordinal)
         .ToList();
     var heatmapMonthRanges = new List<(string Start, string End)>();
-    if (heatmapMonthKeys.Count == 1)
+    foreach (var key in heatmapMonthKeys)
     {
-        heatmapMonthRanges.Add((heatmapMonthKeys[0], heatmapMonthKeys[0]));
-    }
-    else
-    {
-        for (var i = 0; i + 1 < heatmapMonthKeys.Count; i++)
-        {
-            heatmapMonthRanges.Add((heatmapMonthKeys[i], heatmapMonthKeys[i + 1]));
-        }
+        heatmapMonthRanges.Add((key, key));
     }
     var hmRepairCount  = Model.HeatmapRepairCount;
     var hmInstallCount = Model.HeatmapInstallCount;
@@ -2059,7 +2052,7 @@
                     </p>
                 }
             </div>
-            <span id="table-info" class="text-xs font-mono flex-shrink-0" style="color: #6a6a8e;"></span>
+            <span id="table-info" class="text-xs font-mono flex-shrink-0" style="color: #8a8ab0;"></span>
         </div>
         <div class="filter-scroll" style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
@@ -2252,7 +2245,7 @@
                     <i data-lucide="calendar" class="inline-block align-middle mr-1" style="width:12px; height:12px; color: #6366f1;"></i>
                     Filter by month
                 </label>
-                <select id="nap-heatmap-month" class="nap-hm-select" aria-label="Filter heatmap by month range">
+                <select id="nap-heatmap-month" class="nap-hm-select" aria-label="Filter heatmap by month">
                     <option value="">All months</option>
                     @foreach (var range in heatmapMonthRanges)
                     {
@@ -2262,7 +2255,7 @@
                         var endLabel = DateTime.TryParse(range.End + "-01", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ed)
                             ? ed.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture)
                             : range.End;
-                        <option value="@($"{range.Start}|{range.End}")">@($"{startLabel} - {endLabel}")</option>
+                        <option value="@($"{range.Start}|{range.End}")">@startLabel</option>
                     }
                 </select>
                 <span style="color: #3a3a5a; user-select: none;">|</span>
@@ -4854,3 +4847,5 @@
         })();
     </script>
 }
+
+
