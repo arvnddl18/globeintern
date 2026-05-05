@@ -8,7 +8,7 @@ public class ToolsAuditSessionViewModel
     public DateOnly WeekStartDate { get; set; }
     public DateTime UploadedUtc { get; set; }
 
-    public string? StatusFilter { get; set; }
+    public List<string> SelectedStatuses { get; set; } = [];
     public string SortBy { get; set; } = "none";
     public string SortDir { get; set; } = "desc";
 

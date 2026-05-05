@@ -107,12 +107,12 @@ public class ToolsAuditService : IToolsAuditService
 
     public async Task<ToolsAuditSessionViewModel?> GetSessionAsync(
         Guid sessionId,
-        string? statusFilter = null,
+        IReadOnlyCollection<string>? selectedStatuses = null,
         string? sortBy = null,
         string? sortDir = null,
         CancellationToken cancellationToken = default)
     {
-        statusFilter = string.IsNullOrWhiteSpace(statusFilter) ? null : statusFilter.Trim();
+        var normalizedStatuses = NormalizeSelectedStatuses(selectedStatuses);
         sortBy = string.IsNullOrWhiteSpace(sortBy) ? "none" : sortBy.Trim().ToLowerInvariant();
         sortDir = string.Equals(sortDir, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : "desc";
 
@@ -175,8 +175,12 @@ public class ToolsAuditService : IToolsAuditService
 
         // Tools table only: optional status filter + sorting.
         var toolSummary = toolSummaryAll.ToList();
-        if (TryParseStatusFilter(statusFilter, out var sf))
-            toolSummary = toolSummary.Where(r => GetCount(r, sf) > 0).ToList();
+        if (normalizedStatuses.Count > 0 && normalizedStatuses.Count < 4)
+        {
+            toolSummary = toolSummary
+                .Where(r => normalizedStatuses.Any(s => GetCount(r, s) > 0))
+                .ToList();
+        }
 
         // Sorting
         if (string.Equals(sortBy, "name", StringComparison.OrdinalIgnoreCase))
@@ -201,7 +205,7 @@ public class ToolsAuditService : IToolsAuditService
             AuditDate = session.AuditDate,
             WeekStartDate = session.WeekStartDate,
             UploadedUtc = session.UploadedUtc,
-            StatusFilter = statusFilter,
+            SelectedStatuses = normalizedStatuses.Select(ToStatusKey).ToList(),
             SortBy = sortBy,
             SortDir = sortDir,
             TechnicianSummary = techSummary,
@@ -210,12 +214,36 @@ public class ToolsAuditService : IToolsAuditService
         };
     }
 
-    private static bool TryParseStatusFilter(string? statusFilter, out ToolAuditStatus status)
+    private static HashSet<ToolAuditStatus> NormalizeSelectedStatuses(IReadOnlyCollection<string>? selectedStatuses)
+    {
+        var set = new HashSet<ToolAuditStatus>();
+        if (selectedStatuses is not null)
+        {
+            foreach (var raw in selectedStatuses)
+            {
+                if (TryParseStatusKey(raw, out var status))
+                    set.Add(status);
+            }
+        }
+
+        // Default: show all statuses.
+        if (set.Count == 0)
+        {
+            set.Add(ToolAuditStatus.Ok);
+            set.Add(ToolAuditStatus.None);
+            set.Add(ToolAuditStatus.Defective);
+            set.Add(ToolAuditStatus.NotApplicable);
+        }
+        return set;
+    }
+
+    private static bool TryParseStatusKey(string? raw, out ToolAuditStatus status)
     {
         status = default;
-        if (string.IsNullOrWhiteSpace(statusFilter))
+        if (string.IsNullOrWhiteSpace(raw))
             return false;
-        var v = statusFilter.Trim().ToLowerInvariant();
+
+        var v = raw.Trim().ToLowerInvariant();
         status = v switch
         {
             "ok" or "yes" => ToolAuditStatus.Ok,
@@ -226,6 +254,15 @@ public class ToolsAuditService : IToolsAuditService
         };
         return v is "ok" or "yes" or "none" or "def" or "defective" or "na" or "n/a";
     }
+
+    private static string ToStatusKey(ToolAuditStatus status) => status switch
+    {
+        ToolAuditStatus.Ok => "ok",
+        ToolAuditStatus.None => "none",
+        ToolAuditStatus.Defective => "defective",
+        ToolAuditStatus.NotApplicable => "na",
+        _ => "na"
+    };
 
     private static int GetCount(ToolsAuditTechnicianSummaryRow r, ToolAuditStatus s) => s switch
     {

@@ -1,0 +1,80 @@
+@model SlotAd_Globe.Models.ToolsAuditSessionViewModel
+@{
+    var selected = new HashSet<string>((Model.SelectedStatuses ?? new List<string> { "ok", "none", "defective", "na" })
+        .Select(x => (x ?? string.Empty).Trim().ToLowerInvariant()));
+    var showOk = selected.Contains("ok");
+    var showNone = selected.Contains("none");
+    var showDef = selected.Contains("defective") || selected.Contains("def");
+    var showNa = selected.Contains("na") || selected.Contains("n/a");
+}
+
+<div class="rounded-xl border p-5 mt-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
+    <div class="flex items-center justify-between gap-3">
+        <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Tools Summary</h3>
+        <form id="tools-summary-filter-form" class="flex flex-wrap items-end justify-end gap-2">
+            <div class="text-xs px-2 py-1.5 rounded-lg flex items-center gap-2"
+                 style="background: var(--theme-nav-pill); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
+                <span>Status</span>
+                <label class="inline-flex items-center gap-1"><input type="checkbox" name="statuses" value="ok" checked="@showOk" /> OK</label>
+                <label class="inline-flex items-center gap-1"><input type="checkbox" name="statuses" value="none" checked="@showNone" /> None</label>
+                <label class="inline-flex items-center gap-1"><input type="checkbox" name="statuses" value="defective" checked="@showDef" /> Def</label>
+                <label class="inline-flex items-center gap-1"><input type="checkbox" name="statuses" value="na" checked="@showNa" /> N/A</label>
+            </div>
+            <select name="sortDir" class="text-xs px-2 py-1.5 rounded-lg"
+                    style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
+                <option value="desc" selected="@(string.Equals(Model.SortDir, "desc", StringComparison.OrdinalIgnoreCase))">DESC</option>
+                <option value="asc" selected="@(string.Equals(Model.SortDir, "asc", StringComparison.OrdinalIgnoreCase))">ASC</option>
+            </select>
+        </form>
+    </div>
+    <div class="overflow-auto mt-3" style="max-height: 420px;">
+        <table class="w-full text-xs">
+            <thead class="sticky top-0" style="background: var(--theme-surface);">
+                <tr style="color: var(--theme-text-muted);">
+                    <th class="text-left py-2 pr-2">Tool</th>
+                    @if (showOk)
+                    {
+                        <th class="text-right py-2 px-2">OK</th>
+                    }
+                    @if (showNone)
+                    {
+                        <th class="text-right py-2 px-2" style="color:#ef4444;">None</th>
+                    }
+                    @if (showDef)
+                    {
+                        <th class="text-right py-2 px-2" style="color:#f59e0b;">Def</th>
+                    }
+                    @if (showNa)
+                    {
+                        <th class="text-right py-2 pl-2">N/A</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in Model.ToolSummary)
+            {
+                <tr style="border-top: 1px solid var(--theme-surface-border);">
+                    <td class="py-2 pr-2" style="color: var(--theme-text-dim);">@row.ToolName</td>
+                    @if (showOk)
+                    {
+                        <td class="py-2 px-2 text-right" style="color: var(--theme-text);">@row.OkCount</td>
+                    }
+                    @if (showNone)
+                    {
+                        <td class="py-2 px-2 text-right font-bold" style="color:#ef4444;">@row.NoneCount</td>
+                    }
+                    @if (showDef)
+                    {
+                        <td class="py-2 px-2 text-right" style="color:#f59e0b;">@row.DefectiveCount</td>
+                    }
+                    @if (showNa)
+                    {
+                        <td class="py-2 pl-2 text-right" style="color: var(--theme-text);">@row.NaCount</td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+

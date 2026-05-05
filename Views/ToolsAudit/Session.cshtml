@@ -12,11 +12,12 @@
         <div>
             <h2 class="text-xl font-black tracking-tight" style="color: var(--theme-text);">Tools Audit</h2>
             <div class="text-sm mt-1" style="color: var(--theme-text-muted);">
-                Audit date <span class="font-semibold" style="color: var(--theme-text-dim);">@((Model.AuditDate ?? Model.WeekStartDate).ToString("yyyy-MM-dd"))</span>
-                <span class="opacity-60">•</span>
-                Week of <span class="font-semibold" style="color: var(--theme-text-dim);">@Model.WeekStartDate.ToString("yyyy-MM-dd")</span>
-                <span class="opacity-60">•</span>
-                Uploaded <span class="font-semibold" style="color: var(--theme-text-dim);">@Model.UploadedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                <span class="font-semibold" style="color: var(--theme-text-dim);">
+                    Tools Inspection for @((Model.AuditDate ?? Model.WeekStartDate).ToString("MMMM dd, yyyy"))
+                </span>
+            </div>
+            <div class="text-xs mt-1" style="color: var(--theme-text-muted);">
+                Uploaded @Model.UploadedUtc.ToLocalTime().ToString("MMMM dd, yyyy hh:mm tt")
             </div>
             @if (!string.IsNullOrWhiteSpace(Model.OriginalFileName))
             {
@@ -79,67 +80,8 @@
         </div>
     </div>
 
-    <div class="rounded-xl border p-5 mt-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
-        <div class="flex items-center justify-between gap-3">
-            <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Tools Summary</h3>
-            <form method="get" class="flex flex-wrap items-end justify-end gap-2">
-                <select name="status" class="text-xs px-2 py-1.5 rounded-lg"
-                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
-                    <option value="" selected="@(string.IsNullOrWhiteSpace(Model.StatusFilter))">All</option>
-                    <option value="ok" selected="@(string.Equals(Model.StatusFilter, "ok", StringComparison.OrdinalIgnoreCase))">OK</option>
-                    <option value="none" selected="@(string.Equals(Model.StatusFilter, "none", StringComparison.OrdinalIgnoreCase))">None</option>
-                    <option value="defective" selected="@(string.Equals(Model.StatusFilter, "defective", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.StatusFilter, "def", StringComparison.OrdinalIgnoreCase))">Defective</option>
-                    <option value="na" selected="@(string.Equals(Model.StatusFilter, "na", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.StatusFilter, "n/a", StringComparison.OrdinalIgnoreCase))">N/A</option>
-                </select>
-                <select name="sortBy" class="text-xs px-2 py-1.5 rounded-lg"
-                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
-                    <option value="none" selected="@(string.Equals(Model.SortBy, "none", StringComparison.OrdinalIgnoreCase))">None</option>
-                    <option value="ok" selected="@(string.Equals(Model.SortBy, "ok", StringComparison.OrdinalIgnoreCase))">OK</option>
-                    <option value="defective" selected="@(string.Equals(Model.SortBy, "defective", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.SortBy, "def", StringComparison.OrdinalIgnoreCase))">Def</option>
-                    <option value="na" selected="@(string.Equals(Model.SortBy, "na", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.SortBy, "n/a", StringComparison.OrdinalIgnoreCase))">N/A</option>
-                    <option value="name" selected="@(string.Equals(Model.SortBy, "name", StringComparison.OrdinalIgnoreCase))">Name</option>
-                </select>
-                <select name="sortDir" class="text-xs px-2 py-1.5 rounded-lg"
-                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
-                    <option value="desc" selected="@(string.Equals(Model.SortDir, "desc", StringComparison.OrdinalIgnoreCase))">DESC</option>
-                    <option value="asc" selected="@(string.Equals(Model.SortDir, "asc", StringComparison.OrdinalIgnoreCase))">ASC</option>
-                </select>
-                <button type="submit" class="text-xs font-semibold px-3 py-1.5 rounded-lg"
-                        style="color:#fff; background: var(--theme-accent);">
-                    Apply
-                </button>
-                <a asp-controller="ToolsAudit" asp-action="Session" asp-route-id="@Model.SessionId"
-                   class="text-xs font-semibold px-3 py-1.5 rounded-lg"
-                   style="color: var(--theme-text-dim); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
-                    Reset
-                </a>
-            </form>
-        </div>
-        <div class="overflow-auto mt-3" style="max-height: 420px;">
-            <table class="w-full text-xs">
-                <thead class="sticky top-0" style="background: var(--theme-surface);">
-                    <tr style="color: var(--theme-text-muted);">
-                        <th class="text-left py-2 pr-2">Tool</th>
-                        <th class="text-right py-2 px-2">OK</th>
-                        <th class="text-right py-2 px-2" style="color:#ef4444;">None</th>
-                        <th class="text-right py-2 px-2" style="color:#f59e0b;">Def</th>
-                        <th class="text-right py-2 pl-2">N/A</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var row in Model.ToolSummary)
-                {
-                    <tr style="border-top: 1px solid var(--theme-surface-border);">
-                        <td class="py-2 pr-2" style="color: var(--theme-text-dim);">@row.ToolName</td>
-                        <td class="py-2 px-2 text-right" style="color: var(--theme-text);">@row.OkCount</td>
-                        <td class="py-2 px-2 text-right font-bold" style="color:#ef4444;">@row.NoneCount</td>
-                        <td class="py-2 px-2 text-right" style="color:#f59e0b;">@row.DefectiveCount</td>
-                        <td class="py-2 pl-2 text-right" style="color: var(--theme-text);">@row.NaCount</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+    <div id="tools-summary-container">
+        <partial name="_ToolsSummary" model="Model" />
     </div>
 </section>
 
@@ -182,6 +124,53 @@
                     }
                 }
             });
+        })();
+
+        (function () {
+            var sessionId = '@Model.SessionId';
+            var containerId = 'tools-summary-container';
+            var isLoading = false;
+
+            function bindAutoRefresh() {
+                var container = document.getElementById(containerId);
+                if (!container) return;
+
+                var form = container.querySelector('#tools-summary-filter-form');
+                if (!form) return;
+
+                function refreshSummary() {
+                    if (isLoading) return;
+                    isLoading = true;
+
+                    var params = new URLSearchParams();
+                    form.querySelectorAll('input[name="statuses"]:checked').forEach(function (el) {
+                        params.append('statuses', el.value);
+                    });
+                    var sortDir = form.querySelector('select[name="sortDir"]');
+                    if (sortDir) params.set('sortDir', sortDir.value);
+                    params.set('sortBy', 'none');
+                    params.set('partial', 'toolsSummary');
+
+                    fetch('/ToolsAudit/Session/' + sessionId + '?' + params.toString(), {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(function (r) { return r.text(); })
+                    .then(function (html) {
+                        container.innerHTML = html;
+                        bindAutoRefresh();
+                    })
+                    .catch(function () { /* no-op */ })
+                    .finally(function () { isLoading = false; });
+                }
+
+                form.querySelectorAll('input[name="statuses"]').forEach(function (cb) {
+                    cb.addEventListener('change', refreshSummary);
+                });
+                var dir = form.querySelector('select[name="sortDir"]');
+                if (dir) dir.addEventListener('change', refreshSummary);
+            }
+
+            bindAutoRefresh();
         })();
     </script>
 }

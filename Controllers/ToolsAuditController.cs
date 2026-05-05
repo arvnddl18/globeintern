@@ -69,20 +69,23 @@ public class ToolsAuditController : Controller
     [HttpGet("Session/{id:guid}")]
     public async Task<IActionResult> Session(
         Guid id,
-        [FromQuery] string? status = null,
+        [FromQuery] string[]? statuses = null,
         [FromQuery] string? sortBy = null,
-        [FromQuery] string? sortDir = null)
+        [FromQuery] string? sortDir = null,
+        [FromQuery] string? partial = null)
     {
         ViewData["Title"] = "Tools Audit";
         ViewData["ActiveTab"] = "kpi";
         var vm = await _toolsAudit.GetSessionAsync(
             id,
-            status,
+            statuses,
             sortBy,
             sortDir,
             HttpContext.RequestAborted);
         if (vm is null)
             return NotFound();
+        if (string.Equals(partial, "toolsSummary", StringComparison.OrdinalIgnoreCase))
+            return PartialView("_ToolsSummary", vm);
         return View(vm);
     }
 
