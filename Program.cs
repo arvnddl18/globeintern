@@ -57,6 +57,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<ICsvProcessingService, CsvProcessingService>();
 builder.Services.AddScoped<IOperationalReportService, OperationalReportService>();
 builder.Services.AddScoped<IReportDashboardArchiveRecorder, ReportDashboardArchiveRecorder>();
+builder.Services.AddScoped<IToolsAuditService, ToolsAuditService>();
 
 builder.WebHost.ConfigureKestrel(options =>
 {

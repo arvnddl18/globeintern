@@ -1,0 +1,225 @@
+@model SlotAd_Globe.Models.ToolsAuditSessionViewModel
+@using System.Text.Json
+@{
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+    var sortBy = (Model.SortBy ?? "none").Trim().ToLowerInvariant();
+    int GetMetric(SlotAd_Globe.Models.ToolsAuditToolSummaryRow r) => sortBy switch
+    {
+        "ok" => r.OkCount,
+        "def" or "defective" => r.DefectiveCount,
+        "na" or "n/a" => r.NaCount,
+        _ => r.NoneCount
+    };
+    var metricLabel = sortBy switch
+    {
+        "ok" => "OK",
+        "def" or "defective" => "Defective",
+        "na" or "n/a" => "N/A",
+        _ => "None"
+    };
+    var topTools = Model.ToolSummary.Take(12).ToList();
+    var labelsJson = JsonSerializer.Serialize(topTools.Select(x => x.ToolName));
+    var valuesJson = JsonSerializer.Serialize(topTools.Select(x => GetMetric(x)));
+}
+
+<section class="fade-in rounded-xl border p-6" style="background: var(--theme-surface-soft); border-color: var(--theme-surface-border);">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-black tracking-tight" style="color: var(--theme-text);">Tools Audit</h2>
+            <div class="text-sm mt-1" style="color: var(--theme-text-muted);">
+                Audit date <span class="font-semibold" style="color: var(--theme-text-dim);">@((Model.AuditDate ?? Model.WeekStartDate).ToString("yyyy-MM-dd"))</span>
+                <span class="opacity-60">•</span>
+                Week of <span class="font-semibold" style="color: var(--theme-text-dim);">@Model.WeekStartDate.ToString("yyyy-MM-dd")</span>
+                <span class="opacity-60">•</span>
+                Uploaded <span class="font-semibold" style="color: var(--theme-text-dim);">@Model.UploadedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.OriginalFileName))
+            {
+                <div class="text-xs mt-1" style="color: var(--theme-text-muted);">
+                    Source: <span class="font-mono">@Model.OriginalFileName</span>
+                </div>
+            }
+        </div>
+        <div class="flex items-center gap-2">
+            <a asp-controller="ToolsAudit" asp-action="Upload" class="text-sm font-semibold px-3 py-2 rounded-lg"
+               style="color: var(--theme-accent); background: var(--theme-accent-soft); border: 1px solid var(--theme-surface-border);">
+                Upload another week
+            </a>
+        </div>
+    </div>
+
+    <form method="get" class="mt-5 rounded-xl border p-4"
+          style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
+        <div class="flex flex-wrap items-end gap-3">
+            <div>
+                <label class="block text-xs font-semibold mb-1" style="color: var(--theme-text-muted);">Status filter</label>
+                <select name="status" class="text-sm px-3 py-2 rounded-lg"
+                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
+                    <option value="" selected="@(string.IsNullOrWhiteSpace(Model.StatusFilter))">All</option>
+                    <option value="ok" selected="@(string.Equals(Model.StatusFilter, "ok", StringComparison.OrdinalIgnoreCase))">OK</option>
+                    <option value="none" selected="@(string.Equals(Model.StatusFilter, "none", StringComparison.OrdinalIgnoreCase))">None</option>
+                    <option value="defective" selected="@(string.Equals(Model.StatusFilter, "defective", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.StatusFilter, "def", StringComparison.OrdinalIgnoreCase))">Defective</option>
+                    <option value="na" selected="@(string.Equals(Model.StatusFilter, "na", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.StatusFilter, "n/a", StringComparison.OrdinalIgnoreCase))">N/A</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold mb-1" style="color: var(--theme-text-muted);">Sort by</label>
+                <select name="sortBy" class="text-sm px-3 py-2 rounded-lg"
+                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
+                    <option value="none" selected="@(string.Equals(Model.SortBy, "none", StringComparison.OrdinalIgnoreCase))">None count</option>
+                    <option value="ok" selected="@(string.Equals(Model.SortBy, "ok", StringComparison.OrdinalIgnoreCase))">OK count</option>
+                    <option value="defective" selected="@(string.Equals(Model.SortBy, "defective", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.SortBy, "def", StringComparison.OrdinalIgnoreCase))">Defective count</option>
+                    <option value="na" selected="@(string.Equals(Model.SortBy, "na", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.SortBy, "n/a", StringComparison.OrdinalIgnoreCase))">N/A count</option>
+                    <option value="name" selected="@(string.Equals(Model.SortBy, "name", StringComparison.OrdinalIgnoreCase))">Name</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold mb-1" style="color: var(--theme-text-muted);">Direction</label>
+                <select name="sortDir" class="text-sm px-3 py-2 rounded-lg"
+                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
+                    <option value="desc" selected="@(string.Equals(Model.SortDir, "desc", StringComparison.OrdinalIgnoreCase))">DESC</option>
+                    <option value="asc" selected="@(string.Equals(Model.SortDir, "asc", StringComparison.OrdinalIgnoreCase))">ASC</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit" class="text-sm font-semibold px-4 py-2 rounded-lg"
+                        style="color:#fff; background: var(--theme-accent);">
+                    Apply
+                </button>
+                <a asp-controller="ToolsAudit" asp-action="Session" asp-route-id="@Model.SessionId"
+                   class="text-sm font-semibold px-4 py-2 rounded-lg"
+                   style="color: var(--theme-text-dim); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
+                    Reset
+                </a>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.StatusFilter))
+            {
+                <div class="text-xs px-2 py-1 rounded-md" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">
+                    Filtering: <span class="font-mono">@Model.StatusFilter</span>
+                </div>
+            }
+        </div>
+    </form>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-6">
+        <div class="rounded-xl border p-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Top Tools (@metricLabel)</h3>
+                <span class="text-xs px-2 py-1 rounded-md" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">
+                    Top @topTools.Count
+                </span>
+            </div>
+            <div class="mt-4">
+                <canvas id="missingToolsChart" height="160"></canvas>
+            </div>
+            <div class="mt-4 text-xs" style="color: var(--theme-text-muted);">
+                Bars show counts per tool for the selected sort metric.
+            </div>
+        </div>
+
+        <div class="rounded-xl border p-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
+            <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Technician Summary</h3>
+            <div class="overflow-auto mt-3" style="max-height: 320px;">
+                <table class="w-full text-xs">
+                    <thead class="sticky top-0" style="background: var(--theme-surface);">
+                        <tr style="color: var(--theme-text-muted);">
+                            <th class="text-left py-2 pr-2">Technician</th>
+                            <th class="text-right py-2 px-2">OK</th>
+                            <th class="text-right py-2 px-2" style="color:#ef4444;">None</th>
+                            <th class="text-right py-2 px-2" style="color:#f59e0b;">Def</th>
+                            <th class="text-right py-2 pl-2">N/A</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.TechnicianSummary)
+                    {
+                        <tr style="border-top: 1px solid var(--theme-surface-border);">
+                            <td class="py-2 pr-2" style="color: var(--theme-text-dim);">@row.TechnicianName</td>
+                            <td class="py-2 px-2 text-right" style="color: var(--theme-text);">@row.OkCount</td>
+                            <td class="py-2 px-2 text-right font-bold" style="color:#ef4444;">@row.NoneCount</td>
+                            <td class="py-2 px-2 text-right" style="color:#f59e0b;">@row.DefectiveCount</td>
+                            <td class="py-2 pl-2 text-right" style="color: var(--theme-text);">@row.NaCount</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded-xl border p-5 mt-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
+        <div class="flex items-center justify-between gap-3">
+            <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Tools Summary</h3>
+            <span class="text-xs" style="color: var(--theme-text-muted);">Sorted by @Model.SortBy @Model.SortDir</span>
+        </div>
+        <div class="overflow-auto mt-3" style="max-height: 420px;">
+            <table class="w-full text-xs">
+                <thead class="sticky top-0" style="background: var(--theme-surface);">
+                    <tr style="color: var(--theme-text-muted);">
+                        <th class="text-left py-2 pr-2">Tool</th>
+                        <th class="text-right py-2 px-2">OK</th>
+                        <th class="text-right py-2 px-2" style="color:#ef4444;">None</th>
+                        <th class="text-right py-2 px-2" style="color:#f59e0b;">Def</th>
+                        <th class="text-right py-2 pl-2">N/A</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.ToolSummary)
+                {
+                    <tr style="border-top: 1px solid var(--theme-surface-border);">
+                        <td class="py-2 pr-2" style="color: var(--theme-text-dim);">@row.ToolName</td>
+                        <td class="py-2 px-2 text-right" style="color: var(--theme-text);">@row.OkCount</td>
+                        <td class="py-2 px-2 text-right font-bold" style="color:#ef4444;">@row.NoneCount</td>
+                        <td class="py-2 px-2 text-right" style="color:#f59e0b;">@row.DefectiveCount</td>
+                        <td class="py-2 pl-2 text-right" style="color: var(--theme-text);">@row.NaCount</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            var labels = @Html.Raw(labelsJson);
+            var values = @Html.Raw(valuesJson);
+            var ctx = document.getElementById('missingToolsChart');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '@metricLabel count',
+                        data: values,
+                        backgroundColor: 'rgba(239, 68, 68, 0.65)',
+                        borderColor: 'rgba(239, 68, 68, 0.95)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: true }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#8a8ab0' },
+                            grid: { color: 'rgba(255,255,255,0.06)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#8a8ab0', precision: 0 },
+                            grid: { color: 'rgba(255,255,255,0.06)' }
+                        }
+                    }
+                }
+            });
+        })();
+    </script>
+}
+

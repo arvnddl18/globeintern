@@ -1,0 +1,60 @@
+@{
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+    var error = TempData["Error"] as string;
+    var success = TempData["Success"] as string;
+}
+
+<div class="fade-in">
+    <section class="rounded-xl border p-6" style="background: var(--theme-surface-soft); border-color: var(--theme-surface-border);">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h2 class="text-xl font-black tracking-tight" style="color: var(--theme-text);">Tools Audit Upload</h2>
+                <p class="text-sm mt-1" style="color: var(--theme-text-muted);">
+                    Upload the weekly Excel template. Required sheet: <span class="font-mono">Checklist_Input</span>.
+                </p>
+            </div>
+            <a asp-controller="Report" asp-action="Dashboard" class="text-sm font-semibold px-3 py-2 rounded-lg"
+               style="color: var(--theme-accent); background: var(--theme-accent-soft); border: 1px solid var(--theme-surface-border);">
+                Back to Dashboard
+            </a>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="mt-4 px-4 py-3 rounded-lg text-sm font-medium"
+                 style="background:#7f1d1d; border:1px solid #ef4444; color:#fff;">
+                @error
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(success))
+        {
+            <div class="mt-4 px-4 py-3 rounded-lg text-sm font-medium"
+                 style="background:#065f46; border:1px solid #10b981; color:#fff;">
+                @success
+            </div>
+        }
+
+        <form asp-controller="ToolsAudit" asp-action="Upload" method="post" enctype="multipart/form-data" class="mt-5">
+            @Html.AntiForgeryToken()
+            <div class="rounded-xl border p-5"
+                 style="border-color: var(--theme-surface-border); background: rgba(99, 102, 241, 0.06);">
+                <label class="block text-sm font-semibold" style="color: var(--theme-text-dim);">
+                    Excel file (.xlsx)
+                </label>
+                <input type="file" name="xlsxFile" accept=".xlsx" class="mt-2 block w-full text-sm"
+                       style="color: var(--theme-text-dim);" />
+
+                <div class="mt-4 flex items-center justify-between gap-3">
+                    <div class="text-xs" style="color: var(--theme-text-muted);">
+                        Values accepted: <span class="font-mono">Yes</span>, <span class="font-mono">None</span>, <span class="font-mono">Defective</span>, blanks treated as <span class="font-mono">N/A</span>.
+                    </div>
+                    <button type="submit" class="text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                            style="color:#fff; background: var(--theme-accent);">
+                        Upload &amp; View Summary
+                    </button>
+                </div>
+            </div>
+        </form>
+    </section>
+</div>
+

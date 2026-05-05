@@ -13,6 +13,8 @@ public class AppDbContext : DbContext
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<ReportUploadEntity> ReportUploads => Set<ReportUploadEntity>();
     public DbSet<ReportDashboardArchiveEntity> ReportDashboardArchives => Set<ReportDashboardArchiveEntity>();
+    public DbSet<ToolAuditSessionEntity> ToolAuditSessions => Set<ToolAuditSessionEntity>();
+    public DbSet<ToolAuditEntryEntity> ToolAuditEntries => Set<ToolAuditEntryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +69,39 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ToolAuditSessionEntity>(entity =>
+        {
+            entity.ToTable("ToolAuditSessions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OriginalFileName).HasMaxLength(512);
+            entity.Property(e => e.AuditDate);
+            entity.HasIndex(e => e.WeekStartDate);
+            entity.HasIndex(e => new { e.UploadedByUserId, e.UploadedUtc });
+
+            entity.HasOne(e => e.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ToolAuditEntryEntity>(entity =>
+        {
+            entity.ToTable("ToolAuditEntries");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TechnicianName).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.ToolName).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.RawValue).HasMaxLength(128);
+
+            entity.HasOne(e => e.Session)
+                .WithMany(s => s.Entries)
+                .HasForeignKey(e => e.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.SessionId, e.TechnicianName });
+            entity.HasIndex(e => new { e.SessionId, e.ToolName, e.Status });
         });
     }
 }
