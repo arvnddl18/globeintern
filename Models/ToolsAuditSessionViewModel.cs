@@ -13,6 +13,9 @@ public class ToolsAuditSessionViewModel
     public string SortDir { get; set; } = "desc";
 
     public List<ToolsAuditTechnicianSummaryRow> TechnicianSummary { get; set; } = [];
+    /// <summary>Unfiltered tools summary (used for charts).</summary>
+    public List<ToolsAuditToolSummaryRow> ToolSummaryAll { get; set; } = [];
+    /// <summary>Filtered/sorted tools summary (used for Tools Summary table).</summary>
     public List<ToolsAuditToolSummaryRow> ToolSummary { get; set; } = [];
 }
 

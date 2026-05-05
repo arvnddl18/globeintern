@@ -154,9 +154,11 @@ public class ToolsAuditService : IToolsAuditService
                 DefectiveCount = g.Count(x => x.Status == ToolAuditStatus.Defective),
                 NaCount = g.Count(x => x.Status == ToolAuditStatus.NotApplicable)
             })
+            .OrderByDescending(x => x.NoneCount)
+            .ThenBy(x => x.TechnicianName)
             .ToList();
 
-        var toolSummary = entries
+        var toolSummaryAll = entries
             .GroupBy(e => e.ToolName)
             .Select(g => new ToolsAuditToolSummaryRow
             {
@@ -166,22 +168,19 @@ public class ToolsAuditService : IToolsAuditService
                 DefectiveCount = g.Count(x => x.Status == ToolAuditStatus.Defective),
                 NaCount = g.Count(x => x.Status == ToolAuditStatus.NotApplicable)
             })
+            .OrderByDescending(x => x.NoneCount)
+            .ThenByDescending(x => x.DefectiveCount)
+            .ThenBy(x => x.ToolName)
             .ToList();
 
-        // Optional status filter: keep only rows that have that status > 0.
+        // Tools table only: optional status filter + sorting.
+        var toolSummary = toolSummaryAll.ToList();
         if (TryParseStatusFilter(statusFilter, out var sf))
-        {
-            techSummary = techSummary.Where(r => GetCount(r, sf) > 0).ToList();
             toolSummary = toolSummary.Where(r => GetCount(r, sf) > 0).ToList();
-        }
 
         // Sorting
         if (string.Equals(sortBy, "name", StringComparison.OrdinalIgnoreCase))
         {
-            techSummary = (sortDir == "asc"
-                    ? techSummary.OrderBy(r => r.TechnicianName, StringComparer.OrdinalIgnoreCase)
-                    : techSummary.OrderByDescending(r => r.TechnicianName, StringComparer.OrdinalIgnoreCase))
-                .ToList();
             toolSummary = (sortDir == "asc"
                     ? toolSummary.OrderBy(r => r.ToolName, StringComparer.OrdinalIgnoreCase)
                     : toolSummary.OrderByDescending(r => r.ToolName, StringComparer.OrdinalIgnoreCase))
@@ -189,10 +188,6 @@ public class ToolsAuditService : IToolsAuditService
         }
         else
         {
-            techSummary = (sortDir == "asc"
-                    ? techSummary.OrderBy(techMetric).ThenBy(r => r.TechnicianName, StringComparer.OrdinalIgnoreCase)
-                    : techSummary.OrderByDescending(techMetric).ThenBy(r => r.TechnicianName, StringComparer.OrdinalIgnoreCase))
-                .ToList();
             toolSummary = (sortDir == "asc"
                     ? toolSummary.OrderBy(toolMetric).ThenBy(r => r.ToolName, StringComparer.OrdinalIgnoreCase)
                     : toolSummary.OrderByDescending(toolMetric).ThenBy(r => r.ToolName, StringComparer.OrdinalIgnoreCase))
@@ -210,6 +205,7 @@ public class ToolsAuditService : IToolsAuditService
             SortBy = sortBy,
             SortDir = sortDir,
             TechnicianSummary = techSummary,
+            ToolSummaryAll = toolSummaryAll,
             ToolSummary = toolSummary
         };
     }

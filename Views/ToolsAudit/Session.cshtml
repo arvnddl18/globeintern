@@ -2,24 +2,9 @@
 @using System.Text.Json
 @{
     Layout = "~/Views/Shared/_ReportLayout.cshtml";
-    var sortBy = (Model.SortBy ?? "none").Trim().ToLowerInvariant();
-    int GetMetric(SlotAd_Globe.Models.ToolsAuditToolSummaryRow r) => sortBy switch
-    {
-        "ok" => r.OkCount,
-        "def" or "defective" => r.DefectiveCount,
-        "na" or "n/a" => r.NaCount,
-        _ => r.NoneCount
-    };
-    var metricLabel = sortBy switch
-    {
-        "ok" => "OK",
-        "def" or "defective" => "Defective",
-        "na" or "n/a" => "N/A",
-        _ => "None"
-    };
-    var topTools = Model.ToolSummary.Take(12).ToList();
+    var topTools = (Model.ToolSummaryAll ?? new List<SlotAd_Globe.Models.ToolsAuditToolSummaryRow>()).Take(12).ToList();
     var labelsJson = JsonSerializer.Serialize(topTools.Select(x => x.ToolName));
-    var valuesJson = JsonSerializer.Serialize(topTools.Select(x => GetMetric(x)));
+    var noneJson = JsonSerializer.Serialize(topTools.Select(x => x.NoneCount));
 }
 
 <section class="fade-in rounded-xl border p-6" style="background: var(--theme-surface-soft); border-color: var(--theme-surface-border);">
@@ -48,63 +33,10 @@
         </div>
     </div>
 
-    <form method="get" class="mt-5 rounded-xl border p-4"
-          style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
-        <div class="flex flex-wrap items-end gap-3">
-            <div>
-                <label class="block text-xs font-semibold mb-1" style="color: var(--theme-text-muted);">Status filter</label>
-                <select name="status" class="text-sm px-3 py-2 rounded-lg"
-                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
-                    <option value="" selected="@(string.IsNullOrWhiteSpace(Model.StatusFilter))">All</option>
-                    <option value="ok" selected="@(string.Equals(Model.StatusFilter, "ok", StringComparison.OrdinalIgnoreCase))">OK</option>
-                    <option value="none" selected="@(string.Equals(Model.StatusFilter, "none", StringComparison.OrdinalIgnoreCase))">None</option>
-                    <option value="defective" selected="@(string.Equals(Model.StatusFilter, "defective", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.StatusFilter, "def", StringComparison.OrdinalIgnoreCase))">Defective</option>
-                    <option value="na" selected="@(string.Equals(Model.StatusFilter, "na", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.StatusFilter, "n/a", StringComparison.OrdinalIgnoreCase))">N/A</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold mb-1" style="color: var(--theme-text-muted);">Sort by</label>
-                <select name="sortBy" class="text-sm px-3 py-2 rounded-lg"
-                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
-                    <option value="none" selected="@(string.Equals(Model.SortBy, "none", StringComparison.OrdinalIgnoreCase))">None count</option>
-                    <option value="ok" selected="@(string.Equals(Model.SortBy, "ok", StringComparison.OrdinalIgnoreCase))">OK count</option>
-                    <option value="defective" selected="@(string.Equals(Model.SortBy, "defective", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.SortBy, "def", StringComparison.OrdinalIgnoreCase))">Defective count</option>
-                    <option value="na" selected="@(string.Equals(Model.SortBy, "na", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.SortBy, "n/a", StringComparison.OrdinalIgnoreCase))">N/A count</option>
-                    <option value="name" selected="@(string.Equals(Model.SortBy, "name", StringComparison.OrdinalIgnoreCase))">Name</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold mb-1" style="color: var(--theme-text-muted);">Direction</label>
-                <select name="sortDir" class="text-sm px-3 py-2 rounded-lg"
-                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
-                    <option value="desc" selected="@(string.Equals(Model.SortDir, "desc", StringComparison.OrdinalIgnoreCase))">DESC</option>
-                    <option value="asc" selected="@(string.Equals(Model.SortDir, "asc", StringComparison.OrdinalIgnoreCase))">ASC</option>
-                </select>
-            </div>
-            <div class="flex items-center gap-2">
-                <button type="submit" class="text-sm font-semibold px-4 py-2 rounded-lg"
-                        style="color:#fff; background: var(--theme-accent);">
-                    Apply
-                </button>
-                <a asp-controller="ToolsAudit" asp-action="Session" asp-route-id="@Model.SessionId"
-                   class="text-sm font-semibold px-4 py-2 rounded-lg"
-                   style="color: var(--theme-text-dim); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
-                    Reset
-                </a>
-            </div>
-            @if (!string.IsNullOrWhiteSpace(Model.StatusFilter))
-            {
-                <div class="text-xs px-2 py-1 rounded-md" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">
-                    Filtering: <span class="font-mono">@Model.StatusFilter</span>
-                </div>
-            }
-        </div>
-    </form>
-
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-6">
         <div class="rounded-xl border p-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
             <div class="flex items-center justify-between">
-                <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Top Tools (@metricLabel)</h3>
+                <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Top Missing Tools (None)</h3>
                 <span class="text-xs px-2 py-1 rounded-md" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">
                     Top @topTools.Count
                 </span>
@@ -113,7 +45,7 @@
                 <canvas id="missingToolsChart" height="160"></canvas>
             </div>
             <div class="mt-4 text-xs" style="color: var(--theme-text-muted);">
-                Bars show counts per tool for the selected sort metric.
+                Bars show how many technicians reported <span class="font-mono">None</span> for each tool.
             </div>
         </div>
 
@@ -150,7 +82,38 @@
     <div class="rounded-xl border p-5 mt-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
         <div class="flex items-center justify-between gap-3">
             <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Tools Summary</h3>
-            <span class="text-xs" style="color: var(--theme-text-muted);">Sorted by @Model.SortBy @Model.SortDir</span>
+            <form method="get" class="flex flex-wrap items-end justify-end gap-2">
+                <select name="status" class="text-xs px-2 py-1.5 rounded-lg"
+                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
+                    <option value="" selected="@(string.IsNullOrWhiteSpace(Model.StatusFilter))">All</option>
+                    <option value="ok" selected="@(string.Equals(Model.StatusFilter, "ok", StringComparison.OrdinalIgnoreCase))">OK</option>
+                    <option value="none" selected="@(string.Equals(Model.StatusFilter, "none", StringComparison.OrdinalIgnoreCase))">None</option>
+                    <option value="defective" selected="@(string.Equals(Model.StatusFilter, "defective", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.StatusFilter, "def", StringComparison.OrdinalIgnoreCase))">Defective</option>
+                    <option value="na" selected="@(string.Equals(Model.StatusFilter, "na", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.StatusFilter, "n/a", StringComparison.OrdinalIgnoreCase))">N/A</option>
+                </select>
+                <select name="sortBy" class="text-xs px-2 py-1.5 rounded-lg"
+                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
+                    <option value="none" selected="@(string.Equals(Model.SortBy, "none", StringComparison.OrdinalIgnoreCase))">None</option>
+                    <option value="ok" selected="@(string.Equals(Model.SortBy, "ok", StringComparison.OrdinalIgnoreCase))">OK</option>
+                    <option value="defective" selected="@(string.Equals(Model.SortBy, "defective", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.SortBy, "def", StringComparison.OrdinalIgnoreCase))">Def</option>
+                    <option value="na" selected="@(string.Equals(Model.SortBy, "na", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.SortBy, "n/a", StringComparison.OrdinalIgnoreCase))">N/A</option>
+                    <option value="name" selected="@(string.Equals(Model.SortBy, "name", StringComparison.OrdinalIgnoreCase))">Name</option>
+                </select>
+                <select name="sortDir" class="text-xs px-2 py-1.5 rounded-lg"
+                        style="background: var(--theme-bg); color: var(--theme-text-dim); border: 1px solid var(--theme-surface-border);">
+                    <option value="desc" selected="@(string.Equals(Model.SortDir, "desc", StringComparison.OrdinalIgnoreCase))">DESC</option>
+                    <option value="asc" selected="@(string.Equals(Model.SortDir, "asc", StringComparison.OrdinalIgnoreCase))">ASC</option>
+                </select>
+                <button type="submit" class="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                        style="color:#fff; background: var(--theme-accent);">
+                    Apply
+                </button>
+                <a asp-controller="ToolsAudit" asp-action="Session" asp-route-id="@Model.SessionId"
+                   class="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                   style="color: var(--theme-text-dim); background: var(--theme-nav-pill); border: 1px solid var(--theme-surface-border);">
+                    Reset
+                </a>
+            </form>
         </div>
         <div class="overflow-auto mt-3" style="max-height: 420px;">
             <table class="w-full text-xs">
@@ -185,7 +148,7 @@
     <script>
         (function () {
             var labels = @Html.Raw(labelsJson);
-            var values = @Html.Raw(valuesJson);
+            var noneCounts = @Html.Raw(noneJson);
             var ctx = document.getElementById('missingToolsChart');
             if (!ctx) return;
             new Chart(ctx, {
@@ -193,8 +156,8 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: '@metricLabel count',
-                        data: values,
+                        label: 'None count',
+                        data: noneCounts,
                         backgroundColor: 'rgba(239, 68, 68, 0.65)',
                         borderColor: 'rgba(239, 68, 68, 0.95)',
                         borderWidth: 1
