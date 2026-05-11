@@ -16,5 +16,11 @@ public interface IToolsAuditService
         string? sortBy = null,
         string? sortDir = null,
         CancellationToken cancellationToken = default);
+
+    Task<Guid?> GetLatestSessionIdForUserAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ToolsAuditHistoryItem>> ListHistoryForUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }
 

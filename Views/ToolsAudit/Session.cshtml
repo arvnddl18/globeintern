@@ -34,7 +34,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-6">
+    <div class="mt-6">
         <div class="rounded-xl border p-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Top Missing Tools (None)</h3>
@@ -42,46 +42,93 @@
                     Top @topTools.Count
                 </span>
             </div>
-            <div class="mt-4">
-                <canvas id="missingToolsChart" height="160"></canvas>
+            <div class="mt-4 rounded-lg border p-2" style="border-color: var(--theme-surface-border);">
+                <canvas id="missingToolsChart" height="210"></canvas>
             </div>
             <div class="mt-4 text-xs" style="color: var(--theme-text-muted);">
                 Bars show how many technicians reported <span class="font-mono">None</span> for each tool.
             </div>
         </div>
+    </div>
 
-        <div class="rounded-xl border p-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
-            <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Technician Summary</h3>
-            <div class="overflow-auto mt-3" style="max-height: 320px;">
-                <table class="w-full text-xs">
-                    <thead class="sticky top-0" style="background: var(--theme-surface);">
-                        <tr style="color: var(--theme-text-muted);">
-                            <th class="text-left py-2 pr-2">Technician</th>
-                            <th class="text-right py-2 px-2">OK</th>
-                            <th class="text-right py-2 px-2" style="color:#ef4444;">None</th>
-                            <th class="text-right py-2 px-2" style="color:#f59e0b;">Def</th>
-                            <th class="text-right py-2 pl-2">N/A</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var row in Model.TechnicianSummary)
-                    {
-                        <tr style="border-top: 1px solid var(--theme-surface-border);">
-                            <td class="py-2 pr-2" style="color: var(--theme-text-dim);">@row.TechnicianName</td>
-                            <td class="py-2 px-2 text-right" style="color: var(--theme-text);">@row.OkCount</td>
-                            <td class="py-2 px-2 text-right font-bold" style="color:#ef4444;">@row.NoneCount</td>
-                            <td class="py-2 px-2 text-right" style="color:#f59e0b;">@row.DefectiveCount</td>
-                            <td class="py-2 pl-2 text-right" style="color: var(--theme-text);">@row.NaCount</td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
+    <div class="mt-5 rounded-xl border p-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
+        <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Technician Summary</h3>
+        <div class="overflow-auto mt-3" style="max-height: 320px;">
+            <table class="w-full text-xs">
+                <thead class="sticky top-0" style="background: var(--theme-surface);">
+                    <tr style="color: var(--theme-text-muted);">
+                        <th class="text-left py-2 pr-2">Technician</th>
+                        <th class="text-right py-2 px-2">OK</th>
+                        <th class="text-right py-2 px-2" style="color:#ef4444;">None</th>
+                        <th class="text-right py-2 px-2" style="color:#f59e0b;">Def</th>
+                        <th class="text-right py-2 pl-2">N/A</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.TechnicianSummary)
+                {
+                    <tr style="border-top: 1px solid var(--theme-surface-border);">
+                        <td class="py-2 pr-2" style="color: var(--theme-text-dim);">@row.TechnicianName</td>
+                        <td class="py-2 px-2 text-right" style="color: var(--theme-text);">@row.OkCount</td>
+                        <td class="py-2 px-2 text-right font-bold" style="color:#ef4444;">@row.NoneCount</td>
+                        <td class="py-2 px-2 text-right" style="color:#f59e0b;">@row.DefectiveCount</td>
+                        <td class="py-2 pl-2 text-right" style="color: var(--theme-text);">@row.NaCount</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
         </div>
     </div>
 
     <div id="tools-summary-container">
         <partial name="_ToolsSummary" model="Model" />
+    </div>
+
+    <div class="mt-5 rounded-xl border p-5" style="border-color: var(--theme-surface-border); background: var(--theme-surface);">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-black tracking-wide uppercase" style="color: var(--theme-text-dim);">Raw Materials Audit</h3>
+            <span class="text-xs px-2 py-1 rounded-md" style="color: var(--theme-text-muted); background: var(--theme-nav-pill);">
+                @Model.RawRows.Count technicians · @Model.RawToolColumns.Count tools
+            </span>
+        </div>
+        <div class="overflow-auto mt-3">
+            <table class="w-full text-xs border-separate border-spacing-0">
+                <thead>
+                    <tr>
+                        <th class="sticky left-0 z-20 text-left px-3 py-2 border-b border-r whitespace-nowrap font-bold"
+                            style="background: var(--theme-surface); color: var(--theme-text-dim); border-color: var(--theme-surface-border);">
+                            Technician
+                        </th>
+                        @foreach (var col in Model.RawToolColumns)
+                        {
+                            <th class="text-left px-3 py-2 border-b whitespace-nowrap font-bold"
+                                style="background: var(--theme-surface); color: var(--theme-text-muted); border-color: var(--theme-surface-border);">
+                                @col
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.RawRows)
+                    {
+                        <tr>
+                            <td class="sticky left-0 z-10 px-3 py-2 border-r border-b font-bold whitespace-nowrap"
+                                style="background: var(--theme-surface); color: var(--theme-text-dim); border-color: var(--theme-surface-border);">
+                                @row.TechnicianName
+                            </td>
+                            @foreach (var col in Model.RawToolColumns)
+                            {
+                                var cell = row.CellsByTool[col];
+                                <td class="px-3 py-2 border-b whitespace-nowrap font-medium @cell.CssClass"
+                                    style="border-color: var(--theme-surface-border);">
+                                    @cell.DisplayValue
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </section>
 
@@ -107,13 +154,20 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.8,
                     plugins: {
                         legend: { display: false },
                         tooltip: { enabled: true }
                     },
                     scales: {
                         x: {
-                            ticks: { color: '#8a8ab0' },
+                            ticks: {
+                                color: '#8a8ab0',
+                                maxRotation: 15,
+                                minRotation: 0,
+                                autoSkip: false
+                            },
                             grid: { color: 'rgba(255,255,255,0.06)' }
                         },
                         y: {

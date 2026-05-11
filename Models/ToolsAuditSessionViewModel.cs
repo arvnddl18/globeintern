@@ -17,6 +17,8 @@ public class ToolsAuditSessionViewModel
     public List<ToolsAuditToolSummaryRow> ToolSummaryAll { get; set; } = [];
     /// <summary>Filtered/sorted tools summary (used for Tools Summary table).</summary>
     public List<ToolsAuditToolSummaryRow> ToolSummary { get; set; } = [];
+    public List<string> RawToolColumns { get; set; } = [];
+    public List<ToolsAuditRawRow> RawRows { get; set; } = [];
 }
 
 public class ToolsAuditTechnicianSummaryRow
@@ -37,5 +39,17 @@ public class ToolsAuditToolSummaryRow
     public int DefectiveCount { get; set; }
     public int NaCount { get; set; }
     public int Total => OkCount + NoneCount + DefectiveCount + NaCount;
+}
+
+public class ToolsAuditRawRow
+{
+    public string TechnicianName { get; set; } = string.Empty;
+    public Dictionary<string, ToolAuditCellViewModel> CellsByTool { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public class ToolAuditCellViewModel
+{
+    public string DisplayValue { get; set; } = "N/A";
+    public string CssClass { get; set; } = "bg-slate-100 text-slate-700";
 }
 

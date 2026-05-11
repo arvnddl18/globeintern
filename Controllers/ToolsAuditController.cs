@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SlotAd_Globe.Models;
 using SlotAd_Globe.Services;
 
 namespace SlotAd_Globe.Controllers;
@@ -19,12 +20,28 @@ public class ToolsAuditController : Controller
     }
 
     [HttpGet("")]
+    [HttpGet("Index")]
+    public async Task<IActionResult> Index(CancellationToken cancellationToken = default)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+            return Challenge();
+
+        var latest = await _toolsAudit.GetLatestSessionIdForUserAsync(userId, cancellationToken);
+        if (latest.HasValue)
+            return RedirectToAction(nameof(Session), new { id = latest.Value });
+        return RedirectToAction(nameof(Upload));
+    }
+
     [HttpGet("[action]")]
-    public IActionResult Upload()
+    public async Task<IActionResult> Upload(CancellationToken cancellationToken = default)
     {
         ViewData["Title"] = "Tools Audit Upload";
         ViewData["ActiveTab"] = "kpi";
-        return View();
+        if (!TryGetCurrentUserId(out var userId))
+            return Challenge();
+
+        var history = await _toolsAudit.ListHistoryForUserAsync(userId, cancellationToken);
+        return View(new ToolsAuditUploadViewModel { History = [.. history] });
     }
 
     [HttpPost("[action]")]
