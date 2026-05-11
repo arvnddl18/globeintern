@@ -1,8 +1,33 @@
+@model SlotAd_Globe.Models.ToolsAuditUploadViewModel
 @{
     Layout = "~/Views/Shared/_ReportLayout.cshtml";
     var error = TempData["Error"] as string;
     var success = TempData["Success"] as string;
+    var history = Model.History ?? [];
 }
+
+<style>
+    a.tools-audit-history-item {
+        display: block;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--theme-surface-border);
+        background: var(--theme-nav-pill);
+        text-decoration: none;
+        transition: border-color 0.15s ease, background 0.15s ease;
+        min-width: 0;
+    }
+    a.tools-audit-history-item:hover {
+        border-color: var(--theme-accent);
+        background: var(--theme-accent-soft);
+    }
+    a.tools-audit-history-item .tools-audit-history-meta {
+        display: block;
+        font-size: 0.625rem;
+        margin-top: 0.25rem;
+        color: var(--theme-text-muted);
+    }
+</style>
 
 <div class="fade-in">
     <section class="rounded-xl border p-6" style="background: var(--theme-surface-soft); border-color: var(--theme-surface-border);">
@@ -56,5 +81,46 @@
             </div>
         </form>
     </section>
-</div>
 
+    @if (history.Count > 0)
+    {
+        <section class="mt-6 rounded-xl border p-5 fade-in" style="background: var(--theme-surface-soft); border-color: var(--theme-surface-border);">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 class="text-sm font-black tracking-tight" style="color: var(--theme-text);">Past uploads</h3>
+                <p class="text-xs m-0" style="color: var(--theme-text-muted);">
+                    <span class="tabular-nums">@history.Count</span> saved · click to open report summary
+                </p>
+            </div>
+            <div class="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+                @foreach (var dayGroup in history.GroupBy(h => h.UploadedUtc.ToLocalTime().Date).OrderByDescending(g => g.Key))
+                {
+                    var todayLocal = DateTime.Now.Date;
+                    var label = dayGroup.Key == todayLocal
+                        ? "Today"
+                        : dayGroup.Key == todayLocal.AddDays(-1)
+                            ? "Yesterday"
+                            : dayGroup.Key.ToString("yyyy-MM-dd");
+                    <div>
+                        <p class="text-[10px] font-medium mb-1.5 pl-0.5 uppercase tracking-wide" style="color: var(--theme-text-muted);">@label</p>
+                        <div class="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2">
+                            @foreach (var h in dayGroup.OrderByDescending(x => x.UploadedUtc))
+                            {
+                                var auditLabel = (h.AuditDate ?? h.WeekStartDate).ToString("MMM dd, yyyy");
+                                var title = string.IsNullOrEmpty(h.OriginalFileName)
+                                    ? h.SessionId.ToString("N")[..12] + "…"
+                                    : h.OriginalFileName;
+                                <a asp-controller="ToolsAudit" asp-action="Session" asp-route-id="@h.SessionId"
+                                   class="tools-audit-history-item">
+                                    <span class="text-sm font-medium truncate block" style="color: var(--theme-text-dim);">@title</span>
+                                    <span class="tools-audit-history-meta">
+                                        Week / audit @auditLabel · @h.UploadedUtc.ToLocalTime().ToString("hh:mm tt")
+                                    </span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>
