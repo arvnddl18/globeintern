@@ -2492,7 +2492,7 @@ public class CsvProcessingService : ICsvProcessingService
         {
             "source", "workordernumber", "workordertype", "appointmentid", "appointmentdate",
             "customername", "customeraddress", "customertype", "customersubtype", "serviceidnumber",
-            "accountnumber", "skillset", "status", "substatus", "fix description", "mainplan",
+            "accountnumber", "skillset", "status", "substatus", "fixdescription", "mainplan",
             "territory", "facilityname", "longitude", "latitude", "reasoncode", "cabinetid",
             "cabinettype", "cabinetaddress", "cabinetport", "lcpname", "dpid", "ppoeusername",
             "userid", "ordercreatedate", "createdate", "lastupdatedate", "completiondate", "protocol", "team"
