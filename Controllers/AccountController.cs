@@ -15,7 +15,7 @@ namespace SlotAd_Globe.Controllers;
 public class AccountController : Controller
 {
     private readonly AppDbContext _db;
-    private readonly IConfiguration _configuration;
+    private readonly IConfiguration _configuration; 
     private readonly ILogger<AccountController> _logger;
 
     public AccountController(AppDbContext db, IConfiguration configuration, ILogger<AccountController> logger)

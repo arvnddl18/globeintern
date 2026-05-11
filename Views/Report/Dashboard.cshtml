@@ -24,8 +24,17 @@
         .Select(k => DateTime.TryParse(k, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d : (DateTime?)null)
         .Where(d => d.HasValue)
         .Select(d => d!.Value.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture));
+    var _rhmDataMonths = Model.RecurringHeatmapDateInts
+        .Where(di => di > 0)
+        .Select(di =>
+        {
+            var y = 2000 + di / 10000;
+            var m = di % 10000 / 100;
+            return $"{y}-{m:D2}";
+        });
     var heatmapMonthKeys = _hmCurrentYearMonths
         .Union(_hmDataMonths)
+        .Union(_rhmDataMonths)
         .Distinct()
         .OrderBy(x => x, StringComparer.Ordinal)
         .ToList();
@@ -871,13 +880,15 @@
         color: #1f2a44;
         box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
     }
-    #nap-davao-map-wrap {
+    #nap-davao-map-wrap,
+    #rhm-map-wrap {
         border-radius: 10px;
         overflow: hidden;
         border: 1px solid #2a2a4a;
         position: relative;
     }
-    :root[data-theme="light"] #nap-davao-map-wrap {
+    :root[data-theme="light"] #nap-davao-map-wrap,
+    :root[data-theme="light"] #rhm-map-wrap {
         border-color: #d8deea;
     }
     /* ── Fullscreen: fill the entire desktop viewport ── */
@@ -915,13 +926,15 @@
         color: #e0e7ff;
     }
     .nap-fs-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    #nap-davao-map {
+    #nap-davao-map,
+    #rhm-map {
         height: 420px;
         width: 100%;
         background: #0d0d1a;
         display: block;
     }
-    :root[data-theme="light"] #nap-davao-map {
+    :root[data-theme="light"] #nap-davao-map,
+    :root[data-theme="light"] #rhm-map {
         background: #e8ecf4;
     }
     .nap-map-legend-dot {
@@ -2129,9 +2142,24 @@
      HEATMAP ANALYSIS CONTAINER
      ═══════════════════════════════════════════════════════════════════════════ -->
 <div id="heatmap-analysis-report" class="mb-10 rounded-2xl p-6" style="background: rgba(10,10,25,0.45); border: 1px solid #2a2a4a;">
-    <div class="flex items-center gap-2 mb-4 pb-4" style="border-bottom: 1px solid #2a2a4a;">
-        <i data-lucide="flame" style="width:16px; height:16px; color: #a855f7;"></i>
-        <span class="text-base font-semibold tracking-wide" style="color: #c8c8e0;">Heatmap Analysis</span>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-4" style="border-bottom: 1px solid #2a2a4a;">
+        <div class="flex items-center gap-2">
+            <i data-lucide="flame" style="width:16px; height:16px; color: #a855f7;"></i>
+            <span class="text-base font-semibold tracking-wide" style="color: #c8c8e0;">Heatmap Analysis</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <div class="inline-flex rounded-lg p-1" style="background: rgba(15,15,30,0.55); border: 1px solid #2a2a4a;">
+                <button type="button" id="hm-tab-total" class="px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer" style="background:#6366f1;color:#fff;">Total NAPs</button>
+                <button type="button" id="hm-tab-recurring" class="px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer" style="color:#a5b4fc;">Recurring Tickets</button>
+            </div>
+            <label id="nap-ref-upload-label" title="Upload NAP reference file (.xlsx or .csv) to filter map pins"
+                class="flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+                style="background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.25);">
+                <i data-lucide="upload" style="width:12px; height:12px; flex-shrink:0;"></i>
+                <span id="nap-ref-label-text">Upload NAP Reference</span>
+                <input id="nap-ref-file" type="file" accept=".xlsx,.csv" class="hidden" />
+            </label>
+        </div>
     </div>
 
     <!-- ── Independent Heatmap Filter Bar ── -->
@@ -2229,7 +2257,7 @@
     </div>
     <!-- ── End Independent Heatmap Filter Bar ── -->
 
-<section class="mb-8 fade-in" style="animation-delay: 0.24s;">
+<section id="hm-panel-total" class="mb-8 fade-in" style="animation-delay: 0.24s;">
     <div class="rounded-xl overflow-hidden" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
         <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4" style="border-bottom: 1px solid #2a2a4a;">
             <div class="flex flex-wrap items-center gap-2 min-w-0">
@@ -2258,14 +2286,6 @@
                         <option value="@($"{range.Start}|{range.End}")">@startLabel</option>
                     }
                 </select>
-                <span style="color: #3a3a5a; user-select: none;">|</span>
-                <label id="nap-ref-upload-label" title="Upload NAP reference file (.xlsx or .csv) to filter map pins"
-                    class="flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
-                    style="background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.25);">
-                    <i data-lucide="upload" style="width:12px; height:12px; flex-shrink:0;"></i>
-                    <span id="nap-ref-label-text">Upload NAP Reference</span>
-                    <input id="nap-ref-file" type="file" accept=".xlsx,.csv" class="hidden" />
-                </label>
             </div>
         </div>
         <div class="p-5">
@@ -2335,6 +2355,88 @@
     </div>
 </section>
 
+<section id="hm-panel-recurring" class="mb-8 fade-in hidden" style="animation-delay: 0.24s;">
+    <div class="rounded-xl overflow-hidden" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4" style="border-bottom: 1px solid #2a2a4a;">
+            <div class="flex flex-wrap items-center gap-2 min-w-0">
+                <i data-lucide="repeat-2" style="width:14px; height:14px; color: #f97316;"></i>
+                <span class="text-sm font-semibold" style="color: #c8c8e0;">Recurring Tickets Heatmap</span>
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background: rgba(249,115,22,0.15); color: #fb923c;">Interactive</span>
+                <span class="text-xs hidden sm:inline font-mono" style="color: #5a5a7e;">All recurring</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <label for="rhm-month" class="text-xs font-medium whitespace-nowrap" style="color: #6a6a8e;">
+                    <i data-lucide="calendar" class="inline-block align-middle mr-1" style="width:12px; height:12px; color: #6366f1;"></i>
+                    Filter by month
+                </label>
+                <select id="rhm-month" class="nap-hm-select" aria-label="Filter recurring heatmap by month">
+                    <option value="">All months</option>
+                    @foreach (var range in heatmapMonthRanges)
+                    {
+                        var startLabel = DateTime.TryParse(range.Start + "-01", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var rsd)
+                            ? rsd.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture)
+                            : range.Start;
+                        <option value="@($"{range.Start}|{range.End}")">@startLabel</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                <div class="rounded-lg p-4" style="background: rgba(15, 15, 30, 0.55); border: 1px solid #2a2a4a;">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: #6a6a8e;">Total NAPs</p>
+                    <p id="rhm-metric-total" class="text-2xl font-bold font-mono" style="color: #f0f0f8;">@Model.RecurringHeatmapTotalAppointments.ToString("N0")</p>
+                    <p class="text-xs mt-1" style="color: #5a5a7e;">Recurring ticket instances</p>
+                </div>
+                <div class="rounded-lg p-4" style="background: rgba(15, 15, 30, 0.55); border: 1px solid #2a2a4a;">
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <i data-lucide="wrench" style="width:10px; height:10px; color: #f97316; flex-shrink:0;"></i>
+                        <p class="text-[10px] font-semibold uppercase tracking-wide" style="color: #6a6a8e;">Repair</p>
+                    </div>
+                    <p id="rhm-metric-repair" class="text-2xl font-bold font-mono" style="color: #a5b4fc;">@Model.RecurringHeatmapRepairCount.ToString("N0")</p>
+                    <p class="text-xs mt-1" style="color: #5a5a7e;">Recurring repair skillset</p>
+                </div>
+                <div class="rounded-lg p-4" style="background: rgba(15, 15, 30, 0.55); border: 1px solid #2a2a4a;">
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <i data-lucide="package-plus" style="width:10px; height:10px; color: #ED7D3A; flex-shrink:0;"></i>
+                        <p class="text-[10px] font-semibold uppercase tracking-wide" style="color: #6a6a8e;">Install</p>
+                    </div>
+                    <p id="rhm-metric-install" class="text-2xl font-bold font-mono" style="color: #ED7D3A;">@Model.RecurringHeatmapInstallCount.ToString("N0")</p>
+                    <p class="text-xs mt-1" style="color: #5a5a7e;">Recurring install skillset</p>
+                </div>
+                <div class="rounded-lg p-4" style="background: rgba(15, 15, 30, 0.55); border: 1px solid #2a2a4a;">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: #6a6a8e;">Total Barangays</p>
+                    <p id="rhm-metric-brgys" class="text-2xl font-bold font-mono" style="color: #facc15;">—</p>
+                    <p class="text-xs mt-1" style="color: #5a5a7e;">Affected barangays</p>
+                </div>
+            </div>
+            <div class="flex flex-col xl:flex-row gap-5">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="map-pin" style="width:12px; height:12px; color: #6366f1;"></i>
+                            <span class="text-xs font-semibold uppercase tracking-wide" style="color: #8a8ab0;">Recurring NAP distribution — Davao City</span>
+                        </div>
+                        <span id="rhm-scope-label" class="text-xs font-mono" style="color: #5a5a7e;">—</span>
+                    </div>
+                    <div id="rhm-map-wrap"><div id="rhm-map"></div></div>
+                    <div class="flex flex-wrap items-center gap-4 mt-3">
+                        <span class="flex items-center gap-1.5 text-[11px]" style="color: #8a8ab0;"><span class="nap-map-legend-dot" style="background:#32CD32;"></span>Repair</span>
+                        <span class="flex items-center gap-1.5 text-[11px]" style="color: #8a8ab0;"><span class="nap-map-legend-dot" style="background:#1E90FF;"></span>Install</span>
+                        <span class="ml-auto text-[10px] font-mono" style="color: #4a4a6e;">Circle size ∝ recurring count</span>
+                    </div>
+                </div>
+                <div class="w-full xl:w-72 flex-shrink-0 rounded-lg p-4" style="background: rgba(15, 15, 30, 0.45); border: 1px solid #2a2a4a;">
+                    <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: #8a8ab0;">Top barangays with recurring tickets</p>
+                    <div id="rhm-brgy-bars" class="flex flex-col gap-2.5 mb-5"></div>
+                    <p class="text-xs font-semibold uppercase tracking-wide mb-3" style="color: #8a8ab0;">Top recurring NAPs</p>
+                    <div id="rhm-nap-bars" class="flex flex-col gap-2.5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <div id="nap-hm-others-modal" class="nap-hm-modal hidden" aria-hidden="true">
     <div class="nap-hm-modal-backdrop" data-role="close"></div>
     <div class="nap-hm-modal-card" role="dialog" aria-modal="true" aria-labelledby="nap-hm-others-title">
@@ -2343,6 +2445,16 @@
             <button type="button" id="nap-hm-others-close" class="nap-hm-modal-close">Close</button>
         </div>
         <div id="nap-hm-others-list" class="nap-hm-modal-list"></div>
+    </div>
+</div>
+<div id="rhm-pin-modal" class="nap-hm-modal hidden" aria-hidden="true">
+    <div class="nap-hm-modal-backdrop" data-role="close"></div>
+    <div class="nap-hm-modal-card" role="dialog" aria-modal="true" aria-labelledby="rhm-pin-title" style="max-width: 56rem;">
+        <div class="nap-hm-modal-header">
+            <h3 id="rhm-pin-title" class="nap-hm-modal-title">Recurring details</h3>
+            <button type="button" id="rhm-pin-close" class="nap-hm-modal-close">Close</button>
+        </div>
+        <div id="rhm-pin-list" class="nap-hm-modal-list"></div>
     </div>
 </div>
 
@@ -3414,6 +3526,12 @@
                                 if (brgy) napRefBrgyByDp.set(dp, brgy);
                                 if (lat !== null && lng !== null) napRefCoordsByDp.set(dp, [lat, lng]);
                             });
+                            window.__napRefShared = {
+                                set: napRefSet,
+                                brgyByDp: napRefBrgyByDp,
+                                coordsByDp: napRefCoordsByDp
+                            };
+                            window.dispatchEvent(new CustomEvent('nap-reference-updated'));
                             updateBarangayDropdownFromReference();
 
                             var shortName = file.name.replace(/^.*[/\\]/, '');
@@ -3894,7 +4012,345 @@
                 window.addEventListener('load', _inv);
             }
         })();
+        
+        (function initHeatmapTabsAndRecurring() {
+            var totalBtn = document.getElementById('hm-tab-total');
+            var recurringBtn = document.getElementById('hm-tab-recurring');
+            var totalPanel = document.getElementById('hm-panel-total');
+            var recurringPanel = document.getElementById('hm-panel-recurring');
+            if (!totalBtn || !recurringBtn || !totalPanel || !recurringPanel) return;
+            var recurringBootstrapped = false;
 
+            function activateTab(tab) {
+                var isRecurring = tab === 'recurring';
+                totalPanel.classList.toggle('hidden', isRecurring);
+                recurringPanel.classList.toggle('hidden', !isRecurring);
+                totalBtn.style.background = isRecurring ? 'transparent' : '#6366f1';
+                totalBtn.style.color = isRecurring ? '#a5b4fc' : '#fff';
+                recurringBtn.style.background = isRecurring ? '#6366f1' : 'transparent';
+                recurringBtn.style.color = isRecurring ? '#fff' : '#a5b4fc';
+                if (isRecurring && !recurringBootstrapped && typeof window.__initRecurringHeatmapTab === 'function') {
+                    window.__initRecurringHeatmapTab();
+                    recurringBootstrapped = true;
+                }
+                if (isRecurring && typeof window.__invalidateRecurringHeatmap === 'function') {
+                    window.__invalidateRecurringHeatmap();
+                    setTimeout(window.__invalidateRecurringHeatmap, 120);
+                    setTimeout(window.__invalidateRecurringHeatmap, 320);
+                }
+            }
+            totalBtn.addEventListener('click', function () { activateTab('total'); });
+            recurringBtn.addEventListener('click', function () { activateTab('recurring'); });
+            activateTab('total');
+        })();
+        
+        (function defineRecurringHeatmapInit() {
+            window.__initRecurringHeatmapTab = function () {
+                if (window.__recurringHmBootstrapped) return;
+                var monthSel = document.getElementById('rhm-month');
+                var scopeLabel = document.getElementById('rhm-scope-label');
+                var totalEl = document.getElementById('rhm-metric-total');
+                var repairEl = document.getElementById('rhm-metric-repair');
+                var installEl = document.getElementById('rhm-metric-install');
+                var brgyEl = document.getElementById('rhm-metric-brgys');
+                var brgyBars = document.getElementById('rhm-brgy-bars');
+                var napBars = document.getElementById('rhm-nap-bars');
+                var modalRoot = document.getElementById('rhm-pin-modal');
+                var modalTitle = document.getElementById('rhm-pin-title');
+                var modalList = document.getElementById('rhm-pin-list');
+                var modalClose = document.getElementById('rhm-pin-close');
+                var mapEl = document.getElementById('rhm-map');
+                if (!monthSel || !mapEl) return;
+                window.__recurringHmBootstrapped = true;
+
+                var dateInts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapDateInts));
+                var facilityNames = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapFacilityNames));
+                var recurringDpids = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapDpids));
+                var serviceIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapServiceIds));
+                var customerNames = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapCustomerNames));
+                var addresses = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapAddresses));
+                var territories = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapTerritories));
+                var initialDates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapInitialDates));
+                var initialWos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapInitialWorkOrders));
+                var initialSkillsets = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapInitialSkillsets));
+                var recurringDates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapRecurringDates));
+                var recurringWos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapRecurringWorkOrders));
+                var recurringSkillsets = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapRecurringSkillsets));
+                var recurringStatuses = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapRecurringStatuses));
+                var gaps = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapGaps));
+
+                /* Same coordinate source as Total NAP heatmap when no Reference file coords */
+                var rhmCsvDots = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.HeatmapNapDots));
+                var rhmCsvDpids = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.HeatmapNapDotDpids));
+
+                function normalizeNapKey(raw) {
+                    var value = String(raw || '').trim().toUpperCase();
+                    if (!value) return '';
+                    return value.endsWith('A') ? value.slice(0, -1) : value;
+                }
+                function resolveNapKeys(idx) {
+                    var facKey = normalizeNapKey(facilityNames[idx]);
+                    var dpidKey = normalizeNapKey(recurringDpids[idx]);
+                    return { fac: facKey, dpid: dpidKey };
+                }
+                function monthIndexFromYm(ym) {
+                    if (!ym || ym.indexOf('-') < 0) return null;
+                    var p = ym.split('-');
+                    var y = parseInt(p[0], 10);
+                    var m = parseInt(p[1], 10);
+                    if (!y || !m) return null;
+                    return y * 12 + m;
+                }
+                function monthIndexFromDateInt(di) {
+                    var dateInt = Math.round(Number(di) || 0);
+                    var year = 2000 + Math.floor(dateInt / 10000);
+                    var month = Math.floor((dateInt % 10000) / 100);
+                    return year * 12 + month;
+                }
+                function getSelectedMonthRange() {
+                    var raw = (monthSel.value || '').trim();
+                    if (!raw) return null;
+                    var p = raw.split('|');
+                    var start = (p[0] || '').trim();
+                    var end = (p[1] || start).trim();
+                    var startIdx = monthIndexFromYm(start);
+                    var endIdx = monthIndexFromYm(end);
+                    if (startIdx === null || endIdx === null) return null;
+                    return { start: Math.min(startIdx, endIdx), end: Math.max(startIdx, endIdx) };
+                }
+                function isDateInRange(di, range) {
+                    if (!range) return true;
+                    var idx = monthIndexFromDateInt(di);
+                    return idx >= range.start && idx <= range.end;
+                }
+                function getCheckedValues(group) {
+                    var all = document.querySelectorAll('.hm-flt-cb[data-group="' + group + '"]');
+                    var checked = document.querySelectorAll('.hm-flt-cb[data-group="' + group + '"]:checked');
+                    if (checked.length >= all.length) return new Set();
+                    var vals = new Set();
+                    checked.forEach(function (cb) { vals.add(String(cb.value || '').trim().toUpperCase()); });
+                    return vals;
+                }
+                function passFilters(i) {
+                    var terrSet = getCheckedValues('territory');
+                    if (terrSet.size > 0 && !terrSet.has(String(territories[i] || '').trim().toUpperCase())) return false;
+                    var skSet = getCheckedValues('skillset');
+                    if (skSet.size > 0 && !skSet.has(String(recurringSkillsets[i] || '').trim().toUpperCase())) return false;
+                    var stSet = getCheckedValues('status');
+                    if (stSet.size > 0 && !stSet.has(String(recurringStatuses[i] || '').trim().toUpperCase())) return false;
+                    return true;
+                }
+                function buildCsvCoordsByDp() {
+                    var index = new Map();
+                    for (var i = 0; i < rhmCsvDots.length; i++) {
+                        var norm = normalizeNapKey(rhmCsvDpids[i]);
+                        if (!norm || index.has(norm)) continue;
+                        var lat = rhmCsvDots[i][0];
+                        var lng = rhmCsvDots[i][1];
+                        if (lat < 6.5 || lat > 8.0 || lng < 124.5 || lng > 126.5) continue;
+                        index.set(norm, [lat, lng]);
+                    }
+                    return index;
+                }
+                function closeModal() {
+                    if (!modalRoot) return;
+                    modalRoot.classList.add('hidden');
+                    modalRoot.setAttribute('aria-hidden', 'true');
+                }
+                function openModal(napKey, rows) {
+                    if (!modalRoot || !modalTitle || !modalList) return;
+                    modalTitle.textContent = napKey || 'Recurring details';
+                    modalList.innerHTML = rows.map(function (r) {
+                        return '<div class="rounded-lg p-3 mb-2" style="background:rgba(15,15,30,0.5);border:1px solid #2a2a4a;">' +
+                            '<div class="text-xs font-semibold mb-2" style="color:#c8c8e0;">' + (r.facility || '(blank)') + '</div>' +
+                            '<div class="grid grid-cols-1 md:grid-cols-2 gap-1 text-[11px]" style="color:#a5b4fc;">' +
+                            '<div><strong>Service ID:</strong> ' + r.serviceId + '</div><div><strong>Customer:</strong> ' + r.customer + '</div>' +
+                            '<div><strong>Address:</strong> ' + r.address + '</div><div><strong>Territory:</strong> ' + r.territory + '</div>' +
+                            '<div><strong>Initial Date:</strong> ' + r.initialDate + '</div><div><strong>Initial WO#:</strong> ' + r.initialWo + '</div>' +
+                            '<div><strong>Initial Skillset:</strong> ' + r.initialSkillset + '</div><div><strong>Recurring Date:</strong> ' + r.recurringDate + '</div>' +
+                            '<div><strong>Recurring WO#:</strong> ' + r.recurringWo + '</div><div><strong>Recurring Skillset:</strong> ' + r.recurringSkillset + '</div>' +
+                            '<div><strong>Gap:</strong> ' + r.gap + ' day(s)</div></div></div>';
+                    }).join('');
+                    modalRoot.classList.remove('hidden');
+                    modalRoot.setAttribute('aria-hidden', 'false');
+                }
+
+                var map = L.map(mapEl, { center: [7.0736, 125.6139], zoom: 12, zoomControl: false, attributionControl: true, preferCanvas: true });
+                L.control.zoom({ position: 'bottomright' }).addTo(map);
+                var dark = document.documentElement.getAttribute('data-theme') !== 'light';
+                L.tileLayer(dark ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
+                    maxZoom: 18,
+                    subdomains: 'abcd'
+                }).addTo(map);
+                var heatLayer = L.heatLayer([], {
+                    radius: 22,
+                    blur: 28,
+                    maxZoom: 17,
+                    max: 1.0,
+                    gradient: {
+                        0.0: '#43a047',
+                        0.25: '#43a047',
+                        0.5: '#fdd835',
+                        0.75: '#fb8c00',
+                        1.0: '#e53935'
+                    }
+                }).addTo(map);
+                var dots = L.layerGroup().addTo(map);
+
+                function computeJitter(baseValue, seed) {
+                    var n = (Math.sin(seed * 12.9898) * 43758.5453) % 1;
+                    var frac = n - Math.floor(n);
+                    return baseValue + ((frac - 0.5) * 0.00022);
+                }
+
+                function createRankRow(name, value, maxValue) {
+                    var pct = Math.round((value / Math.max(maxValue, 1)) * 100);
+                    var row = document.createElement('div');
+                    row.className = 'flex flex-col gap-0.5';
+                    row.innerHTML = '<div class="flex justify-between gap-2 text-[11px]"><span class="truncate font-mono" style="color:#c8c8e0;max-width:11rem" title="' +
+                        String(name).replace(/"/g, '&quot;') + '">' + String(name) + '</span><span class="font-mono flex-shrink-0" style="color:#a5b4fc">' +
+                        Number(value || 0).toLocaleString() + '</span></div><div class="h-1.5 rounded-full overflow-hidden" style="background:rgba(42,42,74,0.6)"><div class="h-full rounded-full" style="width:' + pct +
+                        '%;background:#1E90FF;box-shadow:0 0 8px rgba(30,144,255,0.45)"></div></div>';
+                    return row;
+                }
+                function renderTopList(container, entries) {
+                    if (!container) return;
+                    container.innerHTML = '';
+                    if (!entries.length) {
+                        var empty = document.createElement('p');
+                        empty.className = 'text-xs';
+                        empty.style.color = '#8a8ab0';
+                        empty.textContent = 'No data in current filters.';
+                        container.appendChild(empty);
+                        return;
+                    }
+                    var maxValue = entries[0].value || 1;
+                    entries.slice(0, 5).forEach(function (entry) { container.appendChild(createRankRow(entry.name, entry.value, maxValue)); });
+                }
+
+                function renderRecurring() {
+                    var DAVAO_CENTER = [7.0736, 125.6139];
+                    var shared = window.__napRefShared || {};
+                    var coordsByDp = shared.coordsByDp || new Map();
+                    var napRefSet = shared.set || null;
+                    var brgyByDp = shared.brgyByDp || new Map();
+                    var csvCoordsByDp = buildCsvCoordsByDp();
+                    var range = getSelectedMonthRange();
+                    if (scopeLabel) {
+                        var t = monthSel.options[monthSel.selectedIndex] ? monthSel.options[monthSel.selectedIndex].text : 'All months';
+                        scopeLabel.textContent = t || 'All months';
+                    }
+
+                    var heatPts = [];
+                    dots.clearLayers();
+                    var byBrgy = {};
+                    var byNap = {};
+                    var byNapRows = {};
+                    var seenBrgy = {};
+                    var total = 0, repair = 0, install = 0;
+
+                    for (var i = 0; i < dateInts.length; i++) {
+                        if (!isDateInRange(dateInts[i], range)) continue;
+                        if (!passFilters(i)) continue;
+                        var keys = resolveNapKeys(i);
+                        var facKey = keys.fac;
+                        var dpidKey = keys.dpid;
+                        var napKey = facKey || dpidKey;
+                        if (!napKey) continue;
+                        if (napRefSet !== null) {
+                            if (!napRefSet.has(facKey) && !napRefSet.has(dpidKey)) continue;
+                        }
+                        var refCoords = coordsByDp.get(facKey) || coordsByDp.get(dpidKey);
+                        var coords = refCoords || csvCoordsByDp.get(facKey) || csvCoordsByDp.get(dpidKey);
+                        if (napRefSet !== null && !refCoords) continue;
+                        if (!coords) continue;
+                        var skill = String(recurringSkillsets[i] || '').toLowerCase();
+                        var isRepair = skill.indexOf('repair') !== -1;
+                        var isInstall = skill.indexOf('install') !== -1;
+                        if (!isRepair && !isInstall) continue;
+
+                        total++;
+                        if (isRepair) repair++;
+                        if (isInstall) install++;
+
+                        var jLat = computeJitter(coords[0], (i + 1) * 2.17 + 901);
+                        var jLng = computeJitter(coords[1], (i + 1) * 3.41 + 433);
+                        heatPts.push([jLat, jLng]);
+                        var marker = L.circleMarker([jLat, jLng], isRepair
+                            ? { radius: 3, color: '#1f7f1f', fillColor: '#32CD32', fillOpacity: 0.95, weight: 0.6, opacity: 0.98 }
+                            : { radius: 3, color: '#1a5eb0', fillColor: '#1E90FF', fillOpacity: 0.92, weight: 0.5, opacity: 0.95 });
+                        marker.bindTooltip('<div class="nap-dot-tip-name">' + napKey + '</div>', { direction: 'top', className: 'nap-dot-tip', offset: [0, -4] });
+
+                        var row = {
+                            facility: facilityNames[i] || '',
+                            serviceId: serviceIds[i] || '',
+                            customer: customerNames[i] || '',
+                            address: addresses[i] || '',
+                            territory: territories[i] || '',
+                            initialDate: initialDates[i] || '',
+                            initialWo: initialWos[i] || '',
+                            initialSkillset: initialSkillsets[i] || '',
+                            recurringDate: recurringDates[i] || '',
+                            recurringWo: recurringWos[i] || '',
+                            recurringSkillset: recurringSkillsets[i] || '',
+                            gap: gaps[i] || 0
+                        };
+                        if (!byNapRows[napKey]) byNapRows[napKey] = [];
+                        byNapRows[napKey].push(row);
+                        marker.on('click', (function (key) { return function () { openModal(key, byNapRows[key] || []); }; })(napKey));
+                        dots.addLayer(marker);
+
+                        var brgy = brgyByDp.get(facKey) || brgyByDp.get(dpidKey) || '';
+                        if (brgy) {
+                            byBrgy[brgy] = (byBrgy[brgy] || 0) + 1;
+                            seenBrgy[brgy] = true;
+                        }
+                        var svc = String(serviceIds[i] || '(blank)');
+                        byNap[svc] = (byNap[svc] || 0) + 1;
+                    }
+
+                    heatLayer.setLatLngs(heatPts);
+                    if (heatPts.length > 0) {
+                        try {
+                            map.fitBounds(L.latLngBounds(heatPts), { padding: [20, 20], maxZoom: 15 });
+                        } catch (e) {
+                            map.setView(DAVAO_CENTER, 12);
+                        }
+                    } else {
+                        map.setView(DAVAO_CENTER, 12);
+                    }
+                    var brgyRanks = Object.keys(byBrgy).map(function (k) { return { name: k, value: byBrgy[k] }; }).sort(function (a, b) { return b.value - a.value; });
+                    var napRanks = Object.keys(byNap).map(function (k) { return { name: k, value: byNap[k] }; }).sort(function (a, b) { return b.value - a.value; });
+                    renderTopList(brgyBars, brgyRanks);
+                    renderTopList(napBars, napRanks);
+                    if (totalEl) totalEl.textContent = total.toLocaleString();
+                    if (repairEl) repairEl.textContent = repair.toLocaleString();
+                    if (installEl) installEl.textContent = install.toLocaleString();
+                    if (brgyEl) brgyEl.textContent = Object.keys(seenBrgy).length.toLocaleString();
+                }
+
+                monthSel.addEventListener('change', renderRecurring);
+                var applyBtn = document.getElementById('hm-filter-apply-btn');
+                var resetBtn = document.getElementById('hm-filter-reset-btn');
+                if (applyBtn) applyBtn.addEventListener('click', renderRecurring);
+                if (resetBtn) resetBtn.addEventListener('click', renderRecurring);
+                window.addEventListener('nap-reference-updated', renderRecurring);
+                if (modalClose) modalClose.addEventListener('click', closeModal);
+                if (modalRoot) {
+                    modalRoot.addEventListener('click', function (e) {
+                        var target = e.target;
+                        if (target && target.getAttribute('data-role') === 'close') closeModal();
+                    });
+                }
+                renderRecurring();
+                window.__invalidateRecurringHeatmap = function () {
+                    try { map.invalidateSize({ pan: false }); } catch (e) {}
+                    try { heatLayer.redraw(); } catch (e2) {}
+                };
+            };
+        })();
+        
         var skillsetData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SkillsetDistribution));
         var sortedSkillset = Object.entries(skillsetData).sort(function(a, b) { return b[1] - a[1]; });
         new Chart(document.getElementById('skillsetChart'), {

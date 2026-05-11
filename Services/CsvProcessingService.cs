@@ -1799,6 +1799,80 @@ public class CsvProcessingService : ICsvProcessingService
             HeatmapJoinStatuses          = joinStatuses
         };
     }
+    
+    public async Task<KpiDashboardViewModel> ExtractRecurringHeatmapSnapshotAsync(string csvFilePath, CancellationToken cancellationToken = default)
+    {
+        var recurringRows = await BuildAllRecurringTicketsInternalAsync(csvFilePath, cancellationToken);
+
+        var dateInts = new List<int>(Math.Min(recurringRows.Count, 32_768));
+        var facilityNames = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var dpids = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var serviceIds = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var customerNames = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var addresses = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var territories = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var initialDates = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var initialWorkOrders = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var initialSkillsets = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var recurringDates = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var recurringWorkOrders = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var recurringSkillsets = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var recurringStatuses = new List<string>(Math.Min(recurringRows.Count, 32_768));
+        var gaps = new List<int>(Math.Min(recurringRows.Count, 32_768));
+
+        int total = 0;
+        int repair = 0;
+        int install = 0;
+
+        foreach (var row in recurringRows)
+        {
+            if (!DateOnly.TryParse(row.RecurringTicketDate, out var recurringDate))
+                continue;
+
+            total++;
+            var sk = (row.RecurringSkillset ?? string.Empty).ToLowerInvariant();
+            if (sk.Contains("repair", StringComparison.Ordinal)) repair++;
+            if (sk.Contains("install", StringComparison.Ordinal)) install++;
+
+            dateInts.Add((int)EncodeDateInt(recurringDate));
+            facilityNames.Add((row.FacilityName ?? string.Empty).Trim());
+            dpids.Add((row.DpId ?? string.Empty).Trim());
+            serviceIds.Add((row.ServiceIdNumber ?? string.Empty).Trim());
+            customerNames.Add((row.CustomerName ?? string.Empty).Trim());
+            addresses.Add((row.CustomerAddress ?? string.Empty).Trim());
+            territories.Add((row.Territory ?? string.Empty).Trim());
+            initialDates.Add((row.InitialTicketDate ?? string.Empty).Trim());
+            initialWorkOrders.Add((row.InitialWorkOrderNumber ?? string.Empty).Trim());
+            initialSkillsets.Add((row.InitialSkillset ?? string.Empty).Trim());
+            recurringDates.Add((row.RecurringTicketDate ?? string.Empty).Trim());
+            recurringWorkOrders.Add((row.RecurringWorkOrderNumber ?? string.Empty).Trim());
+            recurringSkillsets.Add((row.RecurringSkillset ?? string.Empty).Trim());
+            recurringStatuses.Add((row.RecurringStatus ?? string.Empty).Trim());
+            gaps.Add(row.DaysBetween);
+        }
+
+        return new KpiDashboardViewModel
+        {
+            RecurringHeatmapDateInts = dateInts,
+            RecurringHeatmapFacilityNames = facilityNames,
+            RecurringHeatmapDpids = dpids,
+            RecurringHeatmapServiceIds = serviceIds,
+            RecurringHeatmapCustomerNames = customerNames,
+            RecurringHeatmapAddresses = addresses,
+            RecurringHeatmapTerritories = territories,
+            RecurringHeatmapInitialDates = initialDates,
+            RecurringHeatmapInitialWorkOrders = initialWorkOrders,
+            RecurringHeatmapInitialSkillsets = initialSkillsets,
+            RecurringHeatmapRecurringDates = recurringDates,
+            RecurringHeatmapRecurringWorkOrders = recurringWorkOrders,
+            RecurringHeatmapRecurringSkillsets = recurringSkillsets,
+            RecurringHeatmapRecurringStatuses = recurringStatuses,
+            RecurringHeatmapGaps = gaps,
+            RecurringHeatmapTotalAppointments = total,
+            RecurringHeatmapRepairCount = repair,
+            RecurringHeatmapInstallCount = install
+        };
+    }
 
     private sealed class OperationAgingCsvMetadata
     {

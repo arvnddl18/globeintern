@@ -720,6 +720,51 @@ public class ReportController : Controller
             kpi.HeatmapJoinSkillsets         = [];
             kpi.HeatmapJoinStatuses          = [];
         }
+        
+        try
+        {
+            var rhm = await _csvService.ExtractRecurringHeatmapSnapshotAsync(csvPath, cancellationToken);
+            kpi.RecurringHeatmapDateInts = rhm.RecurringHeatmapDateInts;
+            kpi.RecurringHeatmapFacilityNames = rhm.RecurringHeatmapFacilityNames;
+            kpi.RecurringHeatmapDpids = rhm.RecurringHeatmapDpids;
+            kpi.RecurringHeatmapServiceIds = rhm.RecurringHeatmapServiceIds;
+            kpi.RecurringHeatmapCustomerNames = rhm.RecurringHeatmapCustomerNames;
+            kpi.RecurringHeatmapAddresses = rhm.RecurringHeatmapAddresses;
+            kpi.RecurringHeatmapTerritories = rhm.RecurringHeatmapTerritories;
+            kpi.RecurringHeatmapInitialDates = rhm.RecurringHeatmapInitialDates;
+            kpi.RecurringHeatmapInitialWorkOrders = rhm.RecurringHeatmapInitialWorkOrders;
+            kpi.RecurringHeatmapInitialSkillsets = rhm.RecurringHeatmapInitialSkillsets;
+            kpi.RecurringHeatmapRecurringDates = rhm.RecurringHeatmapRecurringDates;
+            kpi.RecurringHeatmapRecurringWorkOrders = rhm.RecurringHeatmapRecurringWorkOrders;
+            kpi.RecurringHeatmapRecurringSkillsets = rhm.RecurringHeatmapRecurringSkillsets;
+            kpi.RecurringHeatmapRecurringStatuses = rhm.RecurringHeatmapRecurringStatuses;
+            kpi.RecurringHeatmapGaps = rhm.RecurringHeatmapGaps;
+            kpi.RecurringHeatmapTotalAppointments = rhm.RecurringHeatmapTotalAppointments;
+            kpi.RecurringHeatmapRepairCount = rhm.RecurringHeatmapRepairCount;
+            kpi.RecurringHeatmapInstallCount = rhm.RecurringHeatmapInstallCount;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to extract recurring heatmap snapshot; recurring heatmap tab will show empty state.");
+            kpi.RecurringHeatmapDateInts = [];
+            kpi.RecurringHeatmapFacilityNames = [];
+            kpi.RecurringHeatmapDpids = [];
+            kpi.RecurringHeatmapServiceIds = [];
+            kpi.RecurringHeatmapCustomerNames = [];
+            kpi.RecurringHeatmapAddresses = [];
+            kpi.RecurringHeatmapTerritories = [];
+            kpi.RecurringHeatmapInitialDates = [];
+            kpi.RecurringHeatmapInitialWorkOrders = [];
+            kpi.RecurringHeatmapInitialSkillsets = [];
+            kpi.RecurringHeatmapRecurringDates = [];
+            kpi.RecurringHeatmapRecurringWorkOrders = [];
+            kpi.RecurringHeatmapRecurringSkillsets = [];
+            kpi.RecurringHeatmapRecurringStatuses = [];
+            kpi.RecurringHeatmapGaps = [];
+            kpi.RecurringHeatmapTotalAppointments = 0;
+            kpi.RecurringHeatmapRepairCount = 0;
+            kpi.RecurringHeatmapInstallCount = 0;
+        }
 
         await PopulateDashboardContextAsync(token!, kpi, cancellationToken);
         return View("Dashboard", kpi);
@@ -809,6 +854,13 @@ public class ReportController : Controller
                 .Sum(kv => kv.Value);
             kpi.HeatmapTerritoryDistribution = kpi.TerritoryDistribution;
             kpi.HeatmapAppointmentsByDate    = kpi.AppointmentsByDate;
+        }
+        
+        if (kpi.RecurringHeatmapDateInts.Count == 0)
+        {
+            kpi.RecurringHeatmapTotalAppointments = 0;
+            kpi.RecurringHeatmapRepairCount = 0;
+            kpi.RecurringHeatmapInstallCount = 0;
         }
 
         await PopulateDashboardContextAsync(token, kpi, cancellationToken);

@@ -129,6 +129,26 @@ public class KpiDashboardViewModel
     public List<string> HeatmapJoinSkillsets { get; set; } = [];
     public List<string> HeatmapJoinStatuses { get; set; } = [];
 
+    // ── Recurring Heatmap-specific data (independent from Total NAPs heatmap) ──
+    public List<int> RecurringHeatmapDateInts { get; set; } = [];
+    public List<string> RecurringHeatmapFacilityNames { get; set; } = [];
+    public List<string> RecurringHeatmapDpids { get; set; } = [];
+    public List<string> RecurringHeatmapServiceIds { get; set; } = [];
+    public List<string> RecurringHeatmapCustomerNames { get; set; } = [];
+    public List<string> RecurringHeatmapAddresses { get; set; } = [];
+    public List<string> RecurringHeatmapTerritories { get; set; } = [];
+    public List<string> RecurringHeatmapInitialDates { get; set; } = [];
+    public List<string> RecurringHeatmapInitialWorkOrders { get; set; } = [];
+    public List<string> RecurringHeatmapInitialSkillsets { get; set; } = [];
+    public List<string> RecurringHeatmapRecurringDates { get; set; } = [];
+    public List<string> RecurringHeatmapRecurringWorkOrders { get; set; } = [];
+    public List<string> RecurringHeatmapRecurringSkillsets { get; set; } = [];
+    public List<string> RecurringHeatmapRecurringStatuses { get; set; } = [];
+    public List<int> RecurringHeatmapGaps { get; set; } = [];
+    public int RecurringHeatmapTotalAppointments { get; set; }
+    public int RecurringHeatmapRepairCount { get; set; }
+    public int RecurringHeatmapInstallCount { get; set; }
+
     // ── Recurring Tickets: service IDs that had Install/Repair then another Repair later ──
     public List<RecurringTicketRow> RecurringTickets { get; set; } = [];
 }

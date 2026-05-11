@@ -70,6 +70,12 @@ public interface ICsvProcessingService
     /// Returns a partial <see cref="KpiDashboardViewModel"/> with only the Heatmap* fields populated.
     /// </summary>
     Task<KpiDashboardViewModel> ExtractHeatmapSnapshotAsync(string csvFilePath);
+    
+    /// <summary>
+    /// Extracts recurring-heatmap data from recurring tickets with NO UI filters applied.
+    /// Returns a partial <see cref="KpiDashboardViewModel"/> with only RecurringHeatmap* fields populated.
+    /// </summary>
+    Task<KpiDashboardViewModel> ExtractRecurringHeatmapSnapshotAsync(string csvFilePath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Operation aging: Davao North, order-create KPIs/charts/detail by calendar year (<paramref name="agingMonthParam"/> ignored).
