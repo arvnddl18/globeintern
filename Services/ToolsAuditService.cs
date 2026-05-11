@@ -105,6 +105,36 @@ public class ToolsAuditService : IToolsAuditService
         return session.Id;
     }
 
+    public async Task<Guid?> GetLatestSessionIdForUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _db.ToolAuditSessions
+            .AsNoTracking()
+            .Where(s => s.UploadedByUserId == userId)
+            .OrderByDescending(s => s.UploadedUtc)
+            .Select(s => (Guid?)s.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ToolsAuditHistoryItem>> ListHistoryForUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.ToolAuditSessions
+            .AsNoTracking()
+            .Where(s => s.UploadedByUserId == userId)
+            .OrderByDescending(s => s.UploadedUtc)
+            .Take(50)
+            .Select(s => new ToolsAuditHistoryItem
+            {
+                SessionId = s.Id,
+                OriginalFileName = s.OriginalFileName,
+                UploadedUtc = s.UploadedUtc,
+                AuditDate = s.AuditDate,
+                WeekStartDate = s.WeekStartDate
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<ToolsAuditSessionViewModel?> GetSessionAsync(
         Guid sessionId,
         IReadOnlyCollection<string>? selectedStatuses = null,
@@ -198,6 +228,40 @@ public class ToolsAuditService : IToolsAuditService
                 .ToList();
         }
 
+        // Keep first-seen order so columns match the uploaded Excel layout.
+        var rawToolColumns = entries
+            .Select(e => e.ToolName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var rawRows = entries
+            .GroupBy(e => e.TechnicianName, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(g =>
+            {
+                var cells = new Dictionary<string, ToolAuditCellViewModel>(StringComparer.OrdinalIgnoreCase);
+                foreach (var col in rawToolColumns)
+                {
+                    var entry = g.FirstOrDefault(x => string.Equals(x.ToolName, col, StringComparison.OrdinalIgnoreCase));
+                    if (entry is null)
+                    {
+                        cells[col] = BuildRawCell(ToolAuditStatus.NotApplicable);
+                        continue;
+                    }
+
+                    var displayValue = string.IsNullOrWhiteSpace(entry.RawValue)
+                        ? StatusToDisplay(entry.Status)
+                        : entry.RawValue!.Trim();
+                    cells[col] = BuildRawCell(entry.Status, displayValue);
+                }
+                return new ToolsAuditRawRow
+                {
+                    TechnicianName = g.Key,
+                    CellsByTool = cells
+                };
+            })
+            .ToList();
+
         return new ToolsAuditSessionViewModel
         {
             SessionId = session.Id,
@@ -210,7 +274,9 @@ public class ToolsAuditService : IToolsAuditService
             SortDir = sortDir,
             TechnicianSummary = techSummary,
             ToolSummaryAll = toolSummaryAll,
-            ToolSummary = toolSummary
+            ToolSummary = toolSummary,
+            RawToolColumns = rawToolColumns,
+            RawRows = rawRows
         };
     }
 
@@ -300,6 +366,30 @@ public class ToolsAuditService : IToolsAuditService
             _ => ToolAuditStatus.NotApplicable
         };
     }
+
+    private static ToolAuditCellViewModel BuildRawCell(ToolAuditStatus status, string? displayValue = null)
+    {
+        var css = status switch
+        {
+            ToolAuditStatus.Ok => "bg-emerald-100 text-emerald-900",
+            ToolAuditStatus.None => "bg-rose-100 text-rose-900",
+            ToolAuditStatus.Defective => "bg-amber-100 text-amber-900",
+            _ => "bg-slate-100 text-slate-700"
+        };
+        return new ToolAuditCellViewModel
+        {
+            DisplayValue = string.IsNullOrWhiteSpace(displayValue) ? StatusToDisplay(status) : displayValue!,
+            CssClass = css
+        };
+    }
+
+    private static string StatusToDisplay(ToolAuditStatus status) => status switch
+    {
+        ToolAuditStatus.Ok => "Yes",
+        ToolAuditStatus.None => "None",
+        ToolAuditStatus.Defective => "Defective",
+        _ => "N/A"
+    };
 
     private static DateOnly NormalizeToMonday(DateOnly date)
     {
