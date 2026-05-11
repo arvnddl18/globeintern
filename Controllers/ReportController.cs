@@ -114,6 +114,41 @@ public class ReportController : Controller
 
     [HttpPost("[action]")]
     [ValidateAntiForgeryToken]
+    [DisableRequestSizeLimit]
+    public async Task<IActionResult> UploadRawDataCleanerApi(IFormFile? csvFile)
+    {
+        if (csvFile is null || csvFile.Length == 0)
+        {
+            return BadRequest(new { error = "The uploaded file is empty." });
+        }
+
+        try
+        {
+            await using var uploadStream = csvFile.OpenReadStream();
+            var summary = await _csvService.CleanAndAppendRawDataAsync(uploadStream, HttpContext.RequestAborted);
+            return Json(summary);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing Raw Data Cleaner API upload for file {FileName}", csvFile.FileName);
+            return BadRequest(new { error = $"Error processing file: {ex.Message}" });
+        }
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    public IActionResult SetAggregatedSummary([FromBody] CleanedDataSummary summary)
+    {
+        if (summary == null)
+        {
+            return BadRequest();
+        }
+        TempData["CleanDataSummary"] = JsonSerializer.Serialize(summary);
+        return Ok();
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
     public IActionResult ClearStoredData()
     {
         try
@@ -521,7 +556,9 @@ public class ReportController : Controller
         if (latestArchive is not null)
             return RedirectToAction(nameof(Dashboard), new { token = latestArchive });
 
-        return RedirectToAction(nameof(Upload));
+        var emptyKpi = new KpiDashboardViewModel();
+        await PopulateDashboardContextAsync(null, emptyKpi, cancellationToken);
+        return View("Dashboard", emptyKpi);
     }
 
     [HttpGet("Dashboard/{token}")]
@@ -532,8 +569,9 @@ public class ReportController : Controller
         // #endregion
         if (string.IsNullOrEmpty(token) || !_sessionStore.IsValidTokenFormat(token))
         {
-            TempData["Error"] = "Report not found or expired. Please upload again.";
-            return RedirectToAction(nameof(Upload));
+            var emptyKpi = new KpiDashboardViewModel();
+            await PopulateDashboardContextAsync(null, emptyKpi, HttpContext.RequestAborted);
+            return View("Dashboard", emptyKpi);
         }
 
         if (!TryGetCurrentUserId(out var userId))
@@ -1181,7 +1219,7 @@ public class ReportController : Controller
         }
     }
 
-    private async Task PopulateDashboardContextAsync(string token, KpiDashboardViewModel kpi, CancellationToken cancellationToken)
+    private async Task PopulateDashboardContextAsync(string? token, KpiDashboardViewModel kpi, CancellationToken cancellationToken)
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
@@ -1222,9 +1260,9 @@ public class ReportController : Controller
             .Take(50)
             .ToList();
 
-        var upload = await _db.ReportUploads.FirstOrDefaultAsync(
+        var upload = token != null ? await _db.ReportUploads.FirstOrDefaultAsync(
             r => r.Token == token && r.UserId == userId,
-            cancellationToken);
+            cancellationToken) : null;
         if (upload is null)
             return;
 
