@@ -1,7 +1,11 @@
 @model SlotAd_Globe.Models.FilterOptionsViewModel
+@using SlotAd_Globe.Models
 @{
     ViewData["Title"] = "Filter & Generate Report";
     Layout = "~/Views/Shared/_ReportLayout.cshtml";
+    ViewBag.ReportAssistantPageKind = ReportAssistantPageKind.KpiFilter;
+    ViewBag.ReportAssistantToken = Model.ReportToken;
+    ViewBag.ReportAssistantView = Model.ActiveDashboardView;
 }
 
 <style>

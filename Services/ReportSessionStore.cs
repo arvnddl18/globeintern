@@ -125,6 +125,14 @@ public class ReportSessionStore : IReportSessionStore
         await WriteSessionAsync(dir, existing, cancellationToken);
     }
 
+    public Task DeleteAllReportHistoryForUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogWarning(
+            "DeleteAllReportHistoryForUserAsync({UserId}) is a no-op for file-backed ReportSessionStore",
+            userId);
+        return Task.CompletedTask;
+    }
+
     public void CleanupExpiredSessions()
     {
         if (!Directory.Exists(RootPath))

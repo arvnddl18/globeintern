@@ -1,8 +1,10 @@
 @model SlotAd_Globe.Models.CsvUploadViewModel
+@using SlotAd_Globe.Models
 @{
     ViewData["Title"] = "Raw Data Cleaner";
     Layout = "~/Views/Shared/_ReportLayout.cshtml";
     ViewData["ActiveTab"] = "kpi";
+    ViewBag.ReportAssistantPageKind = ReportAssistantPageKind.Upload;
 }
 
 <style>

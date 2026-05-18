@@ -98,7 +98,7 @@ public class ReportController : Controller
         try
         {
             await using var uploadStream = model.CsvFile.OpenReadStream();
-            var summary = await _csvService.CleanAndAppendRawDataAsync(uploadStream, HttpContext.RequestAborted);
+            var summary = await _csvService.CleanAndAppendRawDataAsync(uploadStream, model.CsvFile.FileName, HttpContext.RequestAborted);
             
             TempData["CleanDataSummary"] = JsonSerializer.Serialize(summary);
 
@@ -125,7 +125,7 @@ public class ReportController : Controller
         try
         {
             await using var uploadStream = csvFile.OpenReadStream();
-            var summary = await _csvService.CleanAndAppendRawDataAsync(uploadStream, HttpContext.RequestAborted);
+            var summary = await _csvService.CleanAndAppendRawDataAsync(uploadStream, csvFile.FileName, HttpContext.RequestAborted);
             return Json(summary);
         }
         catch (Exception ex)
@@ -994,6 +994,30 @@ public class ReportController : Controller
             _logger.LogError(ex, "Error saving filters");
             TempData["Error"] = $"Error saving filters: {ex.Message}";
             return RedirectToAction(nameof(Filter), new { token = model.ReportToken });
+        }
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ClearAllReportHistory(CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            TempData["Error"] = "Sign in again to manage report history.";
+            return RedirectToAction(nameof(Upload));
+        }
+
+        try
+        {
+            await _sessionStore.DeleteAllReportHistoryForUserAsync(userId, cancellationToken);
+            TempData["Success"] = "All report history was permanently removed.";
+            return RedirectToAction(nameof(DashboardRedirect));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ClearAllReportHistory failed for user {UserId}", userId);
+            TempData["Error"] = "Could not remove all history. Please try again.";
+            return RedirectToAction(nameof(DashboardRedirect));
         }
     }
 

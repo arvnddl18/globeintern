@@ -35,6 +35,9 @@ public class KpiDashboardViewModel
     public int AmSlotCount { get; set; }
     public int PmSlotCount { get; set; }
 
+    /// <summary>Per-skillset AM/PM slot counts for the current filter set.</summary>
+    public Dictionary<string, Dictionary<string, int>> SkillsetBySlot { get; set; } = new();
+
     public int DelayedCount { get; set; }
     public int LapsedCount { get; set; }
     public int ForVisitSubStatusCount { get; set; }
@@ -47,6 +50,12 @@ public class KpiDashboardViewModel
     public int ComplianceFailCount { get; set; }
     public int ComplianceNaCount { get; set; }
     public Dictionary<string, int> ComplianceFailReasons { get; set; } = new();
+
+    /// <summary>
+    /// Top delay reasons aggregated from the delayreason column, ordered by count descending.
+    /// Empty when the column is absent from the source file.
+    /// </summary>
+    public List<KeyValuePair<string, int>> TopDelayReasons { get; set; } = [];
 
     /// <summary>pending | status — set by controller for tabs.</summary>
     public string ActiveDashboardView { get; set; } = "pending";

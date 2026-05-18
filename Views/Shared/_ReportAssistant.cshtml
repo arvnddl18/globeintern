@@ -1,0 +1,345 @@
+@using Microsoft.AspNetCore.Antiforgery
+@using SlotAd_Globe.Models
+@inject IAntiforgery Antiforgery
+@if (User.Identity?.IsAuthenticated == true)
+{
+    var tokens = Antiforgery.GetAndStoreTokens(Context);
+    var rapk = ViewBag.ReportAssistantPageKind as ReportAssistantPageKind? ?? ReportAssistantPageKind.Upload;
+    var rat = ViewBag.ReportAssistantToken as string ?? "";
+    var rav = ViewBag.ReportAssistantView as string ?? "";
+    var pk = rapk switch
+    {
+        ReportAssistantPageKind.Upload => "upload",
+        ReportAssistantPageKind.CleanedDataExport => "cleanedDataExport",
+        ReportAssistantPageKind.KpiDashboard => "kpiDashboard",
+        ReportAssistantPageKind.KpiFilter => "kpiFilter",
+        ReportAssistantPageKind.Operational => "operational",
+        _ => "upload"
+    };
+    <div id="report-assistant-root"
+         class="report-assistant-host"
+         data-page-kind="@pk"
+         data-token="@rat"
+         data-view="@rav"
+         data-csrf="@tokens.RequestToken"
+         aria-live="polite">
+        <aside id="report-assistant-panel" class="report-assistant-panel" aria-label="Report assistant" aria-hidden="true">
+            <header class="report-assistant-panel-header">
+                <div class="report-assistant-header-brand">
+                    <span class="report-assistant-header-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </span>
+                    <div class="report-assistant-header-text">
+                        <span class="report-assistant-title">Report assistant</span>
+                        <span class="report-assistant-subtitle">Ask about this page’s data</span>
+                    </div>
+                </div>
+                <button type="button" id="report-assistant-close" class="report-assistant-icon-btn" aria-label="Close panel">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </header>
+            <div id="report-assistant-messages" class="report-assistant-messages" role="log" aria-relevant="additions"></div>
+            <footer class="report-assistant-footer">
+                <div class="report-assistant-composer">
+                    <textarea id="report-assistant-input" class="report-assistant-input" rows="2" maxlength="4000" placeholder="Ask about KPI, recurring tickets, heatmaps…" aria-label="Message"></textarea>
+                    <button type="button" id="report-assistant-send" class="report-assistant-send" aria-label="Send message">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    </button>
+                </div>
+                <p class="report-assistant-disclaimer">AI can misread data; verify critical numbers on the dashboard.</p>
+            </footer>
+        </aside>
+        <button type="button" id="report-assistant-fab" class="report-assistant-fab" aria-label="Open report assistant" aria-expanded="false" aria-controls="report-assistant-panel">
+            <span class="report-assistant-fab-icon report-assistant-fab-icon--open" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span class="report-assistant-fab-icon report-assistant-fab-icon--close" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </span>
+        </button>
+    </div>
+    <style>
+        .report-assistant-host {
+            --ra-panel-width: 28rem;
+            --ra-fab-size: 3.5rem;
+            --ra-fab-gap: 1.25rem;
+            --ra-ease: cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 60;
+        }
+
+        .report-assistant-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 61;
+            width: min(100vw, var(--ra-panel-width));
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            background: var(--theme-surface);
+            border-left: 1px solid var(--theme-surface-border);
+            color: var(--theme-text);
+            transform: translateX(100%);
+            transition: transform 0.26s var(--ra-ease);
+            box-shadow: none;
+        }
+
+        .report-assistant-panel.open {
+            transform: translateX(0);
+        }
+
+        .report-assistant-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 1rem 1.125rem;
+            border-bottom: 1px solid var(--theme-surface-border);
+            background: linear-gradient(180deg, var(--theme-accent-soft) 0%, transparent 140%);
+            flex-shrink: 0;
+        }
+
+        .report-assistant-header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            min-width: 0;
+        }
+
+        .report-assistant-header-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.625rem;
+            background: var(--theme-accent);
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .report-assistant-header-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            min-width: 0;
+        }
+
+        .report-assistant-title {
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: -0.02em;
+            color: var(--theme-text);
+            line-height: 1.2;
+        }
+
+        .report-assistant-subtitle {
+            font-size: 0.7rem;
+            color: var(--theme-text-muted);
+            line-height: 1.3;
+        }
+
+        .report-assistant-icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--theme-surface-border);
+            background: var(--theme-bg);
+            color: var(--theme-text-muted);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: color 0.15s, background 0.15s, border-color 0.15s;
+        }
+
+        .report-assistant-icon-btn:hover {
+            color: var(--theme-text);
+            background: var(--theme-nav-pill);
+        }
+
+        .report-assistant-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.125rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            scroll-behavior: smooth;
+        }
+
+        .report-assistant-messages::-webkit-scrollbar { width: 6px; }
+        .report-assistant-messages::-webkit-scrollbar-thumb {
+            background: var(--theme-surface-border);
+            border-radius: 999px;
+        }
+
+        .report-assistant-bubble {
+            max-width: 92%;
+            padding: 0.625rem 0.875rem;
+            border-radius: 0.875rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .report-assistant-bubble.user {
+            align-self: flex-end;
+            background: var(--theme-accent);
+            color: #fff;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .report-assistant-bubble.assistant {
+            align-self: flex-start;
+            background: var(--theme-nav-pill);
+            color: var(--theme-text-dim);
+            border: 1px solid var(--theme-surface-border);
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        .report-assistant-bubble.err {
+            border-color: rgba(239, 68, 68, 0.45);
+            background: rgba(239, 68, 68, 0.08);
+            color: #fca5a5;
+        }
+
+        :root[data-theme="light"] .report-assistant-bubble.err {
+            color: #b91c1c;
+            background: rgba(239, 68, 68, 0.06);
+        }
+
+        .report-assistant-footer {
+            flex-shrink: 0;
+            border-top: 1px solid var(--theme-surface-border);
+            background: var(--theme-bg);
+            padding: 0.75rem 1.125rem 0.875rem;
+        }
+
+        .report-assistant-composer {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+
+        .report-assistant-input {
+            flex: 1;
+            min-width: 0;
+            resize: none;
+            min-height: 2.75rem;
+            max-height: 8rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--theme-surface-border);
+            background: var(--theme-surface);
+            color: var(--theme-text);
+            padding: 0.625rem 0.75rem;
+            font: inherit;
+            font-size: 0.875rem;
+            line-height: 1.45;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .report-assistant-input:focus {
+            outline: none;
+            border-color: var(--theme-accent);
+            box-shadow: 0 0 0 3px var(--theme-accent-soft);
+        }
+
+        .report-assistant-send {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.75rem;
+            height: 2.75rem;
+            flex-shrink: 0;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            border: none;
+            background: var(--theme-accent);
+            color: #fff;
+            transition: filter 0.15s, transform 0.12s;
+        }
+
+        .report-assistant-send:hover:not(:disabled) { filter: brightness(1.08); }
+        .report-assistant-send:active:not(:disabled) { transform: scale(0.96); }
+        .report-assistant-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .report-assistant-disclaimer {
+            font-size: 0.65rem;
+            color: var(--theme-text-muted);
+            margin: 0.5rem 0 0;
+            line-height: 1.35;
+        }
+
+        .report-assistant-fab {
+            position: fixed;
+            right: var(--ra-fab-gap);
+            bottom: var(--ra-fab-gap);
+            z-index: 62;
+            width: var(--ra-fab-size);
+            height: var(--ra-fab-size);
+            border-radius: 9999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: var(--theme-accent);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+            transition:
+                right 0.26s var(--ra-ease),
+                bottom 0.26s var(--ra-ease),
+                transform 0.15s var(--ra-ease),
+                box-shadow 0.15s;
+        }
+
+        .report-assistant-host.is-open .report-assistant-fab {
+            right: calc(var(--ra-panel-width) + var(--ra-fab-gap));
+        }
+
+        .report-assistant-fab:hover {
+            filter: brightness(1.06);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+        }
+
+        .report-assistant-fab:active { transform: scale(0.96); }
+
+        .report-assistant-fab-icon {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.18s, transform 0.22s var(--ra-ease);
+        }
+
+        .report-assistant-fab-icon--close {
+            opacity: 0;
+            transform: rotate(-90deg) scale(0.7);
+        }
+
+        .report-assistant-host.is-open .report-assistant-fab-icon--open {
+            opacity: 0;
+            transform: rotate(90deg) scale(0.7);
+        }
+
+        .report-assistant-host.is-open .report-assistant-fab-icon--close {
+            opacity: 1;
+            transform: rotate(0) scale(1);
+        }
+
+        @@media (max-width: 640px) {
+            .report-assistant-host { --ra-panel-width: 100vw; }
+
+            .report-assistant-host.is-open .report-assistant-fab {
+                right: var(--ra-fab-gap);
+                bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+            }
+        }
+    </style>
+    <script src="~/js/report-assistant.js" asp-append-version="true" defer></script>
+}

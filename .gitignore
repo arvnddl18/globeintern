@@ -27,6 +27,11 @@ node_modules/
 # Large local datasets
 App_Data/report_materialize/
 *.xlsx
+Book555.csv
 
 App_Data/reports/
+
+# Build verification folders
+_build_verify/
+_build_verify2/
 

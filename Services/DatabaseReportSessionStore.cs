@@ -327,6 +327,36 @@ public class DatabaseReportSessionStore : IReportSessionStore
         _db.SaveChanges();
     }
 
+    public async Task DeleteAllReportHistoryForUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var uploads = await _db.ReportUploads
+            .Where(r => r.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var u in uploads)
+        {
+            TryDeleteMaterializedDir(u.Token);
+            _db.ReportUploads.Remove(u);
+        }
+
+        var archives = await _db.ReportDashboardArchives
+            .Where(a => a.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var a in archives)
+        {
+            TryDeleteMaterializedDir(a.Token);
+            _db.ReportDashboardArchives.Remove(a);
+        }
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is not null)
+            user.LastReportUploadId = null;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Deleted all report history for user {UserId}", userId);
+    }
+
     private void TryDeleteMaterializedDir(string token)
     {
         try

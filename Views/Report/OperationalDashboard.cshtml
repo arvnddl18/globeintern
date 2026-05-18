@@ -1,9 +1,11 @@
 @model SlotAd_Globe.Models.OperationalDashboardViewModel
 @using System.Text.Json
+@using SlotAd_Globe.Models
 @{
     ViewData["Title"] = "Operational Dashboard";
     Layout = "~/Views/Shared/_ReportLayout.cshtml";
     ViewData["ActiveTab"] = "operational";
+    ViewBag.ReportAssistantPageKind = ReportAssistantPageKind.Operational;
 }
 
 <style>

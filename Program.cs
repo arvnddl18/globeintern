@@ -1,7 +1,11 @@
+using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SlotAd_Globe.Authorization;
 using SlotAd_Globe.Data;
 using SlotAd_Globe.Options;
@@ -11,6 +15,35 @@ var builder = WebApplication.CreateBuilder(args);
 
 var dataDir = Path.Combine(builder.Environment.ContentRootPath, "Data");
 Directory.CreateDirectory(dataDir);
+
+builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
+
+builder.Services.AddMemoryCache();
+builder.Services.Configure<OpenRouterOptions>(builder.Configuration.GetSection(OpenRouterOptions.SectionName));
+builder.Services.AddHttpClient("OpenRouter", (sp, client) =>
+{
+    var o = sp.GetRequiredService<IOptions<OpenRouterOptions>>().Value;
+    var baseUrl = (o.BaseUrl ?? "https://openrouter.ai/api/v1/").TrimEnd('/') + "/";
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(o.RequestTimeoutSeconds, 30, 600));
+});
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("report-assistant", httpContext =>
+    {
+        var uid = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var partition = uid ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partition,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 40,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+});
 
 var reportSessionsSection = builder.Configuration.GetSection(ReportSessionOptions.SectionName);
 builder.Services.Configure<ReportSessionOptions>(reportSessionsSection);
@@ -53,11 +86,17 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddScoped<IReportSessionStore, DatabaseReportSessionStore>();
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
 builder.Services.AddScoped<ICsvProcessingService, CsvProcessingService>();
 builder.Services.AddScoped<IOperationalReportService, OperationalReportService>();
 builder.Services.AddScoped<IReportDashboardArchiveRecorder, ReportDashboardArchiveRecorder>();
 builder.Services.AddScoped<IToolsAuditService, ToolsAuditService>();
+builder.Services.AddScoped<IReportAssistantContextFactory, ReportAssistantContextFactory>();
+builder.Services.AddScoped<IReportCsvQueryService, ReportCsvQueryService>();
+builder.Services.AddScoped<IReportRecurringQueryService, ReportRecurringQueryService>();
+builder.Services.AddScoped<IReportAssistantQueryPlanner, ReportAssistantQueryPlanner>();
+builder.Services.AddScoped<IReportAssistantService, ReportAssistantService>();
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -125,6 +164,7 @@ app.Use(async (context, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllerRoute(
     name: "default",

@@ -224,6 +224,7 @@ public class CsvProcessingService : ICsvProcessingService
         var subStatusDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var territoryDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var skillsetDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var delayReasonDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var dateCounters = new SortedDictionary<string, int>(StringComparer.Ordinal);
         var uniqueTerritories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var uniqueSkillsets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -233,6 +234,7 @@ public class CsvProcessingService : ICsvProcessingService
         DateOnly? minDate = null, maxDate = null;
 
         var previewRows = new List<Dictionary<string, string>>();
+        var skillsetBySlot = new Dictionary<string, (int Am, int Pm)>(StringComparer.OrdinalIgnoreCase);
 
         using var fileStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536, useAsync: true);
         using var reader = new StreamReader(fileStream);
@@ -247,6 +249,7 @@ public class CsvProcessingService : ICsvProcessingService
         var lngCol     = FindCoordColumn(headers, _config["CsvMapping:LongitudeColumn"],   "longitude", "lng", "lon", "long");
         var facilityCol = FindCoordColumn(headers, _config["CsvMapping:FacilityNameColumn"], "facilityname", "facility_name", "facility", "name");
         var dpidCol    = FindCoordColumn(headers, null, "dpid");
+        var delayReasonCol = FindCoordColumn(headers, null, "delayreason", "delay_reason", "delay reason");
         var hasCoords  = latCol is not null && lngCol is not null;
         var maxDots    = int.TryParse(_config["CsvMapping:NapDotsMaxRows"], out var _md) ? _md : 12_000;
         var napDots    = new List<float[]>(capacity: Math.Min(maxDots, 4096));
@@ -310,6 +313,12 @@ public class CsvProcessingService : ICsvProcessingService
             IncrementDist(subStatusDist, subStatus);
             IncrementDist(territoryDist, territory);
             IncrementDist(skillsetDist, skillset);
+            if (delayReasonCol is not null)
+            {
+                var delayReason = (csv.GetField(delayReasonCol) ?? "").Trim();
+                if (!string.IsNullOrWhiteSpace(delayReason))
+                    IncrementDist(delayReasonDist, delayReason);
+            }
             uniqueTerritories.Add(territory);
             uniqueSkillsets.Add(skillset);
             if (IsSubStatusForVisit(subStatus))
@@ -324,6 +333,14 @@ public class CsvProcessingService : ICsvProcessingService
             var isAmSlot = rawAppointmentDate.Contains(amSlotMarker, StringComparison.OrdinalIgnoreCase);
             if (isAmSlot) amCount++;
             else pmCount++;
+
+            if (!string.IsNullOrWhiteSpace(skillset))
+            {
+                skillsetBySlot.TryGetValue(skillset, out var slotPair);
+                if (isAmSlot) slotPair.Am++;
+                else slotPair.Pm++;
+                skillsetBySlot[skillset] = slotPair;
+            }
 
             var isDelayed = string.Equals(status, delayedValue, StringComparison.OrdinalIgnoreCase);
             var rowIsLapsed = false;
@@ -353,7 +370,9 @@ public class CsvProcessingService : ICsvProcessingService
                 ["OrderCreateDate"] = orderCreateDate,
                 ["LastUpdateDate"] = rawLastUpdate,
                 ["_isDelayed"] = isDelayed ? "1" : "0",
-                ["_isLapsed"] = rowIsLapsed ? "1" : "0"
+                ["_isLapsed"] = rowIsLapsed ? "1" : "0",
+                ["_isAmSlot"] = isAmSlot ? "1" : "0",
+                ["DelayReason"] = delayReasonCol is not null ? (csv.GetField(delayReasonCol) ?? "").Trim() : ""
             });
         }
 
@@ -381,6 +400,14 @@ public class CsvProcessingService : ICsvProcessingService
             AppointmentsByDate = new Dictionary<string, int>(dateCounters),
             AmSlotCount = amCount,
             PmSlotCount = pmCount,
+            SkillsetBySlot = skillsetBySlot.ToDictionary(
+                kv => kv.Key,
+                kv => new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["am"] = kv.Value.Am,
+                    ["pm"] = kv.Value.Pm
+                },
+                StringComparer.OrdinalIgnoreCase),
             DelayedCount = delayedCount,
             LapsedCount = lapsedCount,
             ForVisitSubStatusCount = forVisitSubStatusCount,
@@ -395,7 +422,10 @@ public class CsvProcessingService : ICsvProcessingService
             NapDotSkillsets = napDotSkillsets,
             NapDotTerritories = napDotTerritories,
             NapDotStatuses = napDotStatuses,
-            HasCoordinates = hasCoords
+            HasCoordinates = hasCoords,
+            TopDelayReasons = delayReasonDist
+                .OrderByDescending(kv => kv.Value)
+                .ToList()
         };
     }
 
@@ -421,6 +451,7 @@ public class CsvProcessingService : ICsvProcessingService
         var orderCreateDateCol = Col("OrderCreateDateColumn");
         var delayedValue = Col("DelayedStatusValue");
         var completedValue = Col("CompletedStatusValue");
+        var cancelledValue = ColOr("CancelledStatusValue", "Cancelled");
         var completionDateCol = Col("CompletionDateColumn");
         var amSlotMarker = Col("AmSlotMarker");
         var amLapseCutoff = int.Parse(Col("AmLapseCutoffHour"));
@@ -436,6 +467,7 @@ public class CsvProcessingService : ICsvProcessingService
         var subStatusDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var territoryDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var skillsetDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var delayReasonDist2 = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var dateCounters = new SortedDictionary<string, int>(StringComparer.Ordinal);
         var uniqueTerritories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var uniqueSkillsets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -461,6 +493,7 @@ public class CsvProcessingService : ICsvProcessingService
         var lngCol      = FindCoordColumn(headers, _config["CsvMapping:LongitudeColumn"],   "longitude", "lng", "lon", "long");
         var facilityCol  = FindCoordColumn(headers, _config["CsvMapping:FacilityNameColumn"], "facilityname", "facility_name", "facility", "name");
         var dpidCol2    = FindCoordColumn(headers, null, "dpid");
+        var delayReasonCol2 = FindCoordColumn(headers, null, "delayreason", "delay_reason", "delay reason");
         var hasCoords   = latCol is not null && lngCol is not null;
         var maxDots     = int.TryParse(_config["CsvMapping:NapDotsMaxRows"], out var _md2) ? _md2 : 12_000;
         var napDots     = new List<float[]>(capacity: Math.Min(maxDots, 4096));
@@ -525,6 +558,12 @@ public class CsvProcessingService : ICsvProcessingService
             IncrementDist(subStatusDist, subStatus);
             IncrementDist(territoryDist, territory);
             IncrementDist(skillsetDist, skillset);
+            if (delayReasonCol2 is not null)
+            {
+                var delayReason2 = (csv.GetField(delayReasonCol2) ?? "").Trim();
+                if (!string.IsNullOrWhiteSpace(delayReason2))
+                    IncrementDist(delayReasonDist2, delayReason2);
+            }
             uniqueTerritories.Add(territory);
             uniqueSkillsets.Add(skillset);
             if (IsSubStatusForVisit(subStatus))
@@ -557,8 +596,11 @@ public class CsvProcessingService : ICsvProcessingService
                 }
             }
 
-            var (tier, reason) = ClassifyCompliance(
+            var (tier, reason) = ClassifyComplianceWithCancelledReschedule(
                 isDelayed,
+                status,
+                subStatus,
+                cancelledValue,
                 rowDate,
                 isAmSlot,
                 rawCompletion);
@@ -595,8 +637,10 @@ public class CsvProcessingService : ICsvProcessingService
                 ["CompletionDate"] = rawCompletion,
                 ["_isDelayed"] = isDelayed ? "1" : "0",
                 ["_isLapsed"] = rowIsLapsed ? "1" : "0",
+                ["_isAmSlot"] = isAmSlot ? "1" : "0",
                 ["Compliance"] = complianceLabel,
-                ["ComplianceReason"] = string.IsNullOrEmpty(reason) ? "" : reason
+                ["ComplianceReason"] = string.IsNullOrEmpty(reason) ? "" : reason,
+                ["DelayReason"] = delayReasonCol2 is not null ? (csv.GetField(delayReasonCol2) ?? "").Trim() : ""
             });
         }
 
@@ -643,12 +687,32 @@ public class CsvProcessingService : ICsvProcessingService
             NapDotSkillsets = napDotSkillsets2,
             NapDotTerritories = napDotTerritories2,
             NapDotStatuses = napDotStatuses2,
-            HasCoordinates = hasCoords
+            HasCoordinates = hasCoords,
+            TopDelayReasons = delayReasonDist2
+                .OrderByDescending(kv => kv.Value)
+                .ToList()
         };
     }
 
-    private static (string Tier, string Reason) ClassifyCompliance(
+    /// <summary>True when status is cancelled and substatus indicates the work was cancelled for / due to a reschedule.</summary>
+    private static bool IsCancelledForReschedule(string status, string subStatus, string cancelledValue)
+    {
+        if (string.IsNullOrWhiteSpace(subStatus))
+            return false;
+        if (!string.Equals(status, cancelledValue, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (IsNormalizedMatch(subStatus, "ForReschedule") || IsNormalizedMatch(subStatus, "For Reschedule"))
+            return true;
+        if (subStatus.Contains("reschedule", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private static (string Tier, string Reason) ClassifyComplianceWithCancelledReschedule(
         bool isDelayed,
+        string status,
+        string subStatus,
+        string cancelledValue,
         DateOnly appointmentDate,
         bool appointmentIsAm,
         string rawCompletion)
@@ -656,6 +720,17 @@ public class CsvProcessingService : ICsvProcessingService
         if (isDelayed)
             return ("Fail", "Delayed");
 
+        if (IsCancelledForReschedule(status, subStatus, cancelledValue))
+            return ("Fail", "Cancelled (Reschedule)");
+
+        return ClassifyComplianceCore(appointmentDate, appointmentIsAm, rawCompletion);
+    }
+
+    private static (string Tier, string Reason) ClassifyComplianceCore(
+        DateOnly appointmentDate,
+        bool appointmentIsAm,
+        string rawCompletion)
+    {
         var hasCompletion = TryParseCompletionDateTime(rawCompletion, out var cdt);
 
         if (hasCompletion)
@@ -2559,17 +2634,115 @@ public class CsvProcessingService : ICsvProcessingService
         }
         return false;
     }
-
-    public async Task<CleanedDataSummary> CleanAndAppendRawDataAsync(Stream rawStream, CancellationToken cancellationToken = default)
+    public async Task<CleanedDataSummary> CleanAndAppendRawDataAsync(Stream rawStream, string? originalFileName, CancellationToken cancellationToken = default)
     {
         var requiredHeaders = new[]
         {
-            "source", "workordernumber", "workordertype", "appointmentid", "appointmentdate",
-            "customername", "customeraddress", "customertype", "customersubtype", "serviceidnumber",
-            "accountnumber", "skillset", "status", "substatus", "fixdescription", "mainplan",
-            "territory", "facilityname", "longitude", "latitude", "reasoncode", "cabinetid",
-            "cabinettype", "cabinetaddress", "cabinetport", "lcpname", "dpid", "ppoeusername",
-            "userid", "ordercreatedate", "createdate", "lastupdatedate", "completiondate", "protocol", "team"
+            // ── Identity / Order ──
+            "source", "workordernumber", "bssorderid", "orderactiontype", "workorderid",
+            "workordertype", "appointmentid", "appointmentdate", "wirelessservicetype",
+
+            // ── Customer ──
+            "customername", "customeraddress", "customercontact", "customertype", "customersubtype",
+            "serviceidnumber", "accountnumber", "technology",
+
+            // ── Work / Status ──
+            "skillset", "actionid", "queue", "status", "substatus",
+            "delaycode", "delayreason", "delaynotes",
+            "team", "contractorname", "cancellationreason", "activationstatus",
+
+            // ── Fault / Fix / Find ──
+            "faultcode", "faultdescription",
+            "fixcode", "fixdescription",
+            "findcode", "finddescription",
+
+            // ── Plan / Product / Financial ──
+            "broadbandplantype", "offername", "mainplan",
+            "productid", "productdescription",
+            "arnumber", "amounttobecollected",
+
+            // ── Location ──
+            "region", "area", "territory", "facilityname",
+            "ossreservationid", "ossproductinstanceid", "ossserviceid",
+            "zone", "longitude", "latitude",
+            "serviceinstanceid", "mdu", "floorno",
+
+            // ── Technical measurements ──
+            "reasoncode",
+            "attenuation", "snr", "napupstream", "napdownstream",
+            "lastficupstream", "lastficdownstream",
+            "rsrp", "sinr",
+            "opticalpowerreadingupstream", "opticalpowerreadingdownstream",
+            "crc",
+
+            // ── Equipment ──
+            "eqnumber", "modemmodel", "modemserial",
+            "ltesimserial", "shpsimserialnumber", "modemserialno",
+            "fiberdrop", "ficconnector", "fclamp", "telsetserialno",
+            "invisiblefiber", "atb", "shpimei",
+            "ltesimserial2", "shpsimserial",
+            "antenna", "roofwallbracket", "dropwire", "stationprotector",
+            "cbk", "splitterfilter", "uyconnector", "housebracket",
+            "backboard", "jacketedwire", "groundwire", "groundrod", "groundclamp",
+            "sknob_cknob", "drivering", "screw", "concretenails",
+            "tappingclip", "cabletie", "poleclampjhook", "midspanclamp",
+            "cpemodemname",
+            "outdoorcpecomponent1", "outdoorcpecomponent2",
+            "outdoorcpecomponent3", "outdoorcpecomponent4",
+
+            // ── Network / IP ──
+            "nodeid", "datavlan", "voicevlan", "managementip",
+            "sipipaddressassignment", "subnetmask", "sipipaddressgateway", "sipusername",
+
+            // ── Cabinet / NAP / Cabinet ports ──
+            "cabinetid", "napid", "napport", "staticipaddress",
+            "cabinettype", "cabinetaddress", "cabinetport",
+            "dpcabinetlocation", "dptype",
+            "sipurl", "iprange", "callsourcecode",
+            "voipgemport", "datagemport",
+
+            // ── LCP / OLT / ONT ──
+            "lcpname", "lcpport", "ontid", "sitename",
+            "cardslot", "cardtype", "signalingip",
+            "dslportterminalidpots", "polygonboundary",
+            "wttxcpemodel", "dpportpair", "deploymentmodel",
+
+            // ── ODF / Cross-connect ──
+            "sodfname", "sodfbackconnector", "dodfname", "dodffrontconnector",
+            "ecrossconnectmdf", "ecrossconnectmdfportpair",
+            "dcrossconnectmdf", "dcrossconnectmdfportpair",
+            "shelfid", "rackid", "primaryport",
+
+            // ── Secondary Cabinet / DP ──
+            "secondarycabid", "secondarycabdstrip", "secondarycabdpair", "secondarycabdstrippair",
+            "secondarydpid", "secondarydpestrip", "secondarydpepair", "secondarypair",
+
+            // ── DAS / ADSL / Address ──
+            "das", "esideadsl", "addressid", "adslport",
+            "connecteddpdpair", "connecteddpexchangeid", "connecteddpid",
+            "dpdpair", "dpdstrip", "dpexchangeid", "dpid",
+            "mdfdpair", "mdfdstrip",
+            "primarycabepair", "primarycabestrip",
+            "secondarydpexchangeid", "secondarycabexchangeid", "connecteddpdstrip",
+
+            // ── Case Type ──
+            "casetypelevel1", "casetypelevel2", "casetypelevel3", "casetypelevel4", "casetypelevel5",
+
+            // ── PPPoE / User ──
+            "ppoeusername", "userid",
+
+            // ── Survey / Signatory ──
+            "starrating", "nameofsignatory", "relationshiptotheaccountholder",
+
+            // ── Dates / Audit ──
+            "ordercreatedate", "createdate", "createdby", "updatedby",
+            "lastupdatedate", "completiondate", "protocol",
+
+            // ── Add-ons / Materials ──
+            "addon_device", "telsetmaterialcode", "modemmaterialcode",
+
+            // ── Consumer ──
+            "consumertype"
         };
 
         var cleanedDataDir = Path.Combine(_config.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports");
@@ -2597,34 +2770,9 @@ public class CsvProcessingService : ICsvProcessingService
                 totalCleanedRowsNow++;
             }
         }
-
-        using var rawReader = new StreamReader(rawStream, Encoding.UTF8, true, 1024 * 1024);
-        using var csv = new CsvReader(rawReader, DefaultCsvConfig);
-
-        await csv.ReadAsync();
-        csv.ReadHeader();
+        var isExcel = !string.IsNullOrEmpty(originalFileName) && originalFileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase);
 
         var headerIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var actualHeaders = csv.HeaderRecord;
-        if (actualHeaders != null)
-        {
-            for (int i = 0; i < actualHeaders.Length; i++)
-            {
-                var normalizedHeader = actualHeaders[i].Replace(" ", "").Replace("_", "").ToLowerInvariant();
-                foreach (var req in requiredHeaders)
-                {
-                    var normReq = req.Replace(" ", "").Replace("_", "").ToLowerInvariant();
-                    if (normalizedHeader == normReq)
-                    {
-                        headerIndices[req] = i;
-                        break;
-                    }
-                }
-            }
-        }
-
-        var territoryIdx = headerIndices.GetValueOrDefault("territory", -1);
-        var appointmentIdIdx = headerIndices.GetValueOrDefault("appointmentid", -1);
 
         int totalProcessed = 0;
         int newAdded = 0;
@@ -2644,42 +2792,134 @@ public class CsvProcessingService : ICsvProcessingService
             await outCsv.NextRecordAsync();
         }
 
-        while (await csv.ReadAsync())
+        if (isExcel)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            totalProcessed++;
-
-            if (territoryIdx == -1 || appointmentIdIdx == -1) continue;
-
-            var territory = csv.GetField(territoryIdx) ?? "";
-            if (territory.IndexOf("DAVAO NORTH", StringComparison.OrdinalIgnoreCase) < 0)
-                continue;
-
-            var id = csv.GetField(appointmentIdIdx) ?? "";
-            if (string.IsNullOrWhiteSpace(id)) continue;
-
-            if (existingIds.Contains(id))
+            using var workbook = new XLWorkbook(rawStream);
+            var ws = workbook.Worksheets.FirstOrDefault();
+            if (ws != null)
             {
-                duplicates++;
-                continue;
+                var firstRow = ws.Row(1);
+                var actualHeaders = new List<string>();
+                int colCount = 0;
+                while (!firstRow.Cell(colCount + 1).IsEmpty())
+                {
+                    actualHeaders.Add(firstRow.Cell(colCount + 1).GetString());
+                    colCount++;
+                }
+
+                for (int i = 0; i < actualHeaders.Count; i++)
+                {
+                    var normalizedHeader = actualHeaders[i].Replace(" ", "").Replace("_", "").ToLowerInvariant();
+                    foreach (var req in requiredHeaders)
+                    {
+                        var normReq = req.Replace(" ", "").Replace("_", "").ToLowerInvariant();
+                        if (normalizedHeader == normReq)
+                        {
+                            headerIndices[req] = i + 1;
+                            break;
+                        }
+                    }
+                }
+
+                var appointmentIdIdx = headerIndices.GetValueOrDefault("appointmentid", -1);
+
+                if (appointmentIdIdx != -1)
+                {
+                    foreach (var row in ws.RowsUsed().Skip(1))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        totalProcessed++;
+
+                        var id = row.Cell(appointmentIdIdx).GetString() ?? "";
+                        if (string.IsNullOrWhiteSpace(id)) continue;
+
+                        if (existingIds.Contains(id))
+                        {
+                            duplicates++;
+                            continue;
+                        }
+
+                        existingIds.Add(id);
+                        newAdded++;
+                        totalCleanedRowsNow++;
+
+                        foreach (var h in requiredHeaders)
+                        {
+                            if (headerIndices.TryGetValue(h, out int idx))
+                            {
+                                outCsv.WriteField(row.Cell(idx).GetString());
+                            }
+                            else
+                            {
+                                outCsv.WriteField("");
+                            }
+                        }
+                        await outCsv.NextRecordAsync();
+                    }
+                }
+            }
+        }
+        else
+        {
+            using var rawReader = new StreamReader(rawStream, Encoding.UTF8, true, 1024 * 1024);
+            using var csv = new CsvReader(rawReader, DefaultCsvConfig);
+
+            await csv.ReadAsync();
+            csv.ReadHeader();
+
+            var actualHeaders = csv.HeaderRecord;
+            if (actualHeaders != null)
+            {
+                for (int i = 0; i < actualHeaders.Length; i++)
+                {
+                    var normalizedHeader = actualHeaders[i].Replace(" ", "").Replace("_", "").ToLowerInvariant();
+                    foreach (var req in requiredHeaders)
+                    {
+                        var normReq = req.Replace(" ", "").Replace("_", "").ToLowerInvariant();
+                        if (normalizedHeader == normReq)
+                        {
+                            headerIndices[req] = i;
+                            break;
+                        }
+                    }
+                }
             }
 
-            existingIds.Add(id);
-            newAdded++;
-            totalCleanedRowsNow++;
+            var appointmentIdIdx = headerIndices.GetValueOrDefault("appointmentid", -1);
 
-            foreach (var h in requiredHeaders)
+            while (await csv.ReadAsync())
             {
-                if (headerIndices.TryGetValue(h, out int idx))
+                cancellationToken.ThrowIfCancellationRequested();
+                totalProcessed++;
+
+                if (appointmentIdIdx == -1) continue;
+
+                var id = csv.GetField(appointmentIdIdx) ?? "";
+                if (string.IsNullOrWhiteSpace(id)) continue;
+
+                if (existingIds.Contains(id))
                 {
-                    outCsv.WriteField(csv.GetField(idx));
+                    duplicates++;
+                    continue;
                 }
-                else
+
+                existingIds.Add(id);
+                newAdded++;
+                totalCleanedRowsNow++;
+
+                foreach (var h in requiredHeaders)
                 {
-                    outCsv.WriteField("");
+                    if (headerIndices.TryGetValue(h, out int idx))
+                    {
+                        outCsv.WriteField(csv.GetField(idx));
+                    }
+                    else
+                    {
+                        outCsv.WriteField("");
+                    }
                 }
+                await outCsv.NextRecordAsync();
             }
-            await outCsv.NextRecordAsync();
         }
 
         return new CleanedDataSummary
@@ -2968,6 +3208,345 @@ public class CsvProcessingService : ICsvProcessingService
         ms.Position = 0;
         return ms;
     }
+
+    public async Task<ReportCsvQueryResult> QueryKpiCsvAsync(
+        string csvFilePath,
+        ReportCsvSessionFilterParams sessionFilters,
+        ReportCsvQueryFilters extraFilters,
+        string? groupBy,
+        int maxSampleRows,
+        string? interpretedAs = null,
+        CancellationToken cancellationToken = default)
+    {
+        var appointmentDateCol = Col("AppointmentDateColumn");
+        var territoryCol = Col("TerritoryColumn");
+        var statusCol = Col("StatusColumn");
+        var subStatusCol = Col("SubStatusColumn");
+        var skillsetCol = Col("SkillsetColumn");
+        var appointmentIdCol = Col("AppointmentIdColumn");
+        var workOrderCol = ColOr("WorkOrderColumn", appointmentIdCol);
+        var orderCreateDateCol = Col("OrderCreateDateColumn");
+        var amSlotMarker = Col("AmSlotMarker");
+
+        var territorySet = ToSet(sessionFilters.SelectedTerritories);
+        var statusSet = ToSet(sessionFilters.SelectedStatuses);
+        var subStatusSet = ToSet(sessionFilters.SelectedSubStatuses);
+        var skillsetSet = ToSet(sessionFilters.SelectedSkillsets);
+        var orderCreateDateSet = ToSet(sessionFilters.SelectedOrderCreateDates);
+
+        var normalizedGroupBy = NormalizeGroupBy(groupBy);
+        var cappedSampleRows = Math.Clamp(maxSampleRows, 0, 25);
+
+        int totalFilteredRows = 0;
+        int matchedRows = 0;
+        var breakdown = normalizedGroupBy is not null
+            ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            : null;
+        var sampleRows = cappedSampleRows > 0
+            ? new List<Dictionary<string, string>>(cappedSampleRows)
+            : null;
+
+        await using var fileStream = new FileStream(csvFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536, useAsync: true);
+        using var reader = new StreamReader(fileStream);
+        using var csv = new CsvReader(reader, DefaultCsvConfig);
+
+        await csv.ReadAsync();
+        csv.ReadHeader();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var headers = csv.HeaderRecord;
+        var facilityCol = FindCoordColumn(headers, _config["CsvMapping:FacilityNameColumn"], "facilityname", "facility_name", "facility", "name");
+        var addressCol = FindCoordColumn(headers, null, "customeraddress", "customer_address", "address");
+
+        while (await csv.ReadAsync())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var rawAppointmentDate = csv.GetField(appointmentDateCol) ?? "";
+            if (!TryExtractDate(rawAppointmentDate, out var rowDate))
+                continue;
+
+            if (!MatchesDateFilter(
+                    rowDate,
+                    sessionFilters.DateFilterMode,
+                    sessionFilters.SelectedDate,
+                    sessionFilters.DateRangeStart,
+                    sessionFilters.DateRangeEnd))
+                continue;
+
+            var territory = csv.GetField(territoryCol) ?? "";
+            var status = (csv.GetField(statusCol) ?? "").Trim();
+            var subStatus = csv.GetField(subStatusCol) ?? "";
+            var skillset = csv.GetField(skillsetCol) ?? "";
+            var orderCreateDate = csv.GetField(orderCreateDateCol) ?? "";
+            var appointmentId = (csv.GetField(appointmentIdCol) ?? "").Trim();
+            var workOrderNumber = (csv.GetField(workOrderCol) ?? "").Trim();
+            var customerAddress = addressCol is not null ? (csv.GetField(addressCol) ?? "").Trim() : "";
+            var facilityName = facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "";
+            var isAmSlot = rawAppointmentDate.Contains(amSlotMarker, StringComparison.OrdinalIgnoreCase);
+            var slotLabel = isAmSlot ? "AM" : "PM";
+
+            if (!MatchesFilter(territorySet, territory)) continue;
+            if (!MatchesFilter(statusSet, status)) continue;
+            if (!MatchesFilter(subStatusSet, subStatus)) continue;
+            if (!MatchesFilter(skillsetSet, skillset)) continue;
+            if (!MatchesFilter(orderCreateDateSet, orderCreateDate)) continue;
+
+            totalFilteredRows++;
+
+            if (!MatchesQueryText(extraFilters.Skillset, skillset)) continue;
+            if (!MatchesQueryText(extraFilters.Status, status)) continue;
+            if (!MatchesQueryText(extraFilters.SubStatus, subStatus)) continue;
+            if (!MatchesQueryText(extraFilters.Territory, territory)) continue;
+            if (!MatchesSlotFilter(extraFilters.Slot, isAmSlot)) continue;
+            if (!ContainsIgnoreCase(customerAddress, extraFilters.AddressContains)) continue;
+            if (!ContainsIgnoreCase(facilityName, extraFilters.FacilityContains)) continue;
+            if (!MatchesExactQuery(extraFilters.AppointmentId, appointmentId)) continue;
+            if (!MatchesExactQuery(extraFilters.WorkOrderNumber, workOrderNumber)) continue;
+
+            matchedRows++;
+
+            if (breakdown is not null)
+            {
+                var key = normalizedGroupBy switch
+                {
+                    "status" => string.IsNullOrWhiteSpace(status) ? "(blank)" : status,
+                    "substatus" => string.IsNullOrWhiteSpace(subStatus) ? "(blank)" : subStatus,
+                    "territory" => string.IsNullOrWhiteSpace(territory) ? "(blank)" : territory,
+                    "skillset" => string.IsNullOrWhiteSpace(skillset) ? "(blank)" : skillset,
+                    "slot" => slotLabel,
+                    _ => "(unknown)"
+                };
+                breakdown[key] = breakdown.GetValueOrDefault(key) + 1;
+            }
+
+            if (sampleRows is not null && sampleRows.Count < cappedSampleRows)
+            {
+                sampleRows.Add(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["appointmentId"] = appointmentId,
+                    ["workOrderNumber"] = workOrderNumber,
+                    ["appointmentDate"] = rawAppointmentDate,
+                    ["skillset"] = skillset,
+                    ["status"] = status,
+                    ["subStatus"] = subStatus,
+                    ["territory"] = territory,
+                    ["slot"] = slotLabel,
+                    ["customerAddress"] = TruncateForSample(customerAddress, 120),
+                    ["facilityName"] = facilityName
+                });
+            }
+        }
+
+        return new ReportCsvQueryResult
+        {
+            Ran = true,
+            InterpretedAs = interpretedAs,
+            TotalFilteredRows = totalFilteredRows,
+            MatchedRows = matchedRows,
+            Breakdown = breakdown,
+            SampleRows = sampleRows,
+            FiltersApplied = BuildFiltersApplied(sessionFilters, extraFilters),
+            Note = !string.IsNullOrWhiteSpace(extraFilters.AddressContains)
+                ? "Barangay/location counts use customeraddress text search from the uploaded KPI CSV, not the browser-only NAP Reference heatmap join."
+                : null
+        };
+    }
+
+    private static string? NormalizeGroupBy(string? groupBy)
+    {
+        if (string.IsNullOrWhiteSpace(groupBy))
+            return null;
+
+        var g = groupBy.Trim().ToLowerInvariant();
+        return g switch
+        {
+            "status" or "substatus" or "territory" or "skillset" or "slot" => g,
+            _ => null
+        };
+    }
+
+    private static bool MatchesQueryText(string? filterValue, string rowValue)
+    {
+        if (string.IsNullOrWhiteSpace(filterValue))
+            return true;
+
+        if (IsNormalizedMatch(rowValue, filterValue))
+            return true;
+
+        return rowValue.Contains(filterValue, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesExactQuery(string? filterValue, string rowValue)
+    {
+        if (string.IsNullOrWhiteSpace(filterValue))
+            return true;
+
+        return string.Equals(rowValue, filterValue, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesSlotFilter(string? slotFilter, bool isAmSlot)
+    {
+        if (string.IsNullOrWhiteSpace(slotFilter))
+            return true;
+
+        if (slotFilter.Equals("AM", StringComparison.OrdinalIgnoreCase))
+            return isAmSlot;
+        if (slotFilter.Equals("PM", StringComparison.OrdinalIgnoreCase))
+            return !isAmSlot;
+
+        return true;
+    }
+
+    private static bool ContainsIgnoreCase(string haystack, string? needle) =>
+        string.IsNullOrWhiteSpace(needle)
+        || (!string.IsNullOrWhiteSpace(haystack)
+            && haystack.Contains(needle, StringComparison.OrdinalIgnoreCase));
+
+    private static string TruncateForSample(string value, int maxLen) =>
+        value.Length <= maxLen ? value : value[..maxLen] + "…";
+
+    private static Dictionary<string, object?> BuildFiltersApplied(
+        ReportCsvSessionFilterParams sessionFilters,
+        ReportCsvQueryFilters extraFilters) =>
+        new()
+        {
+            ["sessionFilters"] = new Dictionary<string, object?>
+            {
+                ["dateFilterMode"] = sessionFilters.DateFilterMode,
+                ["selectedDate"] = sessionFilters.SelectedDate?.ToString("yyyy-MM-dd"),
+                ["dateRangeStart"] = sessionFilters.DateRangeStart?.ToString("yyyy-MM-dd"),
+                ["dateRangeEnd"] = sessionFilters.DateRangeEnd?.ToString("yyyy-MM-dd"),
+                ["selectedTerritories"] = sessionFilters.SelectedTerritories,
+                ["selectedStatuses"] = sessionFilters.SelectedStatuses,
+                ["selectedSubStatuses"] = sessionFilters.SelectedSubStatuses,
+                ["selectedSkillsets"] = sessionFilters.SelectedSkillsets,
+                ["selectedOrderCreateDates"] = sessionFilters.SelectedOrderCreateDates
+            },
+            ["extraFilters"] = new Dictionary<string, object?>
+            {
+                ["skillset"] = extraFilters.Skillset,
+                ["status"] = extraFilters.Status,
+                ["subStatus"] = extraFilters.SubStatus,
+                ["territory"] = extraFilters.Territory,
+                ["slot"] = extraFilters.Slot,
+                ["addressContains"] = extraFilters.AddressContains,
+                ["facilityContains"] = extraFilters.FacilityContains,
+                ["appointmentId"] = extraFilters.AppointmentId,
+                ["workOrderNumber"] = extraFilters.WorkOrderNumber
+            }
+        };
+
+    public async Task<ReportRecurringQueryResult> QueryRecurringTicketsAsync(
+        string csvFilePath,
+        ReportRecurringQueryFilters filters,
+        string? groupBy,
+        int maxSampleRows,
+        string? interpretedAs = null,
+        CancellationToken cancellationToken = default)
+    {
+        var all = await BuildAllRecurringTicketsInternalAsync(csvFilePath, cancellationToken);
+        var totalRecurring = all.Count;
+
+        var matched = all.Where(r => MatchesRecurringFilters(r, filters)).ToList();
+        var normalizedGroupBy = NormalizeRecurringGroupBy(groupBy);
+        var cappedSampleRows = Math.Clamp(maxSampleRows, 0, 25);
+
+        Dictionary<string, int>? breakdown = null;
+        if (normalizedGroupBy is not null)
+        {
+            breakdown = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in matched)
+            {
+                var key = normalizedGroupBy switch
+                {
+                    "customer" => string.IsNullOrWhiteSpace(row.CustomerName) ? "(blank)" : row.CustomerName,
+                    "serviceid" => string.IsNullOrWhiteSpace(row.ServiceIdNumber) ? "(blank)" : row.ServiceIdNumber,
+                    "facility" => string.IsNullOrWhiteSpace(row.FacilityName) ? "(blank)" : row.FacilityName,
+                    "cabinet" => string.IsNullOrWhiteSpace(row.CabinetId) ? "(blank)" : row.CabinetId,
+                    "team" => string.IsNullOrWhiteSpace(row.Team) ? "(blank)" : row.Team,
+                    "territory" => string.IsNullOrWhiteSpace(row.Territory) ? "(blank)" : row.Territory,
+                    _ => "(unknown)"
+                };
+                breakdown[key] = breakdown.GetValueOrDefault(key) + 1;
+            }
+        }
+
+        List<Dictionary<string, string>>? sampleRows = null;
+        if (cappedSampleRows > 0)
+        {
+            sampleRows = matched.Take(cappedSampleRows).Select(RecurringRowToSample).ToList();
+        }
+
+        var distinctServiceIds = matched
+            .Select(r => r.ServiceIdNumber)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+
+        return new ReportRecurringQueryResult
+        {
+            Ran = true,
+            InterpretedAs = interpretedAs,
+            TotalRecurringInstances = totalRecurring,
+            MatchedRows = matched.Count,
+            DistinctServiceIds = distinctServiceIds,
+            Breakdown = breakdown,
+            SampleRows = sampleRows,
+            FiltersApplied = new Dictionary<string, object?>
+            {
+                ["customerName"] = filters.CustomerName,
+                ["serviceId"] = filters.ServiceId,
+                ["cabinetId"] = filters.CabinetId,
+                ["facilityName"] = filters.FacilityName,
+                ["team"] = filters.Team,
+                ["territory"] = filters.Territory
+            }
+        };
+    }
+
+    private static bool MatchesRecurringFilters(RecurringTicketRow row, ReportRecurringQueryFilters filters)
+    {
+        if (!ContainsIgnoreCase(row.CustomerName, filters.CustomerName)) return false;
+        if (!string.IsNullOrWhiteSpace(filters.ServiceId)
+            && !string.Equals(row.ServiceIdNumber, filters.ServiceId, StringComparison.OrdinalIgnoreCase)
+            && !row.ServiceIdNumber.Contains(filters.ServiceId, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (!ContainsIgnoreCase(row.CabinetId, filters.CabinetId)) return false;
+        if (!ContainsIgnoreCase(row.FacilityName, filters.FacilityName)) return false;
+        if (!ContainsIgnoreCase(row.Team, filters.Team)) return false;
+        if (!ContainsIgnoreCase(row.Territory, filters.Territory)) return false;
+        return true;
+    }
+
+    private static string? NormalizeRecurringGroupBy(string? groupBy)
+    {
+        if (string.IsNullOrWhiteSpace(groupBy))
+            return null;
+
+        var g = groupBy.Trim().ToLowerInvariant();
+        return g switch
+        {
+            "customer" or "serviceid" or "facility" or "cabinet" or "team" or "territory" => g,
+            _ => null
+        };
+    }
+
+    private static Dictionary<string, string> RecurringRowToSample(RecurringTicketRow r) =>
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["serviceId"] = r.ServiceIdNumber,
+            ["customerName"] = r.CustomerName,
+            ["territory"] = r.Territory,
+            ["facilityName"] = r.FacilityName,
+            ["cabinetId"] = r.CabinetId,
+            ["team"] = r.Team,
+            ["initialTicketDate"] = r.InitialTicketDate,
+            ["initialSkillset"] = r.InitialSkillset,
+            ["recurringTicketDate"] = r.RecurringTicketDate,
+            ["recurringSkillset"] = r.RecurringSkillset,
+            ["daysBetween"] = r.DaysBetween.ToString()
+        };
 
     private sealed class FilteredRow
     {

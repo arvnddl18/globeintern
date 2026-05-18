@@ -18,4 +18,7 @@ public interface IReportSessionStore
     Task SetCsvSourceKindAsync(string token, CsvSourceKind kind, CancellationToken cancellationToken = default);
 
     void CleanupExpiredSessions();
+
+    /// <summary>Removes all KPI report uploads and archived snapshots for the user (DB + on-disk CSV dirs where present).</summary>
+    Task DeleteAllReportHistoryForUserAsync(Guid userId, CancellationToken cancellationToken = default);
 }

@@ -94,6 +94,7 @@ public interface ICsvProcessingService
 
     Task<CleanedDataSummary> CleanAndAppendRawDataAsync(
         Stream rawStream,
+        string? originalFileName,
         CancellationToken cancellationToken = default);
 
     Task<(List<RecurringTicketRow> Items, int TotalCount, RecurringTicketsSummary Summary)> GetPaginatedRecurringTicketsAsync(
@@ -120,4 +121,21 @@ public interface ICsvProcessingService
 
     Task<MemoryStream> GenerateRecurringTicketsCsvAsync(List<RecurringTicketRow> rows);
     Task<MemoryStream> GenerateRecurringTicketsXlsxAsync(List<RecurringTicketRow> rows);
+
+    Task<ReportCsvQueryResult> QueryKpiCsvAsync(
+        string csvFilePath,
+        ReportCsvSessionFilterParams sessionFilters,
+        ReportCsvQueryFilters extraFilters,
+        string? groupBy,
+        int maxSampleRows,
+        string? interpretedAs = null,
+        CancellationToken cancellationToken = default);
+
+    Task<ReportRecurringQueryResult> QueryRecurringTicketsAsync(
+        string csvFilePath,
+        ReportRecurringQueryFilters filters,
+        string? groupBy,
+        int maxSampleRows,
+        string? interpretedAs = null,
+        CancellationToken cancellationToken = default);
 }

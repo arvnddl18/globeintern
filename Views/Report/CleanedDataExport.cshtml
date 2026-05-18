@@ -1,9 +1,11 @@
 @model SlotAd_Globe.Models.CleanedDataSummary
+@using SlotAd_Globe.Models
 
 @{
     ViewData["Title"] = "Cleaned Data Export";
     Layout = "~/Views/Shared/_ReportLayout.cshtml";
     ViewData["ActiveTab"] = "kpi"; // Show the tabs to allow easy navigation back
+    ViewBag.ReportAssistantPageKind = ReportAssistantPageKind.CleanedDataExport;
 }
 
 <style>
@@ -128,7 +130,7 @@
             Data Cleansing Summary
         </h1>
         <p class="text-lg max-w-2xl mx-auto" style="color: var(--theme-text-dim);">
-            Your raw data has been successfully filtered to <span class="font-bold px-1.5 py-0.5 rounded" style="background: var(--theme-accent-soft); color: var(--theme-accent);">DAVAO NORTH</span> and integrated into the master repository.
+            Your raw data has been successfully processed and integrated into the master repository.
         </p>
     </header>
 
@@ -188,7 +190,7 @@
                 <div class="flex-1 text-center lg:text-left">
                     <h2 class="text-2xl font-extrabold mb-3" style="color: var(--theme-text);">Master Data Repository</h2>
                     <p class="text-base mb-6" style="color: var(--theme-text-dim);">
-                        Access the updated master dataset containing all historical Davao North appointments. You can export this data for offline analysis or return to the dashboard for live visualization.
+                        Access the updated master dataset containing all historical appointments. You can export this data for offline analysis or return to the dashboard for live visualization.
                     </p>
                     
                     <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4">

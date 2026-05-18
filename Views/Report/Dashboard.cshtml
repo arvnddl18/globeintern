@@ -1,9 +1,13 @@
 @model SlotAd_Globe.Models.KpiDashboardViewModel
 @using System.Linq
+@using SlotAd_Globe.Models
 @{
     ViewData["Title"] = "KPI Dashboard";
     Layout = "~/Views/Shared/_ReportLayout.cshtml";
     ViewData["ActiveTab"] = "kpi";
+    ViewBag.ReportAssistantPageKind = ReportAssistantPageKind.KpiDashboard;
+    ViewBag.ReportAssistantToken = Model.ReportToken;
+    ViewBag.ReportAssistantView = Model.ActiveDashboardView;
     var statusExtraCols = Model.ActiveDashboardView == "status"
         ? new[] { "CompletionDate", "Compliance", "ComplianceReason" }
         : Array.Empty<string>();
@@ -57,6 +61,16 @@
         --dash-text-muted: #8a8ab0;
         --dash-pill-bg: rgba(255, 255, 255, 0.04);
         --dash-input-bg: #0d0d1a;
+        --delay-card-bg: rgba(22, 22, 42, 0.85);
+        --delay-card-border: rgba(20, 184, 166, 0.3);
+        --delay-header-bg: rgba(20, 184, 166, 0.06);
+        --delay-subheader-bg: rgba(20, 184, 166, 0.10);
+        --delay-row-bg: rgba(20, 184, 166, 0.04);
+        --delay-row-border: rgba(42, 42, 74, 0.4);
+        --delay-text-accent: #5eead4;
+        --delay-text-highlight: #99f6e4;
+        --delay-rank-bg: rgba(20, 184, 166, 0.25);
+        --delay-rank-text: #2dd4bf;
     }
 
     :root[data-theme="light"] {
@@ -67,6 +81,16 @@
         --dash-text-muted: #556084;
         --dash-pill-bg: rgba(30, 41, 59, 0.06);
         --dash-input-bg: #f8faff;
+        --delay-card-bg: #ffffff;
+        --delay-card-border: #d8deea;
+        --delay-header-bg: rgba(20, 184, 166, 0.06);
+        --delay-subheader-bg: rgba(20, 184, 166, 0.10);
+        --delay-row-bg: #ffffff;
+        --delay-row-border: #eef2f8;
+        --delay-text-accent: #0f766e;
+        --delay-text-highlight: #0f172a;
+        --delay-rank-bg: rgba(20, 184, 166, 0.1);
+        --delay-rank-text: #0d9488;
     }
 
     :root[data-theme="light"] header h1,
@@ -114,6 +138,27 @@
     :root[data-theme="light"] #heatmap-analysis-report > div:first-child,
     :root[data-theme="light"] #recurring-tickets-report > div:first-child {
         border-bottom-color: var(--dash-card-border) !important;
+    }
+
+    /* Date input fixes */
+    .delay-reason-date-input {
+        cursor: pointer !important;
+        position: relative;
+        z-index: 20;
+    }
+    .delay-reason-date-input::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+    .delay-reason-date-input::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+    }
+    :root[data-theme="dark"] .delay-reason-date-input::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
+    :root[data-theme="light"] .delay-reason-date-input::-webkit-calendar-picker-indicator {
+        filter: invert(0);
     }
 
     /* ── Recurring Tickets table styles ── */
@@ -690,6 +735,30 @@
     }
     :root[data-theme="light"] #report-history-date-apply:hover {
         background: rgba(79, 70, 229, 0.12);
+    }
+    #report-history-clear-all {
+        font-size: 10px;
+        line-height: 1.2;
+        border-radius: 0.375rem;
+        padding: 0.2rem 0.5rem;
+        border: 1px solid rgba(239, 68, 68, 0.55);
+        background: rgba(127, 29, 29, 0.35);
+        color: #fecaca;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    #report-history-clear-all:hover {
+        background: rgba(185, 28, 28, 0.45);
+        border-color: #f87171;
+    }
+    :root[data-theme="light"] #report-history-clear-all {
+        border-color: #fca5a5;
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+    :root[data-theme="light"] #report-history-clear-all:hover {
+        background: #fee2e2;
+        border-color: #ef4444;
     }
     :root[data-theme="light"] #report-history-empty {
         border-color: var(--dash-card-border) !important;
@@ -1301,6 +1370,15 @@
     </div>
 }
 
+@if (TempData["Success"] is string dashOk)
+{
+    <div class="mb-6 fade-in rounded-xl px-4 py-3 flex items-center gap-2 text-sm font-medium"
+         style="background: rgba(22, 101, 52, 0.35); border: 1px solid #22c55e; color: #dcfce7;">
+        <i data-lucide="check-circle" style="width:16px; height:16px; flex-shrink:0;"></i>
+        <span>@dashOk</span>
+    </div>
+}
+
 @if (TempData["ComplianceNotice"] is string compNote)
 {
     <div class="mb-6 fade-in rounded-xl px-4 py-3 flex items-center gap-2 text-sm font-medium"
@@ -1353,7 +1431,7 @@
                 <button type="button" class="report-history-preset" data-rh-preset="7d">7 days</button>
                 <button type="button" class="report-history-preset" data-rh-preset="30d">30 days</button>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 w-full">
                 <label for="report-history-date" class="text-[10px] font-medium flex-shrink-0" style="color: #8a8ab0;">Day (UTC)</label>
                 <input type="date"
                        id="report-history-date"
@@ -1362,6 +1440,11 @@
                        class="flex-1 min-w-[9rem] max-w-[11rem]" />
                 <button type="button" id="report-history-date-apply" class="flex-shrink-0">Apply</button>
                 <button type="button" id="report-history-date-clear" class="flex-shrink-0">Clear</button>
+                <form asp-controller="Report" asp-action="ClearAllReportHistory" method="post" class="ml-auto inline-flex flex-shrink-0"
+                      onsubmit="return confirm('Permanently delete every KPI upload and archived snapshot for your account? This cannot be undone.');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" id="report-history-clear-all" class="flex-shrink-0">Remove all permanently</button>
+                </form>
             </div>
         </div>
         <div class="report-history-scroll space-y-2 pr-0.5">
@@ -1925,12 +2008,58 @@
         </div>
         <p class="text-xs mb-4 kpi-subtitle" style="color: #9aa4c7;">
             Sticky-note style list based on current selected filters.
+            @if (Model.ActiveDashboardView == "status")
+            {<text> Passed/Failed % use Pass+Fail only (N/A excluded), matching Pass rate. Fallout/Driver rows use fail count as denominator. Other rows are % of all filtered appointments.</text>}
         </p>
         @if (Model.ActiveDashboardView == "status")
         {
             var totalBase = Math.Max(1, Model.TotalAppointments);
+            var failDen = Math.Max(1, Model.ComplianceFailCount);
+            var failRowsByTerritory = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pr in Model.PreviewRows)
+            {
+                if (!string.Equals(pr.GetValueOrDefault("Compliance"), "Fail", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var t = pr.GetValueOrDefault("Territory");
+                if (string.IsNullOrWhiteSpace(t)) t = "(Unknown)";
+                failRowsByTerritory[t] = failRowsByTerritory.GetValueOrDefault(t) + 1;
+            }
+            var driverTerritories = failRowsByTerritory
+                .OrderByDescending(x => x.Value)
+                .Take(6)
+                .ToList();
             var selectedStatuses = Model.SelectedStatuses ?? [];
             var selectedSkillsets = Model.SelectedSkillsets ?? [];
+            
+            var _amRows = Model.PreviewRows.Where(r => r.GetValueOrDefault("_isAmSlot") == "1").ToList();
+            var _pmRows = Model.PreviewRows.Where(r => r.GetValueOrDefault("_isAmSlot") == "0").ToList();
+
+            var _failRowsAM = _amRows.Where(pr => string.Equals(pr.GetValueOrDefault("Compliance"), "Fail", StringComparison.OrdinalIgnoreCase)).ToList();
+            var _failRowsPM = _pmRows.Where(pr => string.Equals(pr.GetValueOrDefault("Compliance"), "Fail", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            var failRowsByTerritoryAM = _failRowsAM.GroupBy(r => string.IsNullOrWhiteSpace(r.GetValueOrDefault("Territory")) ? "(Unknown)" : (r.GetValueOrDefault("Territory") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+            var failRowsByTerritoryPM = _failRowsPM.GroupBy(r => string.IsNullOrWhiteSpace(r.GetValueOrDefault("Territory")) ? "(Unknown)" : (r.GetValueOrDefault("Territory") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var failReasonAm = _failRowsAM.GroupBy(r => (r.GetValueOrDefault("ComplianceReason") ?? "")).ToDictionary(g => g.Key, g => g.Count());
+            var failReasonPm = _failRowsPM.GroupBy(r => (r.GetValueOrDefault("ComplianceReason") ?? "")).ToDictionary(g => g.Key, g => g.Count());
+
+            var passAm = _amRows.Count(r => string.Equals(r.GetValueOrDefault("Compliance"), "Pass", StringComparison.OrdinalIgnoreCase));
+            var passPm = _pmRows.Count(r => string.Equals(r.GetValueOrDefault("Compliance"), "Pass", StringComparison.OrdinalIgnoreCase));
+            var failAm = _failRowsAM.Count;
+            var failPm = _failRowsPM.Count;
+
+            var statusAm = _amRows.GroupBy(r => (r.GetValueOrDefault("Status") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+            var statusPm = _pmRows.GroupBy(r => (r.GetValueOrDefault("Status") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var skillsetAm = _amRows.GroupBy(r => (r.GetValueOrDefault("Skillset") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+            var skillsetPm = _pmRows.GroupBy(r => (r.GetValueOrDefault("Skillset") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var territoryAm = _amRows.GroupBy(r => (r.GetValueOrDefault("Territory") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+            var territoryPm = _pmRows.GroupBy(r => (r.GetValueOrDefault("Territory") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var delayReasonAm = _amRows.Where(r => r.GetValueOrDefault("_isDelayed") == "1").GroupBy(r => (r.GetValueOrDefault("DelayReason") ?? "")).ToDictionary(g => g.Key, g => g.Count());
+            var delayReasonPm = _pmRows.Where(r => r.GetValueOrDefault("_isDelayed") == "1").GroupBy(r => (r.GetValueOrDefault("DelayReason") ?? "")).ToDictionary(g => g.Key, g => g.Count());
+
             var statusItems = selectedStatuses.Count > 0
                 ? selectedStatuses
                 : new List<string> { "Completed" };
@@ -1938,24 +2067,76 @@
                 ? selectedSkillsets
                 : new List<string> { "Repair" };
             <div class="rounded-lg overflow-hidden kpi-table" style="border: 1px solid #2a2a4a;">
-                <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wide kpi-table-head"
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wide kpi-table-head"
                      style="background: rgba(99, 102, 241, 0.14); color: #c7d2fe;">
                     <span>Item</span>
-                    <span class="text-right">Count</span>
+                    <span class="text-right" title="AM Slots" style="color:#93c5fd;">AM</span>
+                    <span class="text-right" title="PM Slots" style="color:#fca5a5;">PM</span>
+                    <span class="text-right">Total</span>
                     <span class="text-right">%</span>
                 </div>
 
-                @{
-                    var passPct = Model.TotalAppointments > 0 ? (double)Model.CompliancePassCount / totalBase * 100 : 0d;
-                    var failPct = Model.TotalAppointments > 0 ? (double)Model.ComplianceFailCount / totalBase * 100 : 0d;
+                @if (Model.ComplianceFailReasons.Count > 0)
+                {
+                    <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-wide"
+                         style="background: rgba(239, 68, 68, 0.08); color: #fca5a5; border-top: 1px solid rgba(42,42,74,0.6);">
+                        <span class="col-span-5">Fallout — by reason (% of fails)</span>
+                    </div>
+                    @foreach (var kv in Model.ComplianceFailReasons.OrderByDescending(x => x.Value))
+                    {
+                        var reasonPctOfFails = Model.ComplianceFailCount > 0 ? (double)kv.Value / Model.ComplianceFailCount * 100 : 0d;
+                        var cAm = failReasonAm.GetValueOrDefault(kv.Key);
+                        var cPm = failReasonPm.GetValueOrDefault(kv.Key);
+                        <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-2.5 text-sm kpi-row" style="background: rgba(239, 68, 68, 0.06); border-top: 1px solid rgba(42,42,74,0.5); color: #fecaca;">
+                            <span class="font-medium truncate" title="@kv.Key">@kv.Key</span>
+                            <span class="text-right font-mono" style="color:#93c5fd;">@cAm.ToString("N0")</span>
+                            <span class="text-right font-mono" style="color:#fca5a5;">@cPm.ToString("N0")</span>
+                            <span class="text-right font-mono">@kv.Value.ToString("N0")</span>
+                            <span class="text-right font-mono">@reasonPctOfFails.ToString("F1")%</span>
+                        </div>
+                    }
                 }
-                <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-green" style="background: rgba(34, 197, 94, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #dcfce7;">
+
+                @if (driverTerritories.Count > 0)
+                {
+                    <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-wide"
+                         style="background: rgba(245, 158, 11, 0.1); color: #fcd34d; border-top: 1px solid rgba(42,42,74,0.6);">
+                        <span class="col-span-5">Drivers — territory fail concentration (% of fails)</span>
+                    </div>
+                    @foreach (var kv in driverTerritories)
+                    {
+                        var terrFailPct = (double)kv.Value / failDen * 100;
+                        var cAm = failRowsByTerritoryAM.GetValueOrDefault(kv.Key);
+                        var cPm = failRowsByTerritoryPM.GetValueOrDefault(kv.Key);
+                        <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-2.5 text-sm kpi-row" style="background: rgba(245, 158, 11, 0.06); border-top: 1px solid rgba(42,42,74,0.5); color: #fde68a;">
+                            <span class="font-medium truncate" title="@kv.Key">Territory — @kv.Key</span>
+                            <span class="text-right font-mono" style="color:#93c5fd;">@cAm.ToString("N0")</span>
+                            <span class="text-right font-mono" style="color:#fca5a5;">@cPm.ToString("N0")</span>
+                            <span class="text-right font-mono">@kv.Value.ToString("N0")</span>
+                            <span class="text-right font-mono">@terrFailPct.ToString("F1")%</span>
+                        </div>
+                    }
+                }
+
+                @{
+                    var passPct = passFailDenom > 0 ? (double)Model.CompliancePassCount / passFailDenom * 100 : 0d;
+                    var failPct = passFailDenom > 0 ? (double)Model.ComplianceFailCount / passFailDenom * 100 : 0d;
+                }
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-wide"
+                     style="background: rgba(99, 102, 241, 0.1); color: #c7d2fe; border-top: 1px solid rgba(42,42,74,0.6);">
+                    <span class="col-span-5">Volume — pass / fail (evaluated rows)</span>
+                </div>
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-green" style="background: rgba(34, 197, 94, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #dcfce7;">
                     <span class="font-semibold">Passed</span>
+                    <span class="text-right font-mono" style="color:#93c5fd;">@passAm.ToString("N0")</span>
+                    <span class="text-right font-mono" style="color:#fca5a5;">@passPm.ToString("N0")</span>
                     <span class="text-right font-mono">@Model.CompliancePassCount.ToString("N0")</span>
                     <span class="text-right font-mono">@passPct.ToString("F1")%</span>
                 </div>
-                <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-red" style="background: rgba(239, 68, 68, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #fee2e2;">
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-red" style="background: rgba(239, 68, 68, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #fee2e2;">
                     <span class="font-semibold">Failed</span>
+                    <span class="text-right font-mono" style="color:#93c5fd;">@failAm.ToString("N0")</span>
+                    <span class="text-right font-mono" style="color:#fca5a5;">@failPm.ToString("N0")</span>
                     <span class="text-right font-mono">@Model.ComplianceFailCount.ToString("N0")</span>
                     <span class="text-right font-mono">@failPct.ToString("F1")%</span>
                 </div>
@@ -1964,8 +2145,12 @@
                 {
                     var statusCount = Model.StatusDistribution.TryGetValue(statusName, out var sc) ? sc : 0;
                     var statusPct = Model.TotalAppointments > 0 ? (double)statusCount / totalBase * 100 : 0d;
-                    <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-indigo" style="background: rgba(99, 102, 241, 0.16); border-top: 1px solid rgba(42,42,74,0.6); color: #e0e7ff;">
+                    var cAm = statusAm.GetValueOrDefault(statusName);
+                    var cPm = statusPm.GetValueOrDefault(statusName);
+                    <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-indigo" style="background: rgba(99, 102, 241, 0.16); border-top: 1px solid rgba(42,42,74,0.6); color: #e0e7ff;">
                         <span class="font-semibold">Status - @statusName</span>
+                        <span class="text-right font-mono" style="color:#93c5fd;">@cAm.ToString("N0")</span>
+                        <span class="text-right font-mono" style="color:#fca5a5;">@cPm.ToString("N0")</span>
                         <span class="text-right font-mono">@statusCount.ToString("N0")</span>
                         <span class="text-right font-mono">@statusPct.ToString("F1")%</span>
                     </div>
@@ -1975,8 +2160,12 @@
                 {
                     var skillsetCount = Model.SkillsetDistribution.TryGetValue(skillsetName, out var skc) ? skc : 0;
                     var skillsetPct = Model.TotalAppointments > 0 ? (double)skillsetCount / totalBase * 100 : 0d;
-                    <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-orange" style="background: rgba(249, 115, 22, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #ffedd5;">
+                    var cAm = skillsetAm.GetValueOrDefault(skillsetName);
+                    var cPm = skillsetPm.GetValueOrDefault(skillsetName);
+                    <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-orange" style="background: rgba(249, 115, 22, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #ffedd5;">
                         <span class="font-semibold">Skillset - @skillsetName</span>
+                        <span class="text-right font-mono" style="color:#93c5fd;">@cAm.ToString("N0")</span>
+                        <span class="text-right font-mono" style="color:#fca5a5;">@cPm.ToString("N0")</span>
                         <span class="text-right font-mono">@skillsetCount.ToString("N0")</span>
                         <span class="text-right font-mono">@skillsetPct.ToString("F1")%</span>
                     </div>
@@ -1986,17 +2175,114 @@
                 {
                     var territoryCount = Model.TerritoryDistribution.TryGetValue(territoryName, out var tc) ? tc : 0;
                     var territoryPct = Model.TotalAppointments > 0 ? (double)territoryCount / totalBase * 100 : 0d;
-                    <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-green" style="background: rgba(34, 197, 94, 0.10); border-top: 1px solid rgba(42,42,74,0.6); color: #d1fae5;">
+                    var cAm = territoryAm.GetValueOrDefault(territoryName);
+                    var cPm = territoryPm.GetValueOrDefault(territoryName);
+                    <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-green" style="background: rgba(34, 197, 94, 0.10); border-top: 1px solid rgba(42,42,74,0.6); color: #d1fae5;">
                         <span class="font-semibold">Territory - @territoryName</span>
+                        <span class="text-right font-mono" style="color:#93c5fd;">@cAm.ToString("N0")</span>
+                        <span class="text-right font-mono" style="color:#fca5a5;">@cPm.ToString("N0")</span>
                         <span class="text-right font-mono">@territoryCount.ToString("N0")</span>
                         <span class="text-right font-mono">@territoryPct.ToString("F1")%</span>
                     </div>
                 }
             </div>
+
+            @if (Model.TopDelayReasons.Count > 0)
+            {
+                var delayTotal = Math.Max(1, Model.TopDelayReasons.Sum(kv => kv.Value));
+                <div id="delay-reason-table-status" class="rounded-xl overflow-hidden mt-4" style="background: var(--delay-card-bg); border: 1px solid var(--delay-card-border); box-shadow: 0 0 0 1px rgba(20,184,166,0.08) inset;">
+                    <div class="px-5 py-4" style="background: var(--delay-header-bg); border-bottom: 1px solid var(--delay-row-border);">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <div class="flex items-center gap-2 mb-2.5">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; color: var(--delay-text-accent);"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    <span class="text-sm font-semibold tracking-wide" style="color: var(--delay-text-accent);">Delay Reason — Top Causes (% of Delayed Rows)</span>
+                                </div>
+                                <div class="flex flex-wrap gap-x-4 gap-y-1 text-[10px]" style="color: var(--dash-text-muted);">
+                                    <span>
+                                        <span class="font-semibold uppercase tracking-wide" style="color: var(--dash-text-muted);">Territories:</span>
+                                        @(selectedTerritories.Count > 0 ? string.Join(", ", selectedTerritories) : "All")
+                                    </span>
+                                    <span>
+                                        <span class="font-semibold uppercase tracking-wide" style="color: var(--dash-text-muted);">Statuses:</span>
+                                        @(selectedStatuses.Count > 0 ? string.Join(", ", selectedStatuses) : "All")
+                                    </span>
+                                    <span>
+                                        <span class="font-semibold uppercase tracking-wide" style="color: var(--dash-text-muted);">Skillsets:</span>
+                                        @(selectedSkillsets.Count > 0 ? string.Join(", ", selectedSkillsets) : "All")
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <i data-lucide="calendar" style="width:12px; height:12px; color: var(--delay-text-accent); flex-shrink:0;"></i>
+                                <input type="date" id="delay-reason-date-from-status" class="delay-reason-date-input"
+                                       style="background: var(--dash-input-bg); border: 1px solid var(--delay-card-border); color: var(--delay-text-accent); font-size: 11px; padding: 4px 8px; border-radius: 6px; outline: none; font-family: inherit; min-width: 110px;"
+                                       title="Filter from date" />
+                                <span class="text-[10px]" style="color: var(--dash-text-muted);">to</span>
+                                <input type="date" id="delay-reason-date-to-status" class="delay-reason-date-input"
+                                       style="background: var(--dash-input-bg); border: 1px solid var(--delay-card-border); color: var(--delay-text-accent); font-size: 11px; padding: 4px 8px; border-radius: 6px; outline: none; font-family: inherit; min-width: 110px;"
+                                       title="Filter to date" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-[2.5rem_1fr_4.5rem_4.5rem] gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-wide"
+                         style="background: var(--delay-subheader-bg); color: var(--delay-text-accent); border-bottom: 1px solid var(--delay-row-border);">
+                        <span class="text-center">#</span>
+                        <span>Delay Reason</span>
+                        <span class="text-right">Total</span>
+                        <span class="text-right">%</span>
+                    </div>
+                    <div id="delay-reason-rows-status">
+                    @foreach (var kv in Model.TopDelayReasons)
+                    {
+                        var rank = Model.TopDelayReasons.IndexOf(kv) + 1;
+                        var drPct = (double)kv.Value / delayTotal * 100;
+                        var barWidth = (int)Math.Round(drPct);
+                        <div class="delay-reason-row px-4 py-2.5 text-sm" data-reason="@kv.Key" style="background: var(--delay-row-bg); border-top: 1px solid var(--delay-row-border);">
+                            <div class="grid grid-cols-[2.5rem_1fr_4.5rem_4.5rem] gap-2 items-center">
+                                <span class="text-center dr-rank">
+                                    <span class="inline-flex items-center justify-center text-[9px] font-bold rounded-full"
+                                          style="width:18px; height:18px; background: var(--delay-rank-bg); color: var(--delay-rank-text);">#@rank</span>
+                                </span>
+                                <span class="font-medium truncate" title="@kv.Key" style="color: var(--delay-text-highlight);">@kv.Key</span>
+                                <span class="text-right font-mono dr-total" style="color: var(--delay-text-accent);">@kv.Value.ToString("N0")</span>
+                                <span class="text-right font-mono font-semibold dr-pct" style="color: var(--delay-text-accent);">@drPct.ToString("F1")%</span>
+                            </div>
+                            <div class="mt-1.5 rounded-full overflow-hidden" style="height:3px; background: rgba(20, 184, 166, 0.15);">
+                                <div class="dr-bar" style="height:100%; width:@barWidth%; background: linear-gradient(90deg,#14b8a6,#2dd4bf); border-radius:9999px; transition:width 0.4s ease;"></div>
+                            </div>
+                        </div>
+                    }
+                    </div>
+                </div>
+            }
         }
+
         else
         {
             var totalBase = Math.Max(1, Model.TotalAppointments);
+            
+            var _amRows = Model.PreviewRows.Where(r => r.GetValueOrDefault("_isAmSlot") == "1").ToList();
+            var _pmRows = Model.PreviewRows.Where(r => r.GetValueOrDefault("_isAmSlot") == "0").ToList();
+
+            var delayedAm = _amRows.Count(r => r.GetValueOrDefault("_isDelayed") == "1");
+            var delayedPm = _pmRows.Count(r => r.GetValueOrDefault("_isDelayed") == "1");
+
+            var lapsedAm = _amRows.Count(r => r.GetValueOrDefault("_isLapsed") == "1");
+            var lapsedPm = _pmRows.Count(r => r.GetValueOrDefault("_isLapsed") == "1");
+
+            var subStatusAm = _amRows.GroupBy(r => (r.GetValueOrDefault("SubStatus") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+            var subStatusPm = _pmRows.GroupBy(r => (r.GetValueOrDefault("SubStatus") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var skillsetAm = _amRows.GroupBy(r => (r.GetValueOrDefault("Skillset") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+            var skillsetPm = _pmRows.GroupBy(r => (r.GetValueOrDefault("Skillset") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var territoryAm = _amRows.GroupBy(r => (r.GetValueOrDefault("Territory") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+            var territoryPm = _pmRows.GroupBy(r => (r.GetValueOrDefault("Territory") ?? "")).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var delayReasonAm = _amRows.Where(r => r.GetValueOrDefault("_isDelayed") == "1").GroupBy(r => (r.GetValueOrDefault("DelayReason") ?? "")).ToDictionary(g => g.Key, g => g.Count());
+            var delayReasonPm = _pmRows.Where(r => r.GetValueOrDefault("_isDelayed") == "1").GroupBy(r => (r.GetValueOrDefault("DelayReason") ?? "")).ToDictionary(g => g.Key, g => g.Count());
+
             var pendingSelectedSubStatuses = Model.SelectedSubStatuses ?? [];
             var pendingSelectedSkillsets = Model.SelectedSkillsets ?? [];
             var pendingSubStatusItems = pendingSelectedSubStatuses.Count > 0
@@ -2008,19 +2294,25 @@
             var totalDelayedPct = Model.TotalAppointments > 0 ? (double)netDelayedCount / totalBase * 100 : 0d;
             var lapsePct = Model.TotalAppointments > 0 ? (double)Model.LapsedCount / totalBase * 100 : 0d;
             <div class="rounded-lg overflow-hidden kpi-table" style="border: 1px solid #2a2a4a;">
-                <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wide kpi-table-head"
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wide kpi-table-head"
                      style="background: rgba(99, 102, 241, 0.14); color: #c7d2fe;">
                     <span>Item</span>
-                    <span class="text-right">Count</span>
+                    <span class="text-right" title="AM Slots" style="color:#93c5fd;">AM</span>
+                    <span class="text-right" title="PM Slots" style="color:#fca5a5;">PM</span>
+                    <span class="text-right">Total</span>
                     <span class="text-right">%</span>
                 </div>
-                <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-red" style="background: rgba(239, 68, 68, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #fee2e2;">
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-red" style="background: rgba(239, 68, 68, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #fee2e2;">
                     <span class="font-semibold">Total Delayed</span>
+                    <span class="text-right font-mono" style="color:#93c5fd;">@delayedAm.ToString("N0")</span>
+                    <span class="text-right font-mono" style="color:#fca5a5;">@delayedPm.ToString("N0")</span>
                     <span class="text-right font-mono">@netDelayedCount.ToString("N0")</span>
                     <span class="text-right font-mono">@totalDelayedPct.ToString("F1")%</span>
                 </div>
-                <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-amber" style="background: rgba(245, 158, 11, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #fef3c7;">
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-amber" style="background: rgba(245, 158, 11, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #fef3c7;">
                     <span class="font-semibold">Lapses</span>
+                    <span class="text-right font-mono" style="color:#93c5fd;">@lapsedAm.ToString("N0")</span>
+                    <span class="text-right font-mono" style="color:#fca5a5;">@lapsedPm.ToString("N0")</span>
                     <span class="text-right font-mono">@Model.LapsedCount.ToString("N0")</span>
                     <span class="text-right font-mono">@lapsePct.ToString("F1")%</span>
                 </div>
@@ -2028,8 +2320,12 @@
                 {
                     var subStatusCount = Model.SubStatusDistribution.TryGetValue(subStatusName, out var ssc) ? ssc : 0;
                     var subStatusPct = Model.TotalAppointments > 0 ? (double)subStatusCount / totalBase * 100 : 0d;
-                    <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-indigo" style="background: rgba(99, 102, 241, 0.16); border-top: 1px solid rgba(42,42,74,0.6); color: #e0e7ff;">
+                    var cAm = subStatusAm.GetValueOrDefault(subStatusName);
+                    var cPm = subStatusPm.GetValueOrDefault(subStatusName);
+                    <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-indigo" style="background: rgba(99, 102, 241, 0.16); border-top: 1px solid rgba(42,42,74,0.6); color: #e0e7ff;">
                         <span class="font-semibold">SubStatus - @subStatusName</span>
+                        <span class="text-right font-mono" style="color:#93c5fd;">@cAm.ToString("N0")</span>
+                        <span class="text-right font-mono" style="color:#fca5a5;">@cPm.ToString("N0")</span>
                         <span class="text-right font-mono">@subStatusCount.ToString("N0")</span>
                         <span class="text-right font-mono">@subStatusPct.ToString("F1")%</span>
                     </div>
@@ -2038,14 +2334,89 @@
                 {
                     var skillsetCount = Model.SkillsetDistribution.TryGetValue(skillsetName, out var skc) ? skc : 0;
                     var skillsetPct = Model.TotalAppointments > 0 ? (double)skillsetCount / totalBase * 100 : 0d;
-                    <div class="grid grid-cols-[1fr_8rem_5rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-orange" style="background: rgba(249, 115, 22, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #ffedd5;">
+                    var cAm = skillsetAm.GetValueOrDefault(skillsetName);
+                    var cPm = skillsetPm.GetValueOrDefault(skillsetName);
+                    <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row kpi-row-orange" style="background: rgba(249, 115, 22, 0.12); border-top: 1px solid rgba(42,42,74,0.6); color: #ffedd5;">
                         <span class="font-semibold">Skillset - @skillsetName</span>
+                        <span class="text-right font-mono" style="color:#93c5fd;">@cAm.ToString("N0")</span>
+                        <span class="text-right font-mono" style="color:#fca5a5;">@cPm.ToString("N0")</span>
                         <span class="text-right font-mono">@skillsetCount.ToString("N0")</span>
                         <span class="text-right font-mono">@skillsetPct.ToString("F1")%</span>
                     </div>
                 }
             </div>
+
+            @if (Model.TopDelayReasons.Count > 0)
+            {
+                var delayTotalPending = Math.Max(1, Model.TopDelayReasons.Sum(kv => kv.Value));
+                <div id="delay-reason-table-pending" class="rounded-xl overflow-hidden mt-4" style="background: var(--delay-card-bg); border: 1px solid var(--delay-card-border); box-shadow: 0 0 0 1px rgba(20,184,166,0.08) inset;">
+                    <div class="px-5 py-4" style="background: var(--delay-header-bg); border-bottom: 1px solid var(--delay-row-border);">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <div class="flex items-center gap-2 mb-2.5">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; color: var(--delay-text-accent);"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    <span class="text-sm font-semibold tracking-wide" style="color: var(--delay-text-accent);">Delay Reason — Top Causes (% of Delayed Rows)</span>
+                                </div>
+                                <div class="flex flex-wrap gap-x-4 gap-y-1 text-[10px]" style="color: var(--dash-text-muted);">
+                                    <span>
+                                        <span class="font-semibold uppercase tracking-wide" style="color: var(--dash-text-muted);">Territories:</span>
+                                        @(selectedTerritories.Count > 0 ? string.Join(", ", selectedTerritories) : "All")
+                                    </span>
+                                    <span>
+                                        <span class="font-semibold uppercase tracking-wide" style="color: var(--dash-text-muted);">Sub-Statuses:</span>
+                                        @(pendingSelectedSubStatuses.Count > 0 ? string.Join(", ", pendingSelectedSubStatuses) : "All")
+                                    </span>
+                                    <span>
+                                        <span class="font-semibold uppercase tracking-wide" style="color: var(--dash-text-muted);">Skillsets:</span>
+                                        @(pendingSelectedSkillsets.Count > 0 ? string.Join(", ", pendingSelectedSkillsets) : "All")
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <i data-lucide="calendar" style="width:12px; height:12px; color: var(--delay-text-accent); flex-shrink:0;"></i>
+                                <input type="date" id="delay-reason-date-from-pending" class="delay-reason-date-input"
+                                       style="background: var(--dash-input-bg); border: 1px solid var(--delay-card-border); color: var(--delay-text-accent); font-size: 11px; padding: 4px 8px; border-radius: 6px; outline: none; font-family: inherit; min-width: 110px;"
+                                       title="Filter from date" />
+                                <span class="text-[10px]" style="color: var(--dash-text-muted);">to</span>
+                                <input type="date" id="delay-reason-date-to-pending" class="delay-reason-date-input"
+                                       style="background: var(--dash-input-bg); border: 1px solid var(--delay-card-border); color: var(--delay-text-accent); font-size: 11px; padding: 4px 8px; border-radius: 6px; outline: none; font-family: inherit; min-width: 110px;"
+                                       title="Filter to date" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-[2.5rem_1fr_4.5rem_4.5rem] gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-wide"
+                         style="background: var(--delay-subheader-bg); color: var(--delay-text-accent); border-bottom: 1px solid var(--delay-row-border);">
+                        <span class="text-center">#</span>
+                        <span>Delay Reason</span>
+                        <span class="text-right">Total</span>
+                        <span class="text-right">%</span>
+                    </div>
+                    <div id="delay-reason-rows-pending">
+                    @foreach (var kv in Model.TopDelayReasons)
+                    {
+                        var rank = Model.TopDelayReasons.IndexOf(kv) + 1;
+                        var drPct = (double)kv.Value / delayTotalPending * 100;
+                        var barWidth = (int)Math.Round(drPct);
+                        <div class="delay-reason-row px-4 py-2.5 text-sm" data-reason="@kv.Key" style="background: var(--delay-row-bg); border-top: 1px solid var(--delay-row-border);">
+                            <div class="grid grid-cols-[2.5rem_1fr_4.5rem_4.5rem] gap-2 items-center">
+                                <span class="text-center dr-rank">
+                                    <span class="inline-flex items-center justify-center text-[9px] font-bold rounded-full"
+                                          style="width:18px; height:18px; background: var(--delay-rank-bg); color: var(--delay-rank-text);">#@rank</span>
+                                </span>
+                                <span class="font-medium truncate" title="@kv.Key" style="color: var(--delay-text-highlight);">@kv.Key</span>
+                                <span class="text-right font-mono dr-total" style="color: var(--delay-text-accent);">@kv.Value.ToString("N0")</span>
+                                <span class="text-right font-mono font-semibold dr-pct" style="color: var(--delay-text-accent);">@drPct.ToString("F1")%</span>
+                            </div>
+                            <div class="mt-1.5 rounded-full overflow-hidden" style="height:3px; background: rgba(20, 184, 166, 0.15);">
+                                <div class="dr-bar" style="height:100%; width:@barWidth%; background: linear-gradient(90deg,#14b8a6,#2dd4bf); border-radius:9999px; transition:width 0.4s ease;"></div>
+                            </div>
+                        </div>
+                    }
+                    </div>
+                </div>
+            }
         }
+
     </div>
 </section>
 
@@ -2739,6 +3110,8 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script>
+        var globalPreviewRows = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PreviewRows));
+
         var chartColors = [
             '#6366f1', '#22c55e', '#f97316', '#ec4899', '#3b82f6',
             '#a855f7', '#14b8a6', '#eab308', '#ef4444', '#06b6d4',
@@ -5301,6 +5674,84 @@
             // Initial load
             fetchData();
         })();
+
+        // --- Delay Reason Date Filtering ---
+        function applyDelayReasonDateFilter(view) {
+            const fromStr = document.getElementById('delay-reason-date-from-' + view).value;
+            const toStr = document.getElementById('delay-reason-date-to-' + view).value;
+            const container = document.getElementById('delay-reason-rows-' + view);
+            if (!container) return;
+
+            const fromDate = fromStr ? new Date(fromStr + 'T00:00:00') : null;
+            const toDate = toStr ? new Date(toStr + 'T23:59:59') : null;
+
+            // Filter data
+            const filtered = globalPreviewRows.filter(r => {
+                if (r._isDelayed !== "1") return false;
+                if (!fromStr && !toStr) return true;
+                
+                const dStr = r.LastUpdateDate;
+                if (!dStr) return false;
+                const d = new Date(dStr);
+                
+                if (fromDate && d < fromDate) return false;
+                if (toDate && d > toDate) return false;
+                return true;
+            });
+
+            // Aggregate
+            const counts = {};
+            filtered.forEach(r => {
+                const reason = r.DelayReason || "(No Reason)";
+                counts[reason] = (counts[reason] || 0) + 1;
+            });
+
+            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const total = filtered.length;
+
+            // Render
+            container.innerHTML = '';
+            if (sorted.length === 0) {
+                container.innerHTML = `<div class="px-4 py-8 text-center text-xs" style="color: var(--dash-text-muted);">No delayed rows found for the selected date range.</div>`;
+                return;
+            }
+
+            sorted.forEach(([reason, count], idx) => {
+                const pct = total > 0 ? (count / total * 100) : 0;
+                const rank = idx + 1;
+                const barWidth = Math.round(pct);
+                
+                const rowHtml = `
+                    <div class="delay-reason-row px-4 py-2.5 text-sm" data-reason="${reason}" style="background: var(--delay-row-bg); border-top: 1px solid var(--delay-row-border);">
+                        <div class="grid grid-cols-[2.5rem_1fr_4.5rem_4.5rem] gap-2 items-center">
+                            <span class="text-center dr-rank">
+                                <span class="inline-flex items-center justify-center text-[9px] font-bold rounded-full"
+                                      style="width:18px; height:18px; background: var(--delay-rank-bg); color: var(--delay-rank-text);">#${rank}</span>
+                            </span>
+                            <span class="font-medium truncate" title="${reason}" style="color: var(--delay-text-highlight);">${reason}</span>
+                            <span class="text-right font-mono dr-total" style="color: var(--delay-text-accent);">${count.toLocaleString()}</span>
+                            <span class="text-right font-mono font-semibold dr-pct" style="color: var(--delay-text-accent);">${pct.toFixed(1)}%</span>
+                        </div>
+                        <div class="mt-1.5 rounded-full overflow-hidden" style="height:3px; background: rgba(20,184,166,0.15);">
+                            <div class="dr-bar" style="height:100%; width:${barWidth}%; background: linear-gradient(90deg,#14b8a6,#2dd4bf); border-radius:9999px; transition:width 0.4s ease;"></div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', rowHtml);
+            });
+        }
+
+        document.querySelectorAll('.delay-reason-date-input').forEach(input => {
+            input.addEventListener('change', function() {
+                const view = this.id.includes('-status') ? 'status' : 'pending';
+                applyDelayReasonDateFilter(view);
+            });
+        });
+
+        // Initialize Lucide icons for new content if needed
+        if (window.lucide) {
+            lucide.createIcons();
+        }
     </script>
 }
 
