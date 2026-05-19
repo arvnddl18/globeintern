@@ -960,6 +960,41 @@
     :root[data-theme="light"] #rhm-map-wrap {
         border-color: #d8deea;
     }
+    .lazy-visual-target {
+        position: relative;
+        min-height: 280px;
+    }
+    .lazy-visual-target.lazy-visual-pending > div[style*="height: 280px"],
+    .lazy-visual-target.lazy-visual-pending > div[style*="height: 260px"] {
+        opacity: 0;
+    }
+    #nap-davao-map-wrap.lazy-visual-pending #nap-davao-map,
+    #rhm-map-wrap.lazy-visual-pending #rhm-map {
+        min-height: 420px;
+        visibility: hidden;
+    }
+    .lazy-visual-target.lazy-visual-pending::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(42,42,74,0.15) 0%, rgba(99,102,241,0.12) 50%, rgba(42,42,74,0.15) 100%);
+        background-size: 200% 100%;
+        animation: lazy-visual-shimmer 1.4s ease-in-out infinite;
+        pointer-events: none;
+    }
+    :root[data-theme="light"] .lazy-visual-target.lazy-visual-pending::before {
+        background: linear-gradient(90deg, rgba(226,232,240,0.4) 0%, rgba(199,210,254,0.55) 50%, rgba(226,232,240,0.4) 100%);
+        background-size: 200% 100%;
+    }
+    .lazy-visual-target.lazy-visual-loaded::before {
+        display: none;
+    }
+    @@keyframes lazy-visual-shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
     /* ── Fullscreen: fill the entire desktop viewport ── */
     #nap-davao-map-wrap:fullscreen,
     #nap-davao-map-wrap:-webkit-full-screen,
@@ -1833,7 +1868,7 @@
         </section>
     }
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8 fade-in" style="animation-delay: 0.14s;">
-        <div class="rounded-xl p-5 lg:col-span-2" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <div class="rounded-xl p-5 lg:col-span-2 lazy-visual-target lazy-visual-pending" data-lazy-id="chart-compliance" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
             <div class="flex items-center gap-2 mb-4">
                 <i data-lucide="shield-check" style="width:14px; height:14px; color: #22c55e;"></i>
                 <span class="text-sm font-semibold" style="color: #c8c8e0;">Compliance (Pass / Fail / N/A)</span>
@@ -1866,7 +1901,7 @@
 }
 
 <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8 fade-in" style="animation-delay: 0.15s;">
-    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+    <div class="rounded-xl p-5 lazy-visual-target lazy-visual-pending" data-lazy-id="chart-status" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
         <div class="flex items-center gap-2 mb-4">
             <i data-lucide="pie-chart" style="width:14px; height:14px; color: #6366f1;"></i>
             <span class="text-sm font-semibold" style="color: #c8c8e0;">Status Distribution</span>
@@ -1876,7 +1911,7 @@
         </div>
     </div>
 
-    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+    <div class="rounded-xl p-5 lazy-visual-target lazy-visual-pending" data-lazy-id="chart-territory" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
         <div class="flex items-center gap-2 mb-4">
             <i data-lucide="map" style="width:14px; height:14px; color: #22c55e;"></i>
             <span class="text-sm font-semibold" style="color: #c8c8e0;">Territory Breakdown</span>
@@ -1886,7 +1921,7 @@
         </div>
     </div>
 
-    <div class="rounded-xl p-5 lg:col-span-2" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+    <div class="rounded-xl p-5 lg:col-span-2 lazy-visual-target lazy-visual-pending" data-lazy-id="chart-date" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
         <div class="flex items-center gap-2 mb-4">
             <i data-lucide="trending-up" style="width:14px; height:14px; color: #a5b4fc;"></i>
             <span class="text-sm font-semibold" style="color: #c8c8e0;">Appointments by Date</span>
@@ -1896,7 +1931,7 @@
         </div>
     </div>
 
-    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+    <div class="rounded-xl p-5 lazy-visual-target lazy-visual-pending" data-lazy-id="chart-skillset" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
         <div class="flex items-center gap-2 mb-4">
             <i data-lucide="wrench" style="width:14px; height:14px; color: #f97316;"></i>
             <span class="text-sm font-semibold" style="color: #c8c8e0;">Skillset Distribution</span>
@@ -1906,7 +1941,7 @@
         </div>
     </div>
 
-    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+    <div class="rounded-xl p-5 lazy-visual-target lazy-visual-pending" data-lazy-id="chart-slot" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
         <div class="flex items-center gap-2 mb-4">
             <i data-lucide="clock" style="width:14px; height:14px; color: #ec4899;"></i>
             <span class="text-sm font-semibold" style="color: #c8c8e0;">AM vs PM Slots</span>
@@ -1918,7 +1953,7 @@
 
     @if (Model.DelayedCount > 0)
     {
-        <div class="rounded-xl p-5 lg:col-span-2" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <div class="rounded-xl p-5 lg:col-span-2 lazy-visual-target lazy-visual-pending" data-lazy-id="chart-delay-lapse" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
             <div class="flex items-center gap-2 mb-4">
                 <i data-lucide="alert-triangle" style="width:14px; height:14px; color: #ef4444;"></i>
                 <span class="text-sm font-semibold" style="color: #c8c8e0;">Delay vs Lapse Breakdown</span>
@@ -1935,7 +1970,7 @@
 @if (Model.ActiveDashboardView == "status")
 {
     <section class="mb-8 fade-in" style="animation-delay: 0.17s;">
-        <div id="slot-adherence-summary-report" class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.9); border: 1px solid #2a2a4a;">
+        <div id="slot-adherence-summary-report" class="rounded-xl p-5 lazy-visual-target lazy-visual-pending" data-lazy-id="slot-adherence-summary" style="background: rgba(22, 22, 42, 0.9); border: 1px solid #2a2a4a;">
             <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div>
                     <p class="text-sm font-semibold" style="color: #e0e7ff;">Scheduled volume vs slot adherence (Pass)</p>
@@ -2512,7 +2547,7 @@
 <!-- ═══════════════════════════════════════════════════════════════════════════
      HEATMAP ANALYSIS CONTAINER
      ═══════════════════════════════════════════════════════════════════════════ -->
-<div id="heatmap-analysis-report" class="mb-10 rounded-2xl p-6" style="background: rgba(10,10,25,0.45); border: 1px solid #2a2a4a;">
+<div id="heatmap-analysis-report" class="mb-10 rounded-2xl p-6 lazy-visual-target lazy-visual-pending" data-lazy-id="nap-heatmap" style="background: rgba(10,10,25,0.45); border: 1px solid #2a2a4a;">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-4" style="border-bottom: 1px solid #2a2a4a;">
         <div class="flex items-center gap-2">
             <i data-lucide="flame" style="width:16px; height:16px; color: #a855f7;"></i>
@@ -2726,7 +2761,7 @@
     </div>
 </section>
 
-<section id="hm-panel-recurring" class="mb-8 fade-in hidden" style="animation-delay: 0.24s;">
+<section id="hm-panel-recurring" class="mb-8 fade-in hidden lazy-visual-target lazy-visual-pending" data-lazy-id="recurring-heatmap" style="animation-delay: 0.24s;">
     <div class="rounded-xl overflow-hidden" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
         <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4" style="border-bottom: 1px solid #2a2a4a;">
             <div class="flex flex-wrap items-center gap-2 min-w-0">
@@ -3125,7 +3160,266 @@
         Chart.defaults.borderColor = gridColor;
         Chart.defaults.font.family = "'DM Sans', sans-serif";
 
+        (function initLazyVisualLoader() {
+            var loadedIds = new Set();
+            var loadPromises = new Map();
+            var workQueue = [];
+            var draining = false;
+            var pendingLazy = [];
+            var setupComplete = false;
+            window.__lazyVisualUnloadPinned = false;
+
+            function destroyChartsIn(el) {
+                if (!el || typeof Chart === 'undefined') return;
+                el.querySelectorAll('canvas').forEach(function(canvas) {
+                    var inst = Chart.getChart(canvas);
+                    if (inst) inst.destroy();
+                });
+            }
+
+            function markLoaded(el, lazyId) {
+                loadedIds.add(lazyId);
+                if (el) {
+                    el.classList.remove('lazy-visual-pending');
+                    el.classList.add('lazy-visual-loaded');
+                }
+            }
+
+            function markUnloaded(el, lazyId) {
+                loadedIds.delete(lazyId);
+                if (el) {
+                    el.classList.add('lazy-visual-pending');
+                    el.classList.remove('lazy-visual-loaded');
+                }
+            }
+
+            function scheduleWork(fn) {
+                return new Promise(function(resolve) {
+                    workQueue.push(function() {
+                        try { fn(); } catch (e) { console.error('Lazy visual task failed:', e); }
+                        resolve();
+                    });
+                    drainQueue();
+                });
+            }
+
+            function drainQueue() {
+                if (draining || !workQueue.length) return;
+                draining = true;
+                var task = workQueue.shift();
+                var finish = function() {
+                    draining = false;
+                    if (workQueue.length) drainQueue();
+                };
+                var run = function() {
+                    task();
+                    if (typeof requestIdleCallback === 'function') {
+                        requestIdleCallback(finish, { timeout: 80 });
+                    } else {
+                        setTimeout(finish, 0);
+                    }
+                };
+                if (typeof requestAnimationFrame === 'function') {
+                    requestAnimationFrame(run);
+                } else {
+                    setTimeout(run, 0);
+                }
+            }
+
+            function forceLoadImmediate(el, initFn, lazyId) {
+                if (loadedIds.has(lazyId)) {
+                    return loadPromises.get(lazyId) || Promise.resolve();
+                }
+                markLoaded(el, lazyId);
+                var p = Promise.resolve();
+                loadPromises.set(lazyId, p);
+                try { initFn(); } catch (e) { console.error('Lazy visual init failed:', e); }
+                return p;
+            }
+
+            function forceLoad(el, initFn, lazyId) {
+                if (loadedIds.has(lazyId)) {
+                    return loadPromises.get(lazyId) || Promise.resolve();
+                }
+                markLoaded(el, lazyId);
+                var p = scheduleWork(initFn);
+                loadPromises.set(lazyId, p);
+                return p;
+            }
+
+            function isLazyTargetVisible(el) {
+                if (!el || el.classList.contains('hidden')) return false;
+                var style = window.getComputedStyle(el);
+                if (style.display === 'none' || style.visibility === 'hidden') return false;
+                var rect = el.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) return false;
+                var viewH = window.innerHeight || document.documentElement.clientHeight;
+                return rect.bottom > 0 && rect.top < viewH;
+            }
+
+            function primeFirstVisibleLazyVisual() {
+                var targets = Array.from(document.querySelectorAll('.lazy-visual-target[data-lazy-id]'))
+                    .filter(isLazyTargetVisible)
+                    .sort(function(a, b) {
+                        return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+                    });
+                if (!targets.length) return;
+                var first = targets[0];
+                var lazyId = first.getAttribute('data-lazy-id');
+                var fn = first.__lazyInitFn;
+                if (lazyId && fn) {
+                    forceLoadImmediate(first, fn, lazyId);
+                }
+            }
+
+            function attachLazyObserver(el, initFn, lazyId) {
+                if (el.__lazyVisualObserver) return;
+                var observer = new IntersectionObserver(function(entries) {
+                    for (var i = 0; i < entries.length; i++) {
+                        var entry = entries[i];
+                        if (entry.target !== el) continue;
+                        if (entry.isIntersecting) {
+                            if (!loadedIds.has(lazyId)) {
+                                forceLoad(el, initFn, lazyId);
+                            }
+                        } else if (loadedIds.has(lazyId) && !window.__lazyVisualUnloadPinned) {
+                            forceUnload(el, lazyId);
+                        }
+                    }
+                }, { root: null, rootMargin: '80px 0px', threshold: 0 });
+                observer.observe(el);
+                el.__lazyVisualObserver = observer;
+            }
+
+            function forceUnload(el, lazyId) {
+                if (!loadedIds.has(lazyId)) return Promise.resolve();
+                var unloadFn = el.__lazyUnloadFn;
+                var p = unloadFn
+                    ? scheduleWork(unloadFn)
+                    : Promise.resolve();
+                return p.then(function() {
+                    markUnloaded(el, lazyId);
+                    loadPromises.delete(lazyId);
+                });
+            }
+
+            window.registerLazyVisual = function(el, initFn, lazyId, unloadFn) {
+                if (!el || !initFn || !lazyId) return Promise.resolve();
+                el.__lazyInitFn = initFn;
+                el.__lazyUnloadFn = unloadFn || function() { destroyChartsIn(el); };
+
+                if (!('IntersectionObserver' in window)) {
+                    return forceLoadImmediate(el, initFn, lazyId);
+                }
+
+                pendingLazy.push({ el: el, initFn: initFn, lazyId: lazyId });
+                return Promise.resolve();
+            };
+
+            window.completeLazyVisualSetup = function() {
+                if (setupComplete) return;
+                setupComplete = true;
+                pendingLazy.forEach(function(item) {
+                    attachLazyObserver(item.el, item.initFn, item.lazyId);
+                });
+                pendingLazy = [];
+                primeFirstVisibleLazyVisual();
+            };
+
+            window.primeFirstVisibleLazyVisual = primeFirstVisibleLazyVisual;
+
+            window.ensureLazyVisualsLoaded = function() {
+                var targets = document.querySelectorAll('.lazy-visual-target');
+                var promises = [];
+                targets.forEach(function(el) {
+                    var lazyId = el.getAttribute('data-lazy-id');
+                    var fn = el.__lazyInitFn;
+                    if (!lazyId || !fn || loadedIds.has(lazyId)) return;
+                    promises.push(forceLoad(el, fn, lazyId));
+                });
+                return Promise.all(promises);
+            };
+
+            window.loadLazyVisualById = function(lazyId) {
+                var el = document.querySelector('[data-lazy-id="' + lazyId + '"]');
+                var fn = el && el.__lazyInitFn;
+                if (!el || !fn || !lazyId) return Promise.resolve();
+                if (loadedIds.has(lazyId)) return loadPromises.get(lazyId) || Promise.resolve();
+                return forceLoad(el, fn, lazyId);
+            };
+
+            window.unloadLazyVisualById = function(lazyId) {
+                var el = document.querySelector('[data-lazy-id="' + lazyId + '"]');
+                if (!el || !lazyId) return Promise.resolve();
+                return forceUnload(el, lazyId);
+            };
+        })();
+
+        function unloadSlotAdherenceSummary() {
+            var canvas = document.getElementById('slotAdherenceSummaryChart');
+            if (canvas && typeof Chart !== 'undefined') {
+                var chart = Chart.getChart(canvas);
+                if (chart) chart.destroy();
+            }
+            if (window.__slotAdhSummaryCleanup) {
+                window.__slotAdhSummaryCleanup();
+                window.__slotAdhSummaryCleanup = null;
+            }
+            var territoryRowsEl = document.getElementById('slot-adherence-territory-rows');
+            var skillsetRowsEl = document.getElementById('slot-adherence-skillset-rows');
+            if (territoryRowsEl) territoryRowsEl.innerHTML = '';
+            if (skillsetRowsEl) skillsetRowsEl.innerHTML = '';
+        }
+
+        function teardownNapHeatmap() {
+            var st = window.__napHeatmapState;
+            if (!st) return;
+            try { if (st.napMap) st.napMap.remove(); } catch (e) {}
+            try { if (st.themeObs) st.themeObs.disconnect(); } catch (e2) {}
+            if (st.monthHandler && st.monthSel) {
+                st.monthSel.removeEventListener('change', st.monthHandler);
+            }
+            if (st.loadHandler) {
+                window.removeEventListener('load', st.loadHandler);
+            }
+            if (st.fsChangeHandler) {
+                document.removeEventListener('fullscreenchange', st.fsChangeHandler);
+                document.removeEventListener('webkitfullscreenchange', st.fsChangeHandler);
+                document.removeEventListener('mozfullscreenchange', st.fsChangeHandler);
+                document.removeEventListener('MSFullscreenChange', st.fsChangeHandler);
+            }
+            if (st.brgyBars) st.brgyBars.innerHTML = '';
+            if (st.fixBars) st.fixBars.innerHTML = '';
+            if (st.metricDays) st.metricDays.textContent = '\u2014';
+            window.__napHeatmapState = null;
+            if (typeof window.unloadLazyVisualById === 'function') {
+                window.unloadLazyVisualById('recurring-heatmap');
+            }
+        }
+
+        function teardownRecurringHeatmap() {
+            if (window.__rhmAbortController) {
+                window.__rhmAbortController.abort();
+                window.__rhmAbortController = null;
+            }
+            if (window.__rhmLeafletMap) {
+                try { window.__rhmLeafletMap.remove(); } catch (e) {}
+                window.__rhmLeafletMap = null;
+            }
+            window.__recurringHmBootstrapped = false;
+            window.__invalidateRecurringHeatmap = null;
+            var brgyBars = document.getElementById('rhm-brgy-bars');
+            var napBars = document.getElementById('rhm-nap-bars');
+            if (brgyBars) brgyBars.innerHTML = '';
+            if (napBars) napBars.innerHTML = '';
+        }
+
+        function lazyVisualTarget(lazyId) {
+            return document.querySelector('[data-lazy-id="' + lazyId + '"]');
+        }
+
         var statusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StatusDistribution));
+        registerLazyVisual(lazyVisualTarget('chart-status'), function() {
         new Chart(document.getElementById('statusChart'), {
             type: 'doughnut',
             data: {
@@ -3145,9 +3439,11 @@
                 }
             }
         });
+        }, 'chart-status');
 
         var territoryData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TerritoryDistribution));
         var sortedTerritory = Object.entries(territoryData).sort(function(a, b) { return b[1] - a[1]; });
+        registerLazyVisual(lazyVisualTarget('chart-territory'), function() {
         new Chart(document.getElementById('territoryChart'), {
             type: 'bar',
             data: {
@@ -3170,9 +3466,11 @@
                 }
             }
         });
+        }, 'chart-territory');
 
         var dateData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AppointmentsByDate));
         var dateKeys = Object.keys(dateData).sort();
+        registerLazyVisual(lazyVisualTarget('chart-date'), function() {
         new Chart(document.getElementById('dateChart'), {
             type: 'line',
             data: {
@@ -3202,8 +3500,9 @@
                 }
             }
         });
+        }, 'chart-date');
 
-        (function initSlotAdherenceSummary() {
+        function initSlotAdherenceSummary() {
             if ('@Model.ActiveDashboardView' !== 'status') return;
             var chartCanvas = document.getElementById('slotAdherenceSummaryChart');
             if (!chartCanvas) return;
@@ -3448,11 +3747,17 @@
                 renderSummaryChart(period);
             }
 
+            if (window.__slotAdhSummaryCleanup) {
+                window.__slotAdhSummaryCleanup();
+            }
+            var slotAdhAbort = new AbortController();
+            var slotAdhSignal = slotAdhAbort.signal;
+
             periodButtons.forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     var nextPeriod = btn.getAttribute('data-period') || 'day';
                     renderSummary(nextPeriod);
-                });
+                }, { signal: slotAdhSignal });
             });
 
             renderPassFailRows(territoryRowsEl, function(row) { return row['Territory']; });
@@ -3468,7 +3773,17 @@
                 }
             });
             themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-        })();
+
+            window.__slotAdhSummaryCleanup = function() {
+                slotAdhAbort.abort();
+                themeObserver.disconnect();
+                if (summaryChart) {
+                    summaryChart.destroy();
+                    summaryChart = null;
+                }
+            };
+        }
+        registerLazyVisual(lazyVisualTarget('slot-adherence-summary'), initSlotAdherenceSummary, 'slot-adherence-summary', unloadSlotAdherenceSummary);
 
         (function initSlotAdherenceExports() {
             var csvBtn = document.getElementById('slot-adh-export-csv-btn');
@@ -3562,21 +3877,30 @@
                     throw new Error('No visible report sections found for PDF export.');
                 }
 
-                for (var i = 0; i < slideTargets.length; i++) {
-                    var slide = slideTargets[i];
-                    var canvas = await html2canvas(slide.el, {
-                        scale: 2,
-                        backgroundColor: '#0d0d1a',
-                        useCORS: true,
-                        logging: false,
-                        windowWidth: document.documentElement.scrollWidth
-                    });
-                    addSlideFromCanvas(canvas, slide.title);
-                }
+                window.__lazyVisualUnloadPinned = true;
+                try {
+                    if (typeof window.ensureLazyVisualsLoaded === 'function') {
+                        await window.ensureLazyVisualsLoaded();
+                    }
 
-                var viewLabel = '@Model.ActiveDashboardView';
-                var dateStamp = new Date().toISOString().replace(/[:.]/g, '-');
-                pdf.save('SlotAdherenceVisual_' + viewLabel + '_' + dateStamp + '.pdf');
+                    for (var i = 0; i < slideTargets.length; i++) {
+                        var slide = slideTargets[i];
+                        var canvas = await html2canvas(slide.el, {
+                            scale: 2,
+                            backgroundColor: '#0d0d1a',
+                            useCORS: true,
+                            logging: false,
+                            windowWidth: document.documentElement.scrollWidth
+                        });
+                        addSlideFromCanvas(canvas, slide.title);
+                    }
+
+                    var viewLabel = '@Model.ActiveDashboardView';
+                    var dateStamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    pdf.save('SlotAdherenceVisual_' + viewLabel + '_' + dateStamp + '.pdf');
+                } finally {
+                    window.__lazyVisualUnloadPinned = false;
+                }
             }
 
             csvBtn.addEventListener('click', function() {
@@ -3599,7 +3923,8 @@
             });
         })();
 
-        (function initNapHeatmap() {
+        function bootstrapNapHeatmap() {
+            teardownNapHeatmap();
             var monthSel       = document.getElementById('nap-heatmap-month');
             var scopeLabel     = document.getElementById('nap-hm-scope-label');
             var metricTotal    = document.getElementById('nap-hm-metric-total');
@@ -4254,12 +4579,15 @@
 
             /* ── Independent Heatmap Filter Bar init ── */
             (function initHmFilterBar() {
+                var filterRoot = document.getElementById('hm-indep-filter');
                 var toggle   = document.getElementById('hm-indep-filter-toggle');
                 var body     = document.getElementById('hm-indep-filter-body');
                 var chevron  = document.getElementById('hm-filter-chevron');
                 var badge    = document.getElementById('hm-filter-active-badge');
                 var dotCount = document.getElementById('hm-filter-dot-count');
                 if (!toggle || !body) return;
+                if (filterRoot && filterRoot.getAttribute('data-initialized') === '1') return;
+                if (filterRoot) filterRoot.setAttribute('data-initialized', '1');
 
                 /* Toggle collapse */
                 toggle.addEventListener('click', function () {
@@ -4381,10 +4709,25 @@
             setTimeout(_inv, 100);
             setTimeout(_inv, 400);
             setTimeout(_inv, 900);
+            var loadHandler = null;
             if (document.readyState !== 'complete') {
-                window.addEventListener('load', _inv);
+                loadHandler = _inv;
+                window.addEventListener('load', loadHandler);
             }
-        })();
+
+            window.__napHeatmapState = {
+                napMap: napMap,
+                themeObs: _themeObs,
+                monthSel: monthSel,
+                monthHandler: render,
+                loadHandler: loadHandler,
+                fsChangeHandler: onFsChange,
+                brgyBars: brgyBars,
+                fixBars: fixBars,
+                metricDays: metricDays
+            };
+        }
+        registerLazyVisual(lazyVisualTarget('nap-heatmap'), bootstrapNapHeatmap, 'nap-heatmap', teardownNapHeatmap);
         
         (function initHeatmapTabsAndRecurring() {
             var totalBtn = document.getElementById('hm-tab-total');
@@ -4402,8 +4745,20 @@
                 totalBtn.style.color = isRecurring ? '#a5b4fc' : '#fff';
                 recurringBtn.style.background = isRecurring ? '#6366f1' : 'transparent';
                 recurringBtn.style.color = isRecurring ? '#fff' : '#a5b4fc';
-                if (isRecurring && !recurringBootstrapped && typeof window.__initRecurringHeatmapTab === 'function') {
-                    window.__initRecurringHeatmapTab();
+                if (!isRecurring && typeof window.unloadLazyVisualById === 'function') {
+                    window.unloadLazyVisualById('recurring-heatmap');
+                    recurringBootstrapped = false;
+                }
+                if (isRecurring && !recurringBootstrapped) {
+                    var recurringEl = document.getElementById('hm-panel-recurring');
+                    if (recurringEl && typeof window.__initRecurringHeatmapTab === 'function') {
+                        recurringEl.__lazyInitFn = window.__initRecurringHeatmapTab;
+                        if (typeof window.loadLazyVisualById === 'function') {
+                            window.loadLazyVisualById('recurring-heatmap');
+                        } else {
+                            window.__initRecurringHeatmapTab();
+                        }
+                    }
                     recurringBootstrapped = true;
                 }
                 if (isRecurring && typeof window.__invalidateRecurringHeatmap === 'function') {
@@ -4419,7 +4774,7 @@
         
         (function defineRecurringHeatmapInit() {
             window.__initRecurringHeatmapTab = function () {
-                if (window.__recurringHmBootstrapped) return;
+                teardownRecurringHeatmap();
                 var monthSel = document.getElementById('rhm-month');
                 var scopeLabel = document.getElementById('rhm-scope-label');
                 var totalEl = document.getElementById('rhm-metric-total');
@@ -4434,7 +4789,6 @@
                 var modalClose = document.getElementById('rhm-pin-close');
                 var mapEl = document.getElementById('rhm-map');
                 if (!monthSel || !mapEl) return;
-                window.__recurringHmBootstrapped = true;
 
                 var dateInts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapDateInts));
                 var facilityNames = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapFacilityNames));
@@ -4549,6 +4903,7 @@
                 }
 
                 var map = L.map(mapEl, { center: [7.0736, 125.6139], zoom: 12, zoomControl: false, attributionControl: true, preferCanvas: true });
+                window.__rhmLeafletMap = map;
                 L.control.zoom({ position: 'bottomright' }).addTo(map);
                 var dark = document.documentElement.getAttribute('data-theme') !== 'light';
                 L.tileLayer(dark ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
@@ -4703,29 +5058,39 @@
                     if (brgyEl) brgyEl.textContent = Object.keys(seenBrgy).length.toLocaleString();
                 }
 
-                monthSel.addEventListener('change', renderRecurring);
+                window.__rhmAbortController = new AbortController();
+                var rhmSignal = window.__rhmAbortController.signal;
+
+                monthSel.addEventListener('change', renderRecurring, { signal: rhmSignal });
                 var applyBtn = document.getElementById('hm-filter-apply-btn');
                 var resetBtn = document.getElementById('hm-filter-reset-btn');
-                if (applyBtn) applyBtn.addEventListener('click', renderRecurring);
-                if (resetBtn) resetBtn.addEventListener('click', renderRecurring);
-                window.addEventListener('nap-reference-updated', renderRecurring);
-                if (modalClose) modalClose.addEventListener('click', closeModal);
+                if (applyBtn) applyBtn.addEventListener('click', renderRecurring, { signal: rhmSignal });
+                if (resetBtn) resetBtn.addEventListener('click', renderRecurring, { signal: rhmSignal });
+                window.addEventListener('nap-reference-updated', renderRecurring, { signal: rhmSignal });
+                if (modalClose) modalClose.addEventListener('click', closeModal, { signal: rhmSignal });
                 if (modalRoot) {
                     modalRoot.addEventListener('click', function (e) {
                         var target = e.target;
                         if (target && target.getAttribute('data-role') === 'close') closeModal();
-                    });
+                    }, { signal: rhmSignal });
                 }
                 renderRecurring();
+                window.__recurringHmBootstrapped = true;
                 window.__invalidateRecurringHeatmap = function () {
                     try { map.invalidateSize({ pan: false }); } catch (e) {}
                     try { heatLayer.redraw(); } catch (e2) {}
                 };
             };
+            var recurringPanel = document.getElementById('hm-panel-recurring');
+            if (recurringPanel) {
+                recurringPanel.__lazyInitFn = window.__initRecurringHeatmapTab;
+                registerLazyVisual(recurringPanel, window.__initRecurringHeatmapTab, 'recurring-heatmap', teardownRecurringHeatmap);
+            }
         })();
         
         var skillsetData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SkillsetDistribution));
         var sortedSkillset = Object.entries(skillsetData).sort(function(a, b) { return b[1] - a[1]; });
+        registerLazyVisual(lazyVisualTarget('chart-skillset'), function() {
         new Chart(document.getElementById('skillsetChart'), {
             type: 'bar',
             data: {
@@ -4748,7 +5113,9 @@
                 }
             }
         });
+        }, 'chart-skillset');
 
+        registerLazyVisual(lazyVisualTarget('chart-slot'), function() {
         new Chart(document.getElementById('slotChart'), {
             type: 'doughnut',
             data: {
@@ -4768,10 +5135,12 @@
                 }
             }
         });
+        }, 'chart-slot');
 
         @if (Model.ActiveDashboardView == "status")
         {
             <text>
+            registerLazyVisual(lazyVisualTarget('chart-compliance'), function() {
             new Chart(document.getElementById('complianceChart'), {
                 type: 'doughnut',
                 data: {
@@ -4791,12 +5160,14 @@
                     }
                 }
             });
+            }, 'chart-compliance');
             </text>
         }
 
         @if (Model.DelayedCount > 0)
         {
             <text>
+            registerLazyVisual(lazyVisualTarget('chart-delay-lapse'), function() {
             new Chart(document.getElementById('delayLapseChart'), {
                 type: 'doughnut',
                 data: {
@@ -4816,7 +5187,17 @@
                     }
                 }
             });
+            }, 'chart-delay-lapse');
             </text>
+        }
+
+        if (typeof window.completeLazyVisualSetup === 'function') {
+            window.completeLazyVisualSetup();
+            requestAnimationFrame(function() {
+                if (typeof window.primeFirstVisibleLazyVisual === 'function') {
+                    window.primeFirstVisibleLazyVisual();
+                }
+            });
         }
 
         var tableColumns = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(previewTableCols));
