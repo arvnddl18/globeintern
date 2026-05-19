@@ -17,6 +17,7 @@
 
         var open = false;
         var history = [];
+        var isBusy = false;
 
         function pageKind() { return root.getAttribute('data-page-kind') || 'upload'; }
         function tokenVal() {
@@ -28,6 +29,15 @@
             return v.trim() === '' ? null : v.trim();
         }
         function csrf() { return root.getAttribute('data-csrf') || ''; }
+
+        function setComposerEnabled(enabled) {
+            if (sendBtn) sendBtn.disabled = !enabled;
+            if (input) input.disabled = !enabled;
+        }
+
+        function scrollMessages() {
+            if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
 
         function setOpen(v) {
             open = v;
@@ -48,7 +58,82 @@
             div.className = 'report-assistant-bubble ' + role + (isErr ? ' err' : '');
             div.textContent = text;
             messagesEl.appendChild(div);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            scrollMessages();
+        }
+
+        function showThinkingBubble() {
+            var div = document.createElement('div');
+            div.className = 'report-assistant-bubble assistant thinking';
+            div.setAttribute('aria-busy', 'true');
+            div.setAttribute('aria-label', 'Assistant is thinking');
+            div.innerHTML =
+                '<span class="report-assistant-thinking" aria-hidden="true">' +
+                '<span></span><span></span><span></span>' +
+                '</span>';
+            messagesEl.appendChild(div);
+            scrollMessages();
+            return div;
+        }
+
+        function removeThinkingBubble(el) {
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+        }
+
+        function typingChunkSize(total) {
+            if (total > 1200) return 8;
+            if (total > 600) return 4;
+            if (total > 250) return 2;
+            return 1;
+        }
+
+        function typingDelay(char, total) {
+            if (total > 800) return 6;
+            if (total > 400) return 10;
+            if (char === '\n') return 28;
+            if ('.!?'.indexOf(char) >= 0) return 36;
+            return 16;
+        }
+
+        function typeAssistantBubble(text, isErr) {
+            return new Promise(function (resolve) {
+                var div = document.createElement('div');
+                div.className = 'report-assistant-bubble assistant is-typing' + (isErr ? ' err' : '');
+
+                var textSpan = document.createElement('span');
+                textSpan.className = 'report-assistant-bubble-text';
+
+                var cursor = document.createElement('span');
+                cursor.className = 'report-assistant-cursor';
+                cursor.setAttribute('aria-hidden', 'true');
+
+                div.appendChild(textSpan);
+                div.appendChild(cursor);
+                messagesEl.appendChild(div);
+                scrollMessages();
+
+                var i = 0;
+                var chunk = typingChunkSize(text.length);
+
+                function tick() {
+                    if (i >= text.length) {
+                        div.classList.remove('is-typing');
+                        cursor.remove();
+                        scrollMessages();
+                        resolve();
+                        return;
+                    }
+
+                    var next = Math.min(i + chunk, text.length);
+                    textSpan.textContent = text.slice(0, next);
+                    i = next;
+                    scrollMessages();
+
+                    var lastChar = text.charAt(i - 1);
+                    setTimeout(tick, typingDelay(lastChar, text.length));
+                }
+
+                tick();
+            });
         }
 
         if (messagesEl && history.length === 0) {
@@ -74,13 +159,16 @@
         }
 
         async function send() {
-            if (!input || !sendBtn) return;
+            if (!input || !sendBtn || isBusy) return;
             var text = (input.value || '').trim();
             if (!text) return;
 
-            sendBtn.disabled = true;
+            isBusy = true;
+            setComposerEnabled(false);
             appendBubble('user', text, false);
             input.value = '';
+
+            var thinkingEl = showThinkingBubble();
 
             try {
                 var res = await fetch('/Report/Assistant/Chat', {
@@ -94,8 +182,12 @@
                 });
 
                 var data = await res.json().catch(function () { return null; });
+                removeThinkingBubble(thinkingEl);
+                thinkingEl = null;
+
                 if (!res.ok) {
-                    appendBubble('assistant', (data && data.reply) ? data.reply : 'Request failed (' + res.status + ').', true);
+                    var errMsg = (data && data.reply) ? data.reply : 'Request failed (' + res.status + ').';
+                    appendBubble('assistant', errMsg, true);
                     return;
                 }
 
@@ -103,14 +195,17 @@
                     history.push({ role: 'user', content: text });
                     history.push({ role: 'assistant', content: data.reply });
                     if (history.length > 40) history = history.slice(-40);
-                    appendBubble('assistant', data.reply, false);
+                    await typeAssistantBubble(data.reply, false);
                 } else {
                     appendBubble('assistant', 'No reply from server.', true);
                 }
             } catch (e) {
+                removeThinkingBubble(thinkingEl);
                 appendBubble('assistant', 'Network error. Try again.', true);
             } finally {
-                sendBtn.disabled = false;
+                isBusy = false;
+                setComposerEnabled(true);
+                if (input) input.focus();
             }
         }
 

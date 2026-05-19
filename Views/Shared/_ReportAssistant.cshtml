@@ -202,6 +202,61 @@
             border-bottom-left-radius: 0.25rem;
         }
 
+        .report-assistant-bubble.thinking {
+            min-width: 3.25rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .report-assistant-thinking {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            height: 0.5rem;
+        }
+
+        .report-assistant-thinking span {
+            width: 0.45rem;
+            height: 0.45rem;
+            border-radius: 50%;
+            background: var(--theme-text-muted);
+            animation: report-assistant-dot 1.15s ease-in-out infinite;
+        }
+
+        .report-assistant-thinking span:nth-child(2) { animation-delay: 0.16s; }
+        .report-assistant-thinking span:nth-child(3) { animation-delay: 0.32s; }
+
+        @@keyframes report-assistant-dot {
+            0%, 55%, 100% { opacity: 0.35; transform: translateY(0); }
+            28% { opacity: 1; transform: translateY(-3px); }
+        }
+
+        .report-assistant-bubble.assistant.is-typing {
+            display: flex;
+            align-items: flex-end;
+            gap: 1px;
+        }
+
+        .report-assistant-bubble-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .report-assistant-cursor {
+            flex-shrink: 0;
+            width: 2px;
+            height: 1.05em;
+            margin-bottom: 0.15em;
+            border-radius: 1px;
+            background: currentColor;
+            opacity: 0.85;
+            animation: report-assistant-cursor 0.75s step-end infinite;
+        }
+
+        @@keyframes report-assistant-cursor {
+            0%, 100% { opacity: 0.85; }
+            50% { opacity: 0; }
+        }
+
         .report-assistant-bubble.err {
             border-color: rgba(239, 68, 68, 0.45);
             background: rgba(239, 68, 68, 0.08);
@@ -247,6 +302,11 @@
             outline: none;
             border-color: var(--theme-accent);
             box-shadow: 0 0 0 3px var(--theme-accent-soft);
+        }
+
+        .report-assistant-input:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
         }
 
         .report-assistant-send {
