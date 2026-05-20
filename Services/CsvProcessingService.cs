@@ -1799,15 +1799,18 @@ public class CsvProcessingService : ICsvProcessingService
         var joinSkillsets = new List<string>(Math.Min(maxJoinRows, 32_768));
         var joinStatuses = new List<string>(Math.Min(maxJoinRows, 32_768));
 
-        int currentYear = DateTime.Now.Year;
+        var restrictToCurrentYear = _config.GetValue("CsvMapping:HeatmapRestrictToCurrentYear", false);
+        var currentYear = DateTime.Now.Year;
 
         while (await csv.ReadAsync())
         {
-            var rawDate = csv.GetField(lastUpdateCol) ?? "";
-            if (!TryParseCsvDateLoose(rawDate, out var rowDate)) continue;
-            
-            // The user requested to restrict the heatmap to the current year to avoid dropdown clutter
-            if (rowDate.Year != currentYear) continue;
+            var rawApptDate = csv.GetField(appointmentDateCol) ?? "";
+            var rawLastUpdate = csv.GetField(lastUpdateCol) ?? "";
+            if (!TryParseCsvDateLoose(rawApptDate, out var rowDate) && !TryParseCsvDateLoose(rawLastUpdate, out rowDate))
+                continue;
+
+            if (restrictToCurrentYear && rowDate.Year != currentYear)
+                continue;
 
             total++;
             var territory = csv.GetField(territoryCol) ?? "";
@@ -2513,6 +2516,7 @@ public class CsvProcessingService : ICsvProcessingService
         var s = skillset.ToLowerInvariant();
         if (s.Contains("repair", StringComparison.Ordinal)) return "repair";
         if (s.Contains("install", StringComparison.Ordinal)) return "install";
+        if (s.Contains("migration", StringComparison.Ordinal)) return "migration";
         return "other";
     }
 

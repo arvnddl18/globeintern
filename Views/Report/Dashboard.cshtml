@@ -76,9 +76,12 @@
     :root[data-theme="light"] {
         --dash-card-bg: #ffffff;
         --dash-card-border: #d8deea;
-        --dash-text: #15192d;
-        --dash-text-dim: #2e3550;
-        --dash-text-muted: #556084;
+        --dash-text-primary: #000000;
+        --dash-text-secondary: #1f2937;
+        --dash-text-muted-strong: #4b5563;
+        --dash-text: var(--dash-text-primary);
+        --dash-text-dim: var(--dash-text-secondary);
+        --dash-text-muted: var(--dash-text-muted-strong);
         --dash-pill-bg: rgba(30, 41, 59, 0.06);
         --dash-input-bg: #f8faff;
         --delay-card-bg: #ffffff;
@@ -98,10 +101,17 @@
     :root[data-theme="light"] h2,
     :root[data-theme="light"] h3,
     :root[data-theme="light"] h4,
+    :root[data-theme="light"] h5,
+    :root[data-theme="light"] h6,
     :root[data-theme="light"] .text-xs,
     :root[data-theme="light"] .text-sm,
     :root[data-theme="light"] .text-base {
-        color: var(--dash-text-dim) !important;
+        color: var(--dash-text-secondary) !important;
+    }
+    :root[data-theme="light"] .font-bold,
+    :root[data-theme="light"] .font-semibold,
+    :root[data-theme="light"] .kpi-title {
+        color: var(--dash-text-primary) !important;
     }
 
     :root[data-theme="light"] section.rounded-xl,
@@ -124,7 +134,7 @@
     :root[data-theme="light"] [style*="color: #8a8ab0"],
     :root[data-theme="light"] [style*="color:#8a8ab0"],
     :root[data-theme="light"] [style*="color: #6a6a8e"] {
-        color: var(--dash-text-dim) !important;
+        color: var(--dash-text-secondary) !important;
     }
 
     :root[data-theme="light"] #slot-adherence-report,
@@ -224,11 +234,11 @@
 
     :root[data-theme="light"] #recurring-tickets-table thead th {
         background: #e8ecf4;
-        color: #475569;
+        color: #1f2937;
         border-bottom-color: #d8deea;
     }
     :root[data-theme="light"] #recurring-tickets-table tbody td {
-        color: #1f2a44;
+        color: #111827;
         border-bottom-color: #e2e8f0;
     }
     :root[data-theme="light"] #recurring-tickets-table tbody tr:hover {
@@ -302,7 +312,7 @@
     :root[data-theme="light"] .rt-filter-pill {
         background: #ffffff;
         border-color: #cbd5e1;
-        color: #334155;
+        color: #1f2937;
     }
     :root[data-theme="light"] .rt-filter-pill:hover {
         background: #f8fafc;
@@ -347,7 +357,7 @@
     :root[data-theme="light"] #rt-open-filters {
         background: #f1f5f9;
         border-color: #e2e8f0;
-        color: #475569;
+        color: #1f2937;
     }
     :root[data-theme="light"] #rt-open-filters:hover {
         background: #e2e8f0;
@@ -361,7 +371,7 @@
     :root[data-theme="light"] .rt-input {
         background: #f8fafc;
         border-color: #e2e8f0;
-        color: #1e293b;
+        color: #111827;
     }
     :root[data-theme="light"] .rt-input:focus {
         border-color: #6366f1;
@@ -370,11 +380,27 @@
 
     :root[data-theme="light"] #rt-filter-reset {
         border-color: #e2e8f0;
-        color: #64748b;
+        color: #4b5563;
     }
     :root[data-theme="light"] #rt-filter-reset:hover {
         background: #f1f5f9;
-        color: #1e293b;
+        color: #111827;
+    }
+    :root[data-theme="light"] input,
+    :root[data-theme="light"] select,
+    :root[data-theme="light"] textarea,
+    :root[data-theme="light"] option,
+    :root[data-theme="light"] label,
+    :root[data-theme="light"] th,
+    :root[data-theme="light"] td,
+    :root[data-theme="light"] .dash-main button,
+    :root[data-theme="light"] .dash-main a {
+        color: var(--dash-text-secondary);
+    }
+    :root[data-theme="light"] .dash-main input::placeholder,
+    :root[data-theme="light"] .dash-main textarea::placeholder {
+        color: var(--dash-text-muted);
+        opacity: 0.95;
     }
 
     .rt-input {
@@ -950,14 +976,38 @@
         box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
     }
     #nap-davao-map-wrap,
-    #rhm-map-wrap {
+    #rhm-map-wrap,
+    #dhm-map-wrap {
         border-radius: 10px;
         overflow: hidden;
         border: 1px solid #2a2a4a;
         position: relative;
     }
+    .nap-hm-map-col {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    @@media (min-width: 1280px) {
+        .nap-hm-map-row {
+            align-items: stretch;
+        }
+        .nap-hm-map-wrap {
+            flex: 1 1 auto;
+            min-height: 560px;
+            display: flex;
+            flex-direction: column;
+        }
+        .nap-hm-map-wrap #nap-davao-map,
+        .nap-hm-map-wrap #rhm-map {
+            flex: 1 1 auto;
+            height: 100% !important;
+            min-height: 0;
+        }
+    }
     :root[data-theme="light"] #nap-davao-map-wrap,
-    :root[data-theme="light"] #rhm-map-wrap {
+    :root[data-theme="light"] #rhm-map-wrap,
+    :root[data-theme="light"] #dhm-map-wrap {
         border-color: #d8deea;
     }
     .lazy-visual-target {
@@ -969,7 +1019,8 @@
         opacity: 0;
     }
     #nap-davao-map-wrap.lazy-visual-pending #nap-davao-map,
-    #rhm-map-wrap.lazy-visual-pending #rhm-map {
+    #rhm-map-wrap.lazy-visual-pending #rhm-map,
+    #dhm-map-wrap.lazy-visual-pending #dhm-map {
         min-height: 420px;
         visibility: hidden;
     }
@@ -1013,32 +1064,116 @@
         width:  100% !important;
         height: 100% !important;
     }
+    /* ── Heatmap top tabs ── */
+    .hm-top-tabs {
+        display: inline-flex;
+        gap: 0.45rem;
+        padding: 0.4rem;
+        border-radius: 0.95rem;
+        background: #f8fafc;
+        border: 1px solid #d1d5db;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+    .hm-top-tab {
+        border: 1px solid transparent;
+        border-radius: 0.7rem;
+        padding: 0.55rem 1rem;
+        font-size: 0.75rem;
+        font-weight: 800;
+        line-height: 1;
+        cursor: pointer;
+        transition: all 0.18s ease;
+    }
+    .hm-top-tab.hm-tab-active {
+        color: #ffffff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);
+    }
+    .hm-top-tab[data-kind="total"].hm-tab-active { background: #2563eb; border-color: #1d4ed8; }
+    .hm-top-tab[data-kind="recurring"].hm-tab-active { background: #16a34a; border-color: #15803d; }
+    .hm-top-tab[data-kind="defective"].hm-tab-active { background: #dc2626; border-color: #b91c1c; }
+    .hm-top-tab.hm-tab-inactive {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+        color: #111827 !important;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+    .hm-top-tab.hm-tab-inactive:hover {
+        background: #e5e7eb;
+        border-color: #94a3b8;
+        color: #0f172a !important;
+    }
+    :root[data-theme="dark"] .hm-top-tab.hm-tab-inactive {
+        background: rgba(255,255,255,0.05);
+        border-color: #2a2a4a;
+        color: #c7d2fe !important;
+    }
+    :root[data-theme="dark"] .hm-top-tab.hm-tab-inactive:hover {
+        background: rgba(99, 102, 241, 0.16);
+        border-color: rgba(99, 102, 241, 0.4);
+        color: #e0e7ff !important;
+    }
+    :root[data-theme="dark"] .hm-top-tabs {
+        background: rgba(15, 15, 30, 0.55);
+        border-color: #2a2a4a;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
     /* ── Fullscreen toggle button ── */
     .nap-fs-btn {
-        background: rgba(10,10,24,0.82);
-        border: 1px solid rgba(99,102,241,0.35);
-        border-radius: 8px;
-        width: 32px; height: 32px;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        width: 40px;
+        height: 40px;
         display: flex; align-items: center; justify-content: center;
         cursor: pointer;
-        color: #a5b4fc;
-        transition: background 0.18s, border-color 0.18s;
+        color: #111827;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
     }
     .nap-fs-btn:hover {
-        background: rgba(99,102,241,0.22);
-        border-color: rgba(99,102,241,0.6);
-        color: #e0e7ff;
+        background: #f9fafb;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(0,0,0,0.2);
     }
-    .nap-fs-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .nap-fs-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+    :root[data-theme="dark"] .nap-fs-btn {
+        background: rgba(10,10,24,0.88);
+        border-color: rgba(99,102,241,0.35);
+        color: #c7d2fe;
+    }
+    :root[data-theme="dark"] .nap-fs-btn:hover {
+        background: rgba(99,102,241,0.22);
+    }
     #nap-davao-map,
-    #rhm-map {
-        height: 420px;
+    #rhm-map,
+    #dhm-map {
+        min-height: 560px;
+        height: 560px;
         width: 100%;
         background: #0d0d1a;
         display: block;
     }
+    @@media (max-width: 1279px) {
+        #nap-davao-map,
+        #rhm-map,
+        #dhm-map {
+            min-height: 500px;
+            height: 500px;
+        }
+    }
+    @@media (max-width: 767px) {
+        #nap-davao-map,
+        #rhm-map,
+        #dhm-map {
+            min-height: 440px;
+            height: 440px;
+        }
+    }
     :root[data-theme="light"] #nap-davao-map,
-    :root[data-theme="light"] #rhm-map {
+    :root[data-theme="light"] #rhm-map,
+    :root[data-theme="light"] #dhm-map {
         background: #e8ecf4;
     }
     .nap-map-legend-dot {
@@ -1055,9 +1190,11 @@
         border: 1px solid #3a3a6a !important;
         border-radius: 7px !important;
         padding: 7px 10px !important;
-        white-space: nowrap !important;
+        white-space: normal !important;
         box-shadow: 0 6px 22px rgba(0,0,0,0.6) !important;
         pointer-events: none !important;
+        min-width: 170px;
+        max-width: 230px;
     }
     .nap-dot-tip::before { display: none !important; }
     .nap-dot-tip-name {
@@ -1071,14 +1208,19 @@
         padding-bottom: 4px;
     }
     .nap-dot-tip-coord {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
         font-family: 'JetBrains Mono', monospace;
         font-size: 10px;
         color: #a5b4fc;
-        line-height: 1.6;
+        line-height: 1.4;
+        margin-top: 2px;
+        word-break: break-word;
     }
     .nap-dot-tip-lbl {
-        display: inline-block;
-        width: 22px;
+        display: inline-flex;
+        min-width: 42px;
         font-size: 9px;
         font-weight: 600;
         color: #6366f1;
@@ -1121,6 +1263,102 @@
         box-shadow: 0 4px 22px rgba(0,0,0,0.5);
         user-select: none;
         min-width: 0;
+        width: min(440px, calc(100vw - 2rem));
+    }
+    .nap-map-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+    }
+    .nap-map-filter-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 34px;
+        padding: 0 10px;
+        border-radius: 8px;
+        border: 1px solid #2a2a4a;
+        background: rgba(99,102,241,0.12);
+        color: #a5b4fc;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+    .nap-map-search-wrap {
+        position: relative;
+        flex: 1 1 auto;
+        min-width: 140px;
+    }
+    .nap-map-search-input {
+        width: 100%;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid #2a2a4a;
+        background: rgba(13,13,26,0.9);
+        color: #e0e7ff;
+        padding: 0 32px 0 10px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .nap-map-search-input::placeholder {
+        color: #8a8ab0;
+    }
+    .nap-map-search-input:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+    }
+    .nap-map-search-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 13px;
+        height: 13px;
+        color: #8a8ab0;
+        pointer-events: none;
+    }
+    .nap-map-search-list {
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        z-index: 500;
+        border-radius: 10px;
+        border: 1px solid #2a2a4a;
+        background: rgba(12,12,24,0.98);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    .nap-map-search-item {
+        width: 100%;
+        border: 0;
+        border-bottom: 1px solid rgba(42,42,74,0.75);
+        background: transparent;
+        color: #dbe2ff;
+        text-align: left;
+        font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+        padding: 8px 10px;
+        cursor: pointer;
+    }
+    .nap-map-search-item:hover { background: rgba(99,102,241,0.16); }
+    .nap-map-search-item:last-child { border-bottom: 0; }
+    @@media (max-width: 640px) {
+        .nap-map-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .nap-map-filter-toggle,
+        .nap-map-search-input {
+            width: 100%;
+        }
     }
     /* Collapsed header — always visible */
     .nap-flt-header {
@@ -1198,6 +1436,28 @@
         border-color: #d8deea;
         box-shadow: 0 4px 18px rgba(15,23,42,0.12);
     }
+    :root[data-theme="light"] .nap-map-filter-toggle {
+        border-color: #d1d5db;
+        background: #f3f4f6;
+        color: #111827;
+    }
+    :root[data-theme="light"] .nap-map-search-input {
+        border-color: #d1d5db;
+        background: #ffffff;
+        color: #111827;
+    }
+    :root[data-theme="light"] .nap-map-search-input::placeholder { color: #4b5563; }
+    :root[data-theme="light"] .nap-map-search-icon { color: #374151; }
+    :root[data-theme="light"] .nap-map-search-list {
+        border-color: #d1d5db;
+        background: #ffffff;
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.12);
+    }
+    :root[data-theme="light"] .nap-map-search-item {
+        color: #111827;
+        border-bottom-color: #e5e7eb;
+    }
+    :root[data-theme="light"] .nap-map-search-item:hover { background: #eff6ff; }
     :root[data-theme="light"] .nap-flt-header:hover { background: rgba(79,70,229,0.06); }
     :root[data-theme="light"] .nap-flt-title { color: #64748b; }
     :root[data-theme="light"] .nap-flt-chevron { color: #94a3b8; }
@@ -1301,6 +1561,39 @@
         flex-direction: column;
         gap: 8px;
     }
+    .nap-pin-modal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 14px;
+    }
+    .nap-pin-modal-item {
+        background: rgba(18, 24, 48, 0.65);
+        border: 1px solid rgba(99,102,241,0.2);
+        border-radius: 10px;
+        padding: 10px 12px;
+    }
+    .nap-pin-modal-label {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9aa4c7;
+        margin-bottom: 4px;
+    }
+    .nap-pin-modal-value {
+        font-size: 13px;
+        font-weight: 700;
+        color: #eef2ff;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+    :root[data-theme="light"] .nap-pin-modal-item {
+        background: #f8fafc;
+        border-color: #dbe2ea;
+    }
+    :root[data-theme="light"] .nap-pin-modal-label { color: #4b5563; }
+    :root[data-theme="light"] .nap-pin-modal-value { color: #111827; }
     :root[data-theme="light"] .nap-hm-modal-backdrop {
         background: rgba(15, 23, 42, 0.22);
     }
@@ -1371,30 +1664,346 @@
         padding: 18px 20px;
         font-size: 13px;
     }
+
+    /* ── Dashboard shell: enterprise fixed sidebar + content ── */
+    .dash-layout-root {
+        --dash-sidebar-width: 16.5rem;
+    }
+    .dash-layout-root.dash-sidebar-collapsed {
+        --dash-sidebar-width: 0rem;
+    }
+    .dash-layout-root.dash-sidebar-collapsed .dash-sidebar {
+        transform: translateX(-100%);
+        opacity: 0;
+        pointer-events: none;
+    }
+    .dash-app {
+        display: grid;
+        grid-template-columns: var(--dash-sidebar-width) minmax(0, 1fr);
+        align-items: stretch;
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+        overflow: hidden;
+    }
+    .dash-layout-root.dash-sidebar-collapsed .dash-app {
+        grid-template-columns: 0 minmax(0, 1fr);
+    }
+    .dash-sidebar {
+        position: sticky;
+        top: 0;
+        left: 0;
+        width: var(--dash-sidebar-width);
+        height: calc(100vh - var(--dash-nav-height));
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid rgba(99, 102, 241, 0.22);
+        background: linear-gradient(180deg, rgba(22, 22, 42, 0.92) 0%, rgba(12, 12, 26, 0.96) 100%);
+        box-shadow: 6px 0 18px rgba(0, 0, 0, 0.18);
+        overflow: hidden;
+        z-index: 50;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    :root[data-theme="light"] .dash-sidebar {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(246, 248, 252, 0.98) 100%);
+        border-color: rgba(99, 102, 241, 0.18);
+        box-shadow: 4px 0 14px rgba(15, 23, 42, 0.08);
+    }
+    :root[data-theme="light"] .dash-sidebar-brand h2 { color: var(--dash-text-primary); }
+    :root[data-theme="light"] .dash-sidebar-brand p { color: var(--dash-text-muted); }
+    :root[data-theme="light"] .dash-nav-item { color: var(--dash-text-secondary); }
+    :root[data-theme="light"] .dash-nav-item:hover { color: var(--dash-text-primary); background: rgba(99, 102, 241, 0.08); }
+    :root[data-theme="light"] .dash-nav-item.is-active {
+        color: #111827;
+        background: rgba(99, 102, 241, 0.14);
+        border-color: rgba(99, 102, 241, 0.28);
+    }
+    :root[data-theme="light"] .dash-page-header h1 {
+        color: var(--dash-text-primary) !important;
+    }
+    :root[data-theme="light"] .dash-page-header p,
+    :root[data-theme="light"] .dash-page-header span {
+        color: var(--dash-text-secondary) !important;
+    }
+    .dash-sidebar-brand {
+        padding: 1rem 1rem 0.9rem;
+        border-bottom: 1px solid var(--dash-card-border);
+    }
+    .dash-sidebar-brand p {
+        margin: 0;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #6a6a8e;
+    }
+    .dash-sidebar-brand h2 {
+        margin: 0.25rem 0 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #c8c8e0;
+    }
+    .dash-sidebar-nav {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+    .dash-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+        margin-bottom: 0.2rem;
+        border: 1px solid transparent;
+        border-radius: 0.6rem;
+        background: transparent;
+        color: #8a8ab0;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .dash-nav-item:hover {
+        background: rgba(99, 102, 241, 0.08);
+        color: #c8c8e0;
+        border-color: rgba(99, 102, 241, 0.15);
+    }
+    .dash-nav-item.is-active {
+        background: rgba(99, 102, 241, 0.18);
+        color: #e0e7ff;
+        border-color: rgba(99, 102, 241, 0.35);
+        box-shadow: inset 2px 0 0 #818cf8;
+    }
+    .dash-nav-item i {
+        flex-shrink: 0;
+        width: 15px;
+        height: 15px;
+        opacity: 0.85;
+    }
+    .dash-nav-item.is-active i { opacity: 1; color: #a5b4fc; }
+    .dash-sidebar-foot {
+        padding: 0.65rem 1rem;
+        border-top: 1px solid var(--dash-card-border);
+        font-size: 0.65rem;
+        color: #5a5a7e;
+    }
+    .dash-main {
+        width: 100%;
+        max-width: 100%;
+        height: calc(100vh - var(--dash-nav-height));
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-width: 0;
+        padding: 1.5rem 2rem 2rem;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 1;
+    }
+    .dash-page-header {
+        padding-right: 0;
+        max-width: 100%;
+    }
+    .dash-panel {
+        display: none;
+        max-width: 100%;
+        min-width: 0;
+        animation: dashPanelIn 0.28s ease-out;
+    }
+    .dash-panel.is-active {
+        display: block;
+    }
+    .dash-panel section,
+    .dash-panel > div,
+    .dash-main .rounded-xl {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    #report-history-section {
+        overflow: hidden;
+    }
+    #report-history-groups,
+    #report-history-groups .grid {
+        min-width: 0;
+        max-width: 100%;
+    }
+    #report-magic-link {
+        min-width: 0 !important;
+        max-width: 100%;
+        width: 100%;
+    }
+    #kpi-count-report,
+    #slot-adherence-report,
+    #heatmap-analysis-report,
+    #recurring-tickets-report {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+    .filter-scroll {
+        max-width: 100%;
+    }
+    .dash-sidebar-collapse-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        margin-left: auto;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        background: rgba(99, 102, 241, 0.1);
+        color: #a5b4fc;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .dash-sidebar-collapse-btn:hover {
+        background: rgba(99, 102, 241, 0.2);
+    }
+    .dash-layout-root.dash-sidebar-collapsed .dash-sidebar-collapse-btn {
+        transform: rotate(180deg);
+    }
+    .dash-sidebar-expand-btn {
+        display: none;
+        position: fixed;
+        left: 0.85rem;
+        top: calc(var(--dash-nav-height) + 0.85rem);
+        z-index: 75;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.65rem;
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        background: rgba(22, 22, 42, 0.95);
+        color: #a5b4fc;
+        cursor: pointer;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .dash-sidebar-expand-btn:hover {
+        background: rgba(99, 102, 241, 0.2);
+    }
+    .dash-layout-root.dash-sidebar-collapsed .dash-sidebar-expand-btn {
+        display: inline-flex;
+    }
+    @@keyframes dashPanelIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .dash-mobile-toggle {
+        display: none;
+        margin-bottom: 1rem;
+    }
+    .dash-sidebar-backdrop {
+        display: none;
+    }
+    @@media (max-width: 1023px) {
+        .dash-mobile-toggle { display: inline-flex; }
+        .dash-app {
+            display: block;
+            height: 100%;
+        }
+        .dash-sidebar {
+            position: fixed;
+            top: var(--dash-nav-height);
+            left: 0;
+            bottom: 0;
+            height: calc(100vh - var(--dash-nav-height));
+            width: min(17rem, 88vw);
+            border-radius: 0;
+            border-right: 1px solid rgba(99, 102, 241, 0.22);
+            transform: translateX(-105%);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            z-index: 80;
+        }
+        .dash-sidebar.is-open { transform: translateX(0); }
+        .dash-sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: var(--dash-nav-height) 0 0 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(2px);
+            z-index: 75;
+        }
+        .dash-sidebar-backdrop.is-open { display: block; }
+        .dash-main {
+            margin-left: 0;
+            width: 100%;
+            max-width: 100%;
+            height: calc(100vh - var(--dash-nav-height));
+            padding: 1rem 1rem 1.5rem;
+        }
+    }
 </style>
 
-<header class="mb-10 slide-up">
-    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="text-center md:text-left">
-            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-2" style="color: #f0f0f8;">
-                KPI Dashboard
-            </h1>
-            <p class="text-base sm:text-lg" style="color: #7a7a9e;">
-                Filtered analysis of <span class="font-mono font-bold" style="color: #a5b4fc;">@Model.TotalAppointments.ToString("N0")</span> appointment(s)
-            </p>
+<div class="dash-app" id="dash-app">
+    <button type="button" id="dash-sidebar-expand" class="dash-sidebar-expand-btn" aria-label="Expand sidebar" title="Expand sidebar">
+        <i data-lucide="chevrons-right" style="width:16px;height:16px;"></i>
+    </button>
+    <div class="dash-sidebar-backdrop" id="dash-sidebar-backdrop" aria-hidden="true"></div>
+    <aside class="dash-sidebar" id="dash-sidebar" aria-label="Dashboard sections">
+        <div class="dash-sidebar-brand" style="display:flex;align-items:flex-start;gap:0.5rem;">
+            <div style="flex:1;min-width:0;">
+                <p>Navigation</p>
+                <h2>Report sections</h2>
+            </div>
+            <button type="button" id="dash-sidebar-collapse" class="dash-sidebar-collapse-btn flex-shrink-0" title="Collapse sidebar" aria-label="Collapse sidebar">
+                <i data-lucide="chevrons-left" style="width:14px;height:14px;"></i>
+            </button>
         </div>
-        <div>
-            <form asp-controller="Report" asp-action="UploadKpi" method="post" enctype="multipart/form-data" id="kpi-upload-form">
-                @Html.AntiForgeryToken()
-                <input type="file" name="csvFile" id="kpi-file-input" accept=".csv,.xlsx" class="hidden" />
-                <button type="button" id="kpi-upload-btn" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                        style="background: rgba(99, 102, 241, 0.12); color: #a5b4fc; border: 1px solid #2a2a4a;">
-                    <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload KPI File
-                </button>
-            </form>
-        </div>
-    </div>
-</header>
+        <nav class="dash-sidebar-nav" id="dash-sidebar-nav">
+            <button type="button" class="dash-nav-item is-active" data-dash-panel="overview" aria-current="page">
+                <i data-lucide="layout-dashboard"></i><span>Overview</span>
+            </button>
+            <button type="button" class="dash-nav-item" data-dash-panel="slot-adherence">
+                <i data-lucide="bar-chart-2"></i><span>Slot Adherence Report</span>
+            </button>
+            <button type="button" class="dash-nav-item" data-dash-panel="kpi-counts">
+                <i data-lucide="clipboard-list"></i><span>KPI Field Counts Report</span>
+            </button>
+            <button type="button" class="dash-nav-item" data-dash-panel="data-preview">
+                <i data-lucide="table"></i><span>Data Preview</span>
+            </button>
+            <button type="button" class="dash-nav-item" data-dash-panel="heatmap">
+                <i data-lucide="flame"></i><span>Heatmap Analysis</span>
+            </button>
+            <button type="button" class="dash-nav-item" data-dash-panel="recurring">
+                <i data-lucide="repeat-2"></i><span>Recurring Tickets</span>
+            </button>
+        </nav>
+        <div class="dash-sidebar-foot">SlotAd Globe · KPI Dashboard</div>
+    </aside>
+    <div class="dash-main">
+        <header class="dash-page-header mb-8 slide-up">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="text-center md:text-left">
+                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-2" style="color: #f0f0f8;">
+                        KPI Dashboard
+                    </h1>
+                    <p class="text-base sm:text-lg" style="color: #7a7a9e;">
+                        Filtered analysis of <span class="font-mono font-bold" style="color: #a5b4fc;">@Model.TotalAppointments.ToString("N0")</span> appointment(s)
+                    </p>
+                </div>
+                <div>
+                    <form asp-controller="Report" asp-action="UploadKpi" method="post" enctype="multipart/form-data" id="kpi-upload-form">
+                        @Html.AntiForgeryToken()
+                        <input type="file" name="csvFile" id="kpi-file-input" accept=".csv,.xlsx" class="hidden" />
+                        <button type="button" id="kpi-upload-btn" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                                style="background: rgba(99, 102, 241, 0.12); color: #a5b4fc; border: 1px solid #2a2a4a;">
+                            <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload KPI File
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </header>
+        <button type="button" id="dash-mobile-toggle" class="dash-mobile-toggle inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+                style="color: #c8c8e0; background: rgba(99,102,241,0.12); border: 1px solid #2a2a4a;">
+            <i data-lucide="menu" style="width:14px;height:14px;"></i> Sections
+        </button>
+        <div id="panel-overview" class="dash-panel is-active" data-dash-panel="overview">
 
 @if (TempData["Error"] is string dashErr)
 {
@@ -1577,7 +2186,7 @@
             </p>
             <div class="flex flex-wrap gap-2 items-stretch sm:items-center">
                 <input type="text" readonly id="report-magic-link"
-                       class="flex-1 min-w-[12rem] rounded-lg px-3 py-2 text-xs font-mono"
+                       class="flex-1 min-w-0 rounded-lg px-3 py-2 text-xs font-mono w-full"
                        style="background: #0d0d1a; border: 1px solid #2a2a4a; color: #c8c8e0;"
                        value="@(Url.Action("Dashboard", "Report", new { token = Model.ReportToken, view = Model.ActiveDashboardView }, Context.Request.Scheme) ?? "")" />
                 <button type="button" id="copy-report-magic-link"
@@ -1589,6 +2198,47 @@
         </div>
     </div>
 </section>
+
+<section class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 fade-in" style="animation-delay: 0.1s;">
+    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(99, 102, 241, 0.12);">
+                <i data-lucide="calendar-check" style="width:15px; height:15px; color: #6366f1;"></i>
+            </div>
+            <span class="text-xs font-medium" style="color: #6a6a8e;">Total Appointments</span>
+        </div>
+        <p class="text-3xl font-bold font-mono" style="color: #f0f0f8;">@Model.TotalAppointments.ToString("N0")</p>
+    </div>
+    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(34, 197, 94, 0.12);">
+                <i data-lucide="map-pin" style="width:15px; height:15px; color: #22c55e;"></i>
+            </div>
+            <span class="text-xs font-medium" style="color: #6a6a8e;">Unique Territories</span>
+        </div>
+        <p class="text-3xl font-bold font-mono" style="color: #f0f0f8;">@Model.UniqueTerritoriesCount</p>
+    </div>
+    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(249, 115, 22, 0.12);">
+                <i data-lucide="wrench" style="width:15px; height:15px; color: #f97316;"></i>
+            </div>
+            <span class="text-xs font-medium" style="color: #6a6a8e;">Unique Skillsets</span>
+        </div>
+        <p class="text-3xl font-bold font-mono" style="color: #f0f0f8;">@Model.UniqueSkillsetsCount</p>
+    </div>
+    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(236, 72, 153, 0.12);">
+                <i data-lucide="clock" style="width:15px; height:15px; color: #ec4899;"></i>
+            </div>
+            <span class="text-xs font-medium" style="color: #6a6a8e;">Date Range</span>
+        </div>
+        <p class="text-sm font-semibold font-mono leading-tight" style="color: #f0f0f8;">@Model.DateRangeDisplay</p>
+    </div>
+</section>
+
+</div><!-- #panel-overview -->
 
 @if (!Model.IsReadOnly)
 {
@@ -1773,6 +2423,7 @@
 <!-- ═══════════════════════════════════════════════════════════════════════════
      SLOT ADHERENCE REPORT CONTAINER
      ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="panel-slot-adherence" class="dash-panel" data-dash-panel="slot-adherence">
 <div id="slot-adherence-report" class="mb-10 rounded-2xl p-6" style="background: rgba(10,10,25,0.45); border: 1px solid #2a2a4a;">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4" style="border-bottom: 1px solid #2a2a4a;">
         <div class="flex items-center gap-2">
@@ -1795,45 +2446,6 @@
         </span>
         }
     </div>
-
-<section class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 fade-in" style="animation-delay: 0.1s;">
-    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
-        <div class="flex items-center gap-2 mb-2">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(99, 102, 241, 0.12);">
-                <i data-lucide="calendar-check" style="width:15px; height:15px; color: #6366f1;"></i>
-            </div>
-            <span class="text-xs font-medium" style="color: #6a6a8e;">Total Appointments</span>
-        </div>
-        <p class="text-3xl font-bold font-mono" style="color: #f0f0f8;">@Model.TotalAppointments.ToString("N0")</p>
-    </div>
-    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
-        <div class="flex items-center gap-2 mb-2">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(34, 197, 94, 0.12);">
-                <i data-lucide="map-pin" style="width:15px; height:15px; color: #22c55e;"></i>
-            </div>
-            <span class="text-xs font-medium" style="color: #6a6a8e;">Unique Territories</span>
-        </div>
-        <p class="text-3xl font-bold font-mono" style="color: #f0f0f8;">@Model.UniqueTerritoriesCount</p>
-    </div>
-    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
-        <div class="flex items-center gap-2 mb-2">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(249, 115, 22, 0.12);">
-                <i data-lucide="wrench" style="width:15px; height:15px; color: #f97316;"></i>
-            </div>
-            <span class="text-xs font-medium" style="color: #6a6a8e;">Unique Skillsets</span>
-        </div>
-        <p class="text-3xl font-bold font-mono" style="color: #f0f0f8;">@Model.UniqueSkillsetsCount</p>
-    </div>
-    <div class="rounded-xl p-5" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
-        <div class="flex items-center gap-2 mb-2">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(236, 72, 153, 0.12);">
-                <i data-lucide="clock" style="width:15px; height:15px; color: #ec4899;"></i>
-            </div>
-            <span class="text-xs font-medium" style="color: #6a6a8e;">Date Range</span>
-        </div>
-        <p class="text-sm font-semibold font-mono leading-tight" style="color: #f0f0f8;">@Model.DateRangeDisplay</p>
-    </div>
-</section>
 
 @if (Model.ActiveDashboardView == "status")
 {
@@ -2024,6 +2636,35 @@
     </section>
 }
 
+<section class="mt-8 pt-4 fade-in" style="animation-delay: 0.26s; border-top: 1px solid #2a2a4a;">
+    <div class="flex flex-wrap items-center justify-end gap-2">
+        <button id="slot-adh-export-csv-btn"
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                style="color: #a5b4fc; background: rgba(99, 102, 241, 0.12); border: 1px solid #2a2a4a;">
+            <i data-lucide="file-down" style="width:12px; height:12px;"></i> Export CSV (Full Data)
+        </button>
+        <button id="slot-adh-export-xlsx-btn"               
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                style="color: #e0e7ff; background: rgba(34, 197, 94, 0.16); border: 1px solid rgba(34, 197, 94, 0.35);">
+            <i data-lucide="file-text" style="width:12px; height:12px;"></i> Export PDF (Visual)
+        </button>
+    </div>
+
+    <form id="slot-adh-export-csv-form" asp-controller="Report" asp-action="ExportSlotAdherenceCsv" method="post" class="hidden">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ReportToken" value="@Model.ReportToken" />
+        <input type="hidden" name="View" value="@Model.ActiveDashboardView" />
+    </form>
+
+</section>
+
+</div>
+<!-- END slot-adherence-report -->
+</div><!-- #panel-slot-adherence -->
+
+<div id="panel-kpi-counts" class="dash-panel" data-dash-panel="kpi-counts">
 <section class="mb-8 fade-in" style="animation-delay: 0.18s;">
     @{
         var netDelayedCount = Math.Max(0, Model.DelayedCount - Model.LapsedCount);
@@ -2456,6 +3097,9 @@
 </section>
 
 
+</div><!-- #panel-kpi-counts -->
+
+<div id="panel-data-preview" class="dash-panel" data-dash-panel="data-preview">
 <section class="mb-8 fade-in" style="animation-delay: 0.25s;">
     <div class="rounded-xl overflow-hidden" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
         <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid #2a2a4a;">
@@ -2515,35 +3159,9 @@
     </div>
 </section>
 
-<section class="mt-8 pt-4 fade-in" style="animation-delay: 0.26s; border-top: 1px solid #2a2a4a;">
-    <div class="flex flex-wrap items-center justify-end gap-2">
-        <button id="slot-adh-export-csv-btn"
-                type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                style="color: #a5b4fc; background: rgba(99, 102, 241, 0.12); border: 1px solid #2a2a4a;">
-            <i data-lucide="file-down" style="width:12px; height:12px;"></i> Export CSV (Full Data)
-        </button>
-        <button id="slot-adh-export-xlsx-btn"               
-                type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                style="color: #e0e7ff; background: rgba(34, 197, 94, 0.16); border: 1px solid rgba(34, 197, 94, 0.35);">
-            <i data-lucide="file-text" style="width:12px; height:12px;"></i> Export PDF (Visual)
-        </button>
-    </div>
+</div><!-- #panel-data-preview -->
 
-    <form id="slot-adh-export-csv-form" asp-controller="Report" asp-action="ExportSlotAdherenceCsv" method="post" class="hidden">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="ReportToken" value="@Model.ReportToken" />
-        <input type="hidden" name="View" value="@Model.ActiveDashboardView" />
-    </form>
-
-</section>
-
-</div>
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     END: Slot Adherence Report Container
-     ═══════════════════════════════════════════════════════════════════════════ -->
-
+<div id="panel-heatmap" class="dash-panel" data-dash-panel="heatmap">
 <!-- ═══════════════════════════════════════════════════════════════════════════
      HEATMAP ANALYSIS CONTAINER
      ═══════════════════════════════════════════════════════════════════════════ -->
@@ -2554,9 +3172,10 @@
             <span class="text-base font-semibold tracking-wide" style="color: #c8c8e0;">Heatmap Analysis</span>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            <div class="inline-flex rounded-lg p-1" style="background: rgba(15,15,30,0.55); border: 1px solid #2a2a4a;">
-                <button type="button" id="hm-tab-total" class="px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer" style="background:#6366f1;color:#fff;">Total NAPs</button>
-                <button type="button" id="hm-tab-recurring" class="px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer" style="color:#a5b4fc;">Recurring Tickets</button>
+            <div class="hm-top-tabs">
+                <button type="button" id="hm-tab-total" data-kind="total" class="hm-top-tab hm-tab-active">Total NAPs</button>
+                <button type="button" id="hm-tab-recurring" data-kind="recurring" class="hm-top-tab hm-tab-inactive">Recurring Tickets</button>
+                <button type="button" id="hm-tab-defective" data-kind="defective" class="hm-top-tab hm-tab-inactive">Defective</button>
             </div>
             <label id="nap-ref-upload-label" title="Upload NAP reference file (.xlsx or .csv) to filter map pins"
                 class="flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
@@ -2614,7 +3233,8 @@
                         @foreach (var s in Model.AvailableSkillsets)
                         {
                             var hmSkillChecked = s.IndexOf("Install", StringComparison.OrdinalIgnoreCase) >= 0
-                                              || s.IndexOf("Repair",  StringComparison.OrdinalIgnoreCase) >= 0;
+                                              || s.IndexOf("Repair",  StringComparison.OrdinalIgnoreCase) >= 0
+                                              || s.IndexOf("Migration", StringComparison.OrdinalIgnoreCase) >= 0;
                             <label class="flex items-center gap-2 px-2 py-1 rounded-lg cursor-pointer" style="color: #c8c8e0;">
                                 <input type="checkbox" class="hm-flt-cb" data-group="skillset" value="@s" @(hmSkillChecked ? "checked" : "") style="accent-color: #6366f1; width:12px; height:12px; flex-shrink:0;">
                                 <span class="text-xs truncate" title="@s">@s</span>
@@ -2634,10 +3254,8 @@
                     <div class="flex flex-col gap-0.5 max-h-36 overflow-y-auto filter-scroll" id="hm-status-list">
                         @foreach (var st in Model.AvailableStatuses)
                         {
-                            var hmStatusChecked = st.IndexOf("Cancelled", StringComparison.OrdinalIgnoreCase) >= 0
-                                               || st.IndexOf("Completed", StringComparison.OrdinalIgnoreCase) >= 0;
                             <label class="flex items-center gap-2 px-2 py-1 rounded-lg cursor-pointer" style="color: #c8c8e0;">
-                                <input type="checkbox" class="hm-flt-cb" data-group="status" value="@st" @(hmStatusChecked ? "checked" : "") style="accent-color: #6366f1; width:12px; height:12px; flex-shrink:0;">
+                                <input type="checkbox" class="hm-flt-cb" data-group="status" value="@st" checked style="accent-color: #6366f1; width:12px; height:12px; flex-shrink:0;">
                                 <span class="text-xs truncate" title="@st">@st</span>
                             </label>
                         }
@@ -2724,29 +3342,32 @@
                 </div>
             </div>
 
-            <div class="flex flex-col xl:flex-row gap-5">
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="flex flex-col xl:flex-row gap-5 nap-hm-map-row xl:items-stretch">
+                <div class="flex-1 min-w-0 nap-hm-map-col">
+                    <div class="flex items-center justify-between gap-2 mb-2 flex-shrink-0">
                         <div class="flex items-center gap-2">
                             <i data-lucide="map-pin" style="width:12px; height:12px; color: #6366f1;"></i>
                             <span class="text-xs font-semibold uppercase tracking-wide" style="color: #8a8ab0;">NAP distribution — Davao City</span>
                         </div>
                         <span id="nap-hm-scope-label" class="text-xs font-mono" style="color: #5a5a7e;">—</span>
                     </div>
-                    <div id="nap-davao-map-wrap">
+                    <div id="nap-davao-map-wrap" class="nap-hm-map-wrap">
                         <div id="nap-davao-map"></div>
                     </div>
-                    <div class="flex flex-wrap items-center gap-4 mt-3">
+                    <div class="flex flex-wrap items-center gap-4 mt-3 flex-shrink-0">
                         <span class="flex items-center gap-1.5 text-[11px]" style="color: #8a8ab0;">
                             <span class="nap-map-legend-dot" style="background:#32CD32;"></span>Repair
                         </span>
                         <span class="flex items-center gap-1.5 text-[11px]" style="color: #8a8ab0;">
                             <span class="nap-map-legend-dot" style="background:#1E90FF;"></span>Install
                         </span>
+                        <span class="flex items-center gap-1.5 text-[11px]" style="color: #8a8ab0;">
+                            <span class="nap-map-legend-dot" style="background:#a855f7;"></span>Migration
+                        </span>
                         <span class="ml-auto text-[10px] font-mono" style="color: #4a4a6e;">Circle size ∝ NAP count</span>
                     </div>
                 </div>
-                <div class="w-full xl:w-72 flex-shrink-0 rounded-lg p-4" style="background: rgba(15, 15, 30, 0.45); border: 1px solid #2a2a4a;">
+                <div id="nap-hm-sidebar" class="w-full xl:w-72 flex-shrink-0 rounded-lg p-4" style="background: rgba(15, 15, 30, 0.45); border: 1px solid #2a2a4a;">
                     <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: #8a8ab0;">Top barangays with NAPs</p>
                     <select id="nap-hm-brgy-filter" class="nap-hm-select w-full mb-3" disabled aria-label="Filter by barangay">
                         <option value="">All barangays</option>
@@ -2816,27 +3437,88 @@
                     <p class="text-xs mt-1" style="color: #5a5a7e;">Affected barangays</p>
                 </div>
             </div>
-            <div class="flex flex-col xl:flex-row gap-5">
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="flex flex-col xl:flex-row gap-5 nap-hm-map-row xl:items-stretch">
+                <div class="flex-1 min-w-0 nap-hm-map-col">
+                    <div class="flex items-center justify-between gap-2 mb-2 flex-shrink-0">
                         <div class="flex items-center gap-2">
                             <i data-lucide="map-pin" style="width:12px; height:12px; color: #6366f1;"></i>
                             <span class="text-xs font-semibold uppercase tracking-wide" style="color: #8a8ab0;">Recurring NAP distribution — Davao City</span>
                         </div>
                         <span id="rhm-scope-label" class="text-xs font-mono" style="color: #5a5a7e;">—</span>
                     </div>
-                    <div id="rhm-map-wrap"><div id="rhm-map"></div></div>
-                    <div class="flex flex-wrap items-center gap-4 mt-3">
+                    <div id="rhm-map-wrap" class="nap-hm-map-wrap"><div id="rhm-map"></div></div>
+                    <div class="flex flex-wrap items-center gap-4 mt-3 flex-shrink-0">
                         <span class="flex items-center gap-1.5 text-[11px]" style="color: #8a8ab0;"><span class="nap-map-legend-dot" style="background:#32CD32;"></span>Repair</span>
                         <span class="flex items-center gap-1.5 text-[11px]" style="color: #8a8ab0;"><span class="nap-map-legend-dot" style="background:#1E90FF;"></span>Install</span>
                         <span class="ml-auto text-[10px] font-mono" style="color: #4a4a6e;">Circle size ∝ recurring count</span>
                     </div>
                 </div>
-                <div class="w-full xl:w-72 flex-shrink-0 rounded-lg p-4" style="background: rgba(15, 15, 30, 0.45); border: 1px solid #2a2a4a;">
+                <div id="rhm-sidebar" class="w-full xl:w-72 flex-shrink-0 rounded-lg p-4" style="background: rgba(15, 15, 30, 0.45); border: 1px solid #2a2a4a;">
                     <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: #8a8ab0;">Top barangays with recurring tickets</p>
                     <div id="rhm-brgy-bars" class="flex flex-col gap-2.5 mb-5"></div>
                     <p class="text-xs font-semibold uppercase tracking-wide mb-3" style="color: #8a8ab0;">Top recurring NAPs</p>
                     <div id="rhm-nap-bars" class="flex flex-col gap-2.5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="hm-panel-defective" class="mb-8 fade-in hidden lazy-visual-target lazy-visual-pending" data-lazy-id="defective-heatmap" style="animation-delay: 0.24s;">
+    <div class="rounded-xl overflow-hidden" style="background: rgba(22, 22, 42, 0.8); border: 1px solid #2a2a4a;">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4" style="border-bottom: 1px solid #2a2a4a;">
+            <div class="flex flex-wrap items-center gap-2 min-w-0">
+                <i data-lucide="alert-triangle" style="width:14px; height:14px; color: #ef4444;"></i>
+                <span class="text-sm font-semibold" style="color: #c8c8e0;">Defective NAP Heatmap</span>
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background: rgba(239,68,68,0.15); color: #f87171;">Reference file</span>
+                <span class="text-xs hidden sm:inline font-mono" style="color: #5a5a7e;">Davao North · S_FA + S_SP ≥ 8</span>
+            </div>
+            <span id="dhm-scope-label" class="text-xs font-mono" style="color: #5a5a7e;">Upload reference file</span>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                <div class="rounded-lg p-4" style="background: rgba(15, 15, 30, 0.55); border: 1px solid #2a2a4a;">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: #6a6a8e;">Defective NAPs</p>
+                    <p id="dhm-metric-total" class="text-2xl font-bold font-mono" style="color: #f87171;">0</p>
+                    <p class="text-xs mt-1" style="color: #5a5a7e;">S_FA + S_SP ≥ 8</p>
+                </div>
+                <div class="rounded-lg p-4" style="background: rgba(15, 15, 30, 0.55); border: 1px solid #2a2a4a;">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: #6a6a8e;">Total S_FA</p>
+                    <p id="dhm-metric-sfa" class="text-2xl font-bold font-mono" style="color: #f0f0f8;">0</p>
+                    <p class="text-xs mt-1" style="color: #5a5a7e;">Among defective NAPs</p>
+                </div>
+                <div class="rounded-lg p-4" style="background: rgba(15, 15, 30, 0.55); border: 1px solid #2a2a4a;">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: #6a6a8e;">Total S_SP</p>
+                    <p id="dhm-metric-ssp" class="text-2xl font-bold font-mono" style="color: #f0f0f8;">0</p>
+                    <p class="text-xs mt-1" style="color: #5a5a7e;">Among defective NAPs</p>
+                </div>
+                <div class="rounded-lg p-4" style="background: rgba(15, 15, 30, 0.55); border: 1px solid #2a2a4a;">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: #6a6a8e;">Total Barangays</p>
+                    <p id="dhm-metric-brgys" class="text-2xl font-bold font-mono" style="color: #facc15;">0</p>
+                    <p class="text-xs mt-1" style="color: #5a5a7e;">With defective NAPs</p>
+                </div>
+            </div>
+            <div class="flex flex-col xl:flex-row gap-5 nap-hm-map-row xl:items-stretch">
+                <div class="flex-1 min-w-0 nap-hm-map-col">
+                    <div class="flex items-center justify-between gap-2 mb-2 flex-shrink-0">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="map-pin" style="width:12px; height:12px; color: #ef4444;"></i>
+                            <span class="text-xs font-semibold uppercase tracking-wide" style="color: #8a8ab0;">Defective NAP distribution — Davao North</span>
+                        </div>
+                    </div>
+                    <div id="dhm-map-wrap" class="nap-hm-map-wrap"><div id="dhm-map"></div></div>
+                    <div class="flex flex-wrap items-center gap-4 mt-3">
+                        <span class="flex items-center gap-1.5 text-[11px]" style="color: #8a8ab0;">
+                            <span class="nap-map-legend-dot" style="background:#ef4444;"></span>Defective NAP
+                        </span>
+                        <span class="ml-auto text-[10px] font-mono" style="color: #4a4a6e;">Pins from DP/NAP LAT &amp; LONG</span>
+                    </div>
+                </div>
+                <div class="w-full xl:w-72 flex-shrink-0 rounded-lg p-4" style="background: rgba(15, 15, 30, 0.45); border: 1px solid #2a2a4a;">
+                    <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: #8a8ab0;">Top barangays with defective NAPs</p>
+                    <div id="dhm-brgy-bars" class="flex flex-col gap-2.5 mb-5"></div>
+                    <p class="text-xs font-semibold uppercase tracking-wide mb-3" style="color: #8a8ab0;">Top defective NAPs (by S_FA + S_SP)</p>
+                    <div id="dhm-nap-bars" class="flex flex-col gap-2.5"></div>
                 </div>
             </div>
         </div>
@@ -2851,6 +3533,17 @@
             <button type="button" id="nap-hm-others-close" class="nap-hm-modal-close">Close</button>
         </div>
         <div id="nap-hm-others-list" class="nap-hm-modal-list"></div>
+    </div>
+</div>
+
+<div id="nap-pin-detail-modal" class="nap-hm-modal hidden" aria-hidden="true">
+    <div class="nap-hm-modal-backdrop" data-role="close"></div>
+    <div class="nap-hm-modal-card" style="width:min(820px,95vw);">
+        <div class="nap-hm-modal-header">
+            <h3 id="nap-pin-detail-title" class="nap-hm-modal-title">NAP details</h3>
+            <button type="button" id="nap-pin-detail-close" class="nap-hm-modal-close">Close</button>
+        </div>
+        <div id="nap-pin-detail-body" class="nap-hm-modal-list"></div>
     </div>
 </div>
 <div id="rhm-pin-modal" class="nap-hm-modal hidden" aria-hidden="true">
@@ -2869,6 +3562,9 @@
      END: Heatmap Analysis Container
      ═══════════════════════════════════════════════════════════════════════════ -->
 
+</div><!-- #panel-heatmap -->
+
+<div id="panel-recurring" class="dash-panel" data-dash-panel="recurring">
 <!-- ═══════════════════════════════════════════════════════════════════════════
      START: Recurring Tickets Report
      ═══════════════════════════════════════════════════════════════════════════ -->
@@ -3126,14 +3822,9 @@
      END: Recurring Tickets Report
      ═══════════════════════════════════════════════════════════════════════════ -->
 
-<section class="flex flex-wrap items-center justify-center gap-4 mb-4 fade-in" style="animation-delay: 0.3s;">
-    <a asp-action="Upload"
-       class="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 cursor-pointer"
-       style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid #3a3a5a;">
-        <i data-lucide="upload" style="width:18px; height:18px;"></i>
-        Upload New File
-    </a>
-</section>
+</div><!-- #panel-recurring -->
+    </div><!-- .dash-main -->
+</div><!-- #dash-app -->
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -3394,10 +4085,15 @@
             window.__napHeatmapState = null;
             if (typeof window.unloadLazyVisualById === 'function') {
                 window.unloadLazyVisualById('recurring-heatmap');
+                window.unloadLazyVisualById('defective-heatmap');
             }
         }
 
         function teardownRecurringHeatmap() {
+            if (window.__rhmThemeObs) {
+                try { window.__rhmThemeObs.disconnect(); } catch (e) {}
+                window.__rhmThemeObs = null;
+            }
             if (window.__rhmAbortController) {
                 window.__rhmAbortController.abort();
                 window.__rhmAbortController = null;
@@ -3413,6 +4109,126 @@
             if (brgyBars) brgyBars.innerHTML = '';
             if (napBars) napBars.innerHTML = '';
         }
+
+        function teardownDefectiveHeatmap() {
+            if (window.__dhmAbortController) {
+                window.__dhmAbortController.abort();
+                window.__dhmAbortController = null;
+            }
+            if (window.__dhmLeafletMap) {
+                try { window.__dhmLeafletMap.remove(); } catch (e) {}
+                window.__dhmLeafletMap = null;
+            }
+            window.__defectiveHmBootstrapped = false;
+            window.__invalidateDefectiveHeatmap = null;
+            var brgyBars = document.getElementById('dhm-brgy-bars');
+            var napBars = document.getElementById('dhm-nap-bars');
+            if (brgyBars) brgyBars.innerHTML = '';
+            if (napBars) napBars.innerHTML = '';
+        }
+
+        (function initNapReferenceParsing() {
+            if (window.__parseNapReferenceWorkbook) return;
+
+            function normalizeDpid(raw) {
+                var dpid = String(raw || '').trim().toUpperCase();
+                if (!dpid) return '';
+                return dpid.endsWith('A') ? dpid.slice(0, -1) : dpid;
+            }
+            function findHeaderKey(sampleRow, aliases) {
+                var keys = Object.keys(sampleRow || {});
+                for (var i = 0; i < keys.length; i++) {
+                    var normalized = String(keys[i] || '').trim().toUpperCase();
+                    for (var j = 0; j < aliases.length; j++) {
+                        if (normalized === aliases[j]) return keys[i];
+                    }
+                }
+                return null;
+            }
+            function tryParseReferenceCoord(raw) {
+                if (raw === null || raw === undefined) return null;
+                var normalized = String(raw).trim();
+                if (!normalized) return null;
+                var value = Number(normalized);
+                return Number.isFinite(value) ? value : null;
+            }
+            function parseWholeNumber(raw) {
+                if (raw === null || raw === undefined) return 0;
+                var normalized = String(raw).trim();
+                if (!normalized) return 0;
+                var value = Number(normalized);
+                if (!Number.isFinite(value)) return 0;
+                return Math.max(0, Math.round(value));
+            }
+            function isDavaoCoord(lat, lng) {
+                return lat >= 6.5 && lat <= 8.0 && lng >= 124.5 && lng <= 126.5;
+            }
+            function getReferenceWorksheet(wb) {
+                var names = wb.SheetNames || [];
+                for (var i = 0; i < names.length; i++) {
+                    if (String(names[i]).trim().toLowerCase() === 'raw min') {
+                        return wb.Sheets[names[i]];
+                    }
+                }
+                return wb.Sheets[names[0]];
+            }
+
+            window.__parseNapReferenceWorkbook = function (wb) {
+                var ws = getReferenceWorksheet(wb);
+                var rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                if (!rows.length) {
+                    throw new Error('The uploaded file appears to be empty.');
+                }
+
+                var dpKey = findHeaderKey(rows[0], ['DP', 'DPDENIRO', 'DP DENIRO']);
+                var brgyKey = findHeaderKey(rows[0], ['BRGY_NAME', 'BRGY NAME', 'BARANGAY']);
+                var latKey = findHeaderKey(rows[0], ['DP/NAP LAT', 'DP NAP LAT', 'NAP LAT', 'LAT', 'LATITUDE']);
+                var lngKey = findHeaderKey(rows[0], ['DP/NAP LONG', 'DP NAP LONG', 'NAP LONG', 'LONG', 'LNG', 'LONGITUDE']);
+                var sFaKey = findHeaderKey(rows[0], ['S_FA', 'S FA']);
+                var sSpKey = findHeaderKey(rows[0], ['S_SP', 'S SP']);
+                if (!dpKey) {
+                    throw new Error('No "DP" column found in the uploaded file.');
+                }
+
+                var set = new Set();
+                var brgyByDp = new Map();
+                var coordsByDp = new Map();
+                var defectiveByDp = new Map();
+
+                rows.forEach(function (r) {
+                    var dp = normalizeDpid(r[dpKey]);
+                    if (!dp) return;
+                    var brgy = brgyKey ? String(r[brgyKey] || '').trim() : '';
+                    var lat = latKey ? tryParseReferenceCoord(r[latKey]) : null;
+                    var lng = lngKey ? tryParseReferenceCoord(r[lngKey]) : null;
+                    var sFa = sFaKey ? parseWholeNumber(r[sFaKey]) : 0;
+                    var sSp = sSpKey ? parseWholeNumber(r[sSpKey]) : 0;
+                    var sum = sFa + sSp;
+
+                    set.add(dp);
+                    if (brgy) brgyByDp.set(dp, brgy);
+                    if (lat !== null && lng !== null && isDavaoCoord(lat, lng)) {
+                        coordsByDp.set(dp, [lat, lng]);
+                    }
+
+                    if (sum >= 8 && lat !== null && lng !== null && isDavaoCoord(lat, lng)) {
+                        var existing = defectiveByDp.get(dp);
+                        if (!existing || sum > existing.sum) {
+                            defectiveByDp.set(dp, { dp: dp, lat: lat, lng: lng, sFa: sFa, sSp: sSp, sum: sum, brgy: brgy });
+                        }
+                    }
+                });
+
+                return {
+                    set: set,
+                    brgyByDp: brgyByDp,
+                    coordsByDp: coordsByDp,
+                    defectiveEntries: Array.from(defectiveByDp.values()),
+                    hasBrgyColumn: !!brgyKey,
+                    hasDefectiveColumns: !!(sFaKey && sSpKey)
+                };
+            };
+        })();
 
         function lazyVisualTarget(lazyId) {
             return document.querySelector('[data-lazy-id="' + lazyId + '"]');
@@ -3923,6 +4739,58 @@
             });
         })();
 
+        function bindHeatmapMapAutoResize(mapWrap, mapInstance, extraObserveEls) {
+            if (!mapWrap || !mapInstance) return function () {};
+            function invalidate() {
+                var fsEl = document.fullscreenElement || document.webkitFullscreenElement ||
+                    document.mozFullScreenElement || document.msFullscreenElement;
+                if (fsEl && fsEl.contains(mapWrap)) return;
+                try { mapInstance.invalidateSize({ pan: false }); } catch (e) {}
+            }
+            var observer = null;
+            if (typeof ResizeObserver !== 'undefined') {
+                observer = new ResizeObserver(function () { requestAnimationFrame(invalidate); });
+                observer.observe(mapWrap);
+                (extraObserveEls || []).forEach(function (el) { if (el) observer.observe(el); });
+            }
+            window.addEventListener('resize', invalidate);
+            invalidate._disconnect = function () {
+                if (observer) observer.disconnect();
+                window.removeEventListener('resize', invalidate);
+            };
+            return invalidate;
+        }
+
+        function classifyHmSkillset(skillsetRaw) {
+            var sk = String(skillsetRaw || '').trim().toLowerCase();
+            if (sk.indexOf('migration') !== -1) return 'migration';
+            if (sk.indexOf('repair') !== -1) return 'repair';
+            if (sk.indexOf('install') !== -1) return 'install';
+            return 'other';
+        }
+        function normalizeHmFilterToken(value) {
+            return String(value || '').trim().replace(/\s+/g, ' ').toUpperCase();
+        }
+        function isHmTrackedSkillset(skillsetRaw, skillsetFilterSet) {
+            var kind = classifyHmSkillset(skillsetRaw);
+            if (kind === 'repair' || kind === 'install' || kind === 'migration') return true;
+            if (skillsetFilterSet && skillsetFilterSet.size > 0) {
+                return skillsetFilterSet.has(normalizeHmFilterToken(skillsetRaw));
+            }
+            return false;
+        }
+        var DOT_STYLE_REPAIR = { radius: 3, color: '#1f7f1f', fillColor: '#32CD32', fillOpacity: 0.95, weight: 0.6, opacity: 0.98 };
+        var DOT_STYLE_INSTALL = { radius: 3, color: '#1a5eb0', fillColor: '#1E90FF', fillOpacity: 0.92, weight: 0.5, opacity: 0.95 };
+        var DOT_STYLE_MIGRATION = { radius: 3, color: '#6b21a8', fillColor: '#a855f7', fillOpacity: 0.92, weight: 0.5, opacity: 0.95 };
+        var DOT_STYLE_OTHER = { radius: 3, color: '#6b7280', fillColor: '#a78bfa', fillOpacity: 0.92, weight: 0.5, opacity: 0.95 };
+        function dotStyleForSkillset(skillsetRaw) {
+            var kind = classifyHmSkillset(skillsetRaw);
+            if (kind === 'repair') return DOT_STYLE_REPAIR;
+            if (kind === 'install') return DOT_STYLE_INSTALL;
+            if (kind === 'migration') return DOT_STYLE_MIGRATION;
+            return DOT_STYLE_OTHER;
+        }
+
         function bootstrapNapHeatmap() {
             teardownNapHeatmap();
             var monthSel       = document.getElementById('nap-heatmap-month');
@@ -3938,6 +4806,10 @@
             var modalTitle     = document.getElementById('nap-hm-others-title');
             var modalList      = document.getElementById('nap-hm-others-list');
             var modalCloseBtn  = document.getElementById('nap-hm-others-close');
+            var pinModalRoot   = document.getElementById('nap-pin-detail-modal');
+            var pinModalTitle  = document.getElementById('nap-pin-detail-title');
+            var pinModalBody   = document.getElementById('nap-pin-detail-body');
+            var pinModalClose  = document.getElementById('nap-pin-detail-close');
             if (!monthSel) return;
 
             var napDots           = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.HeatmapNapDots));
@@ -3964,6 +4836,9 @@
             var selectedBarangay = '';
             var allBarangayRanks = [];
             var allFixRanks = [];
+            var napMarkersByDpid = new Map();
+            var napSearchData = [];
+            var lastHighlightedMarker = null;
 
             function normalizeDpid(raw) {
                 var dpid = String(raw || '').trim().toUpperCase();
@@ -4037,41 +4912,38 @@
                 var idx = monthIndexFromDateInt(dateInt);
                 return idx >= range.start && idx <= range.end;
             }
-            function matchesSkillsetGate(skillsetRaw) {
-                var sk = String(skillsetRaw || '').trim().toLowerCase();
-                var isRepair = sk.indexOf('repair') !== -1;
-                var isInstall = sk.indexOf('install') !== -1;
-                if (!isRepair && !isInstall) return false;
-                if (isRepair && !filterState.repair) return false;
-                if (isInstall && !filterState.install) return false;
+            function passesMapPinSkillset(skillsetRaw) {
+                var kind = classifyHmSkillset(skillsetRaw);
+                if (kind === 'repair') return filterState.repair;
+                if (kind === 'install') return filterState.install;
                 return true;
             }
             function passDotFilter(i) {
                 if (hmFltTerritories.size > 0) {
-                    var terr = (napDotTerritories[i] || '').trim().toUpperCase();
+                    var terr = normalizeHmFilterToken(napDotTerritories[i]);
                     if (!hmFltTerritories.has(terr)) return false;
                 }
                 if (hmFltSkillsets.size > 0) {
-                    var sk = (napDotSkillsets[i] || '').trim().toUpperCase();
+                    var sk = normalizeHmFilterToken(napDotSkillsets[i]);
                     if (!hmFltSkillsets.has(sk)) return false;
                 }
                 if (hmFltStatuses.size > 0) {
-                    var st = (napDotStatuses[i] || '').trim().toUpperCase();
+                    var st = normalizeHmFilterToken(napDotStatuses[i]);
                     if (!hmFltStatuses.has(st)) return false;
                 }
                 return true;
             }
             function passJoinFilter(i) {
                 if (hmFltTerritories.size > 0) {
-                    var terr = (hmJoinTerritories[i] || '').trim().toUpperCase();
+                    var terr = normalizeHmFilterToken(hmJoinTerritories[i]);
                     if (!hmFltTerritories.has(terr)) return false;
                 }
                 if (hmFltSkillsets.size > 0) {
-                    var sk = (hmJoinSkillsets[i] || '').trim().toUpperCase();
+                    var sk = normalizeHmFilterToken(hmJoinSkillsets[i]);
                     if (!hmFltSkillsets.has(sk)) return false;
                 }
                 if (hmFltStatuses.size > 0) {
-                    var st = (hmJoinStatuses[i] || '').trim().toUpperCase();
+                    var st = normalizeHmFilterToken(hmJoinStatuses[i]);
                     if (!hmFltStatuses.has(st)) return false;
                 }
                 return true;
@@ -4112,6 +4984,46 @@
                 if (!modalRoot) return;
                 modalRoot.classList.add('hidden');
                 modalRoot.setAttribute('aria-hidden', 'true');
+            }
+            function closePinModal() {
+                if (!pinModalRoot) return;
+                pinModalRoot.classList.add('hidden');
+                pinModalRoot.setAttribute('aria-hidden', 'true');
+            }
+            function getNapAppointmentCount(normDpid, range) {
+                if (!normDpid) return 0;
+                var count = 0;
+                for (var i = 0; i < hmJoinDpids.length; i++) {
+                    if (!isDateIntInRange(hmJoinDateInts[i], range)) continue;
+                    if (!passJoinFilter(i)) continue;
+                    if (!isHmTrackedSkillset(hmJoinSkillsets[i], hmFltSkillsets)) continue;
+                    if (!passesReferenceAndBarangay(hmJoinDpids[i])) continue;
+                    if (normalizeDpid(hmJoinDpids[i]) === normDpid) count++;
+                }
+                return count;
+            }
+            function openPinModal(detail, range) {
+                if (!pinModalRoot || !pinModalBody || !detail) return;
+                var normDpid = normalizeDpid(detail.dpid);
+                var appointments = getNapAppointmentCount(normDpid, range);
+                var territory = String(detail.territory || '').trim() || 'N/A';
+                var barangay = String(referenceBarangayForDpid(normDpid) || '').trim() || 'N/A';
+                var fixDesc = String(detail.fixDescription || '').trim() || 'N/A';
+                var status = String(detail.status || '').trim() || 'N/A';
+                var skillset = String(detail.skillset || '').trim() || 'N/A';
+                if (pinModalTitle) pinModalTitle.textContent = 'NAP details - ' + (normDpid || 'Unknown');
+                pinModalBody.innerHTML =
+                    '<div class="nap-pin-modal-grid">' +
+                        '<div class="nap-pin-modal-item"><span class="nap-pin-modal-label">NAP ID</span><span class="nap-pin-modal-value">' + (normDpid || 'N/A') + '</span></div>' +
+                        '<div class="nap-pin-modal-item"><span class="nap-pin-modal-label">Skillset</span><span class="nap-pin-modal-value">' + skillset + '</span></div>' +
+                        '<div class="nap-pin-modal-item"><span class="nap-pin-modal-label">Status</span><span class="nap-pin-modal-value">' + status + '</span></div>' +
+                        '<div class="nap-pin-modal-item"><span class="nap-pin-modal-label">Territory</span><span class="nap-pin-modal-value">' + territory + '</span></div>' +
+                        '<div class="nap-pin-modal-item"><span class="nap-pin-modal-label">Barangay</span><span class="nap-pin-modal-value">' + barangay + '</span></div>' +
+                        '<div class="nap-pin-modal-item"><span class="nap-pin-modal-label">Appointments</span><span class="nap-pin-modal-value">' + Number(appointments || 0).toLocaleString() + '</span></div>' +
+                        '<div class="nap-pin-modal-item" style="grid-column:1 / -1;"><span class="nap-pin-modal-label">Fix Description</span><span class="nap-pin-modal-value">' + fixDesc + '</span></div>' +
+                    '</div>';
+                pinModalRoot.classList.remove('hidden');
+                pinModalRoot.setAttribute('aria-hidden', 'false');
             }
             function renderTopList(container, entries, topN, kind) {
                 if (!container) return;
@@ -4190,44 +5102,18 @@
                         try {
                             var data = new Uint8Array(ev.target.result);
                             var wb = XLSX.read(data, { type: 'array' });
-                            var ws = wb.Sheets[wb.SheetNames[0]];
-                            var rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                            var parsed = window.__parseNapReferenceWorkbook(wb);
 
-                            if (!rows.length) {
-                                alert('The uploaded file appears to be empty.');
-                                return;
-                            }
-
-                            var dpKey = findHeaderKey(rows[0], ['DP']);
-                            var brgyKey = findHeaderKey(rows[0], ['BRGY_NAME']);
-                            var latKey = findHeaderKey(rows[0], ['DP/NAP LAT', 'DP NAP LAT', 'NAP LAT', 'LAT', 'LATITUDE']);
-                            var lngKey = findHeaderKey(rows[0], ['DP/NAP LONG', 'DP NAP LONG', 'NAP LONG', 'LONG', 'LNG', 'LONGITUDE']);
-                            if (!dpKey) {
-                                alert('No "DP" column found in the uploaded file.');
-                                return;
-                            }
-                            if (!brgyKey) {
-                                alert('No "BRGY_NAME" column found in the uploaded file.');
-                                return;
-                            }
-
-                            napRefSet = new Set();
-                            napRefBrgyByDp = new Map();
-                            napRefCoordsByDp = new Map();
-                            rows.forEach(function(r) {
-                                var dp = normalizeDpid(r[dpKey]);
-                                if (!dp) return;
-                                var brgy = String(r[brgyKey] || '').trim();
-                                var lat = latKey ? tryParseReferenceCoord(r[latKey]) : null;
-                                var lng = lngKey ? tryParseReferenceCoord(r[lngKey]) : null;
-                                napRefSet.add(dp);
-                                if (brgy) napRefBrgyByDp.set(dp, brgy);
-                                if (lat !== null && lng !== null) napRefCoordsByDp.set(dp, [lat, lng]);
-                            });
+                            napRefSet = parsed.set;
+                            napRefBrgyByDp = parsed.brgyByDp;
+                            napRefCoordsByDp = parsed.coordsByDp;
                             window.__napRefShared = {
                                 set: napRefSet,
                                 brgyByDp: napRefBrgyByDp,
-                                coordsByDp: napRefCoordsByDp
+                                coordsByDp: napRefCoordsByDp,
+                                defectiveEntries: parsed.defectiveEntries,
+                                hasBrgyColumn: parsed.hasBrgyColumn,
+                                hasDefectiveColumns: parsed.hasDefectiveColumns
                             };
                             window.dispatchEvent(new CustomEvent('nap-reference-updated'));
                             updateBarangayDropdownFromReference();
@@ -4255,17 +5141,29 @@
                 });
             }
             if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
-            if (modalRoot) {
+            if (modalRoot && modalRoot.getAttribute('data-bound') !== '1') {
+                modalRoot.setAttribute('data-bound', '1');
                 modalRoot.addEventListener('click', function(e) {
                     var target = e.target;
                     if (target && target.getAttribute('data-role') === 'close') closeModal();
                 });
             }
+            if (pinModalClose && pinModalClose.getAttribute('data-bound') !== '1') {
+                pinModalClose.setAttribute('data-bound', '1');
+                pinModalClose.addEventListener('click', closePinModal);
+            }
+            if (pinModalRoot && pinModalRoot.getAttribute('data-bound') !== '1') {
+                pinModalRoot.setAttribute('data-bound', '1');
+                pinModalRoot.addEventListener('click', function(e) {
+                    var target = e.target;
+                    if (target && target.getAttribute('data-role') === 'close') closePinModal();
+                });
+            }
 
             var DAVAO_CENTER = [7.0736, 125.6139];
             var mapEl = document.getElementById('nap-davao-map');
-            if (!mapEl) return;
-            mapEl.style.height = '420px';
+            var mapWrap = document.getElementById('nap-davao-map-wrap');
+            if (!mapEl || !mapWrap) return;
             mapEl.style.width = '100%';
             var napMap = L.map(mapEl, {
                 center: DAVAO_CENTER,
@@ -4304,6 +5202,9 @@
                 }
             }).addTo(napMap);
             var dotsGroup = L.layerGroup().addTo(napMap);
+            var invMapSize = bindHeatmapMapAutoResize(mapWrap, napMap, [
+                document.getElementById('nap-hm-sidebar')
+            ]);
             var filterState = { repair: true, install: true, heatMode: 'all' };
 
             var NapFilterControl = L.Control.extend({
@@ -4329,13 +5230,21 @@
                           row('nap-flt-install', 'background:#1E90FF; box-shadow:0 0 4px rgba(30,144,255,0.7);', 'Install')
                         : '';
                     el.innerHTML =
-                        '<div class="nap-flt-header" id="nap-flt-toggle"><svg style="width:11px;height:11px;flex-shrink:0;color:#6366f1;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span class="nap-flt-title">Filters</span>' + chevronSvg + '</div>' +
+                        '<div class="nap-map-toolbar">' +
+                            '<button type="button" class="nap-map-filter-toggle" id="nap-flt-toggle"><svg style="width:11px;height:11px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg><span>Filters</span>' + chevronSvg + '</button>' +
+                            '<div class="nap-map-search-wrap">' +
+                                '<input id="nap-map-search" class="nap-map-search-input" type="text" placeholder="Search NAP ID..." autocomplete="off" />' +
+                                '<svg class="nap-map-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>' +
+                                '<div id="nap-map-search-list" class="nap-map-search-list"></div>' +
+                            '</div>' +
+                        '</div>' +
                         '<div class="nap-flt-body" id="nap-flt-body">' + heatSection + pinsSection + '</div>';
 
                     var header = el.querySelector('#nap-flt-toggle');
                     var body = el.querySelector('#nap-flt-body');
                     var chevron = el.querySelector('.nap-flt-chevron');
-                    header.addEventListener('click', function() {
+                    header.addEventListener('click', function(e) {
+                        e.preventDefault();
                         var isOpen = body.classList.toggle('open');
                         chevron.classList.toggle('open', isOpen);
                     });
@@ -4359,6 +5268,55 @@
                         if (installCb) filterState.install = installCb.checked;
                         render();
                     });
+                    var searchInput = el.querySelector('#nap-map-search');
+                    var searchList = el.querySelector('#nap-map-search-list');
+                    function renderSearchList(items) {
+                        if (!searchList) return;
+                        if (!items || !items.length) {
+                            searchList.style.display = 'none';
+                            searchList.innerHTML = '';
+                            return;
+                        }
+                        searchList.innerHTML = '';
+                        items.slice(0, 8).forEach(function(item) {
+                            var btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'nap-map-search-item';
+                            btn.textContent = item.dpid;
+                            btn.addEventListener('click', function() {
+                                searchList.style.display = 'none';
+                                if (searchInput) searchInput.value = item.dpid;
+                                if (typeof focusMarkerByDpid === 'function') focusMarkerByDpid(item.dpid);
+                            });
+                            searchList.appendChild(btn);
+                        });
+                        searchList.style.display = 'block';
+                    }
+                    if (searchInput) {
+                        searchInput.addEventListener('input', function() {
+                            var q = String(searchInput.value || '').trim().toUpperCase();
+                            if (!q) {
+                                renderSearchList([]);
+                                return;
+                            }
+                            var matches = napSearchData.filter(function(item) {
+                                return item.dpid.indexOf(q) >= 0;
+                            });
+                            renderSearchList(matches);
+                        });
+                        searchInput.addEventListener('keydown', function(ev) {
+                            if (ev.key === 'Enter') {
+                                ev.preventDefault();
+                                var q = String(searchInput.value || '').trim().toUpperCase();
+                                if (!q) return;
+                                if (typeof focusMarkerByDpid === 'function') focusMarkerByDpid(q);
+                                renderSearchList([]);
+                            }
+                        });
+                        searchInput.addEventListener('blur', function() {
+                            setTimeout(function() { renderSearchList([]); }, 140);
+                        });
+                    }
                     return el;
                 }
             });
@@ -4370,7 +5328,7 @@
                 for (var j = 0; j < hmJoinDateInts.length; j++) {
                     if (!isDateIntInRange(hmJoinDateInts[j], range)) continue;
                     if (!passJoinFilter(j)) continue;
-                    if (!matchesSkillsetGate(hmJoinSkillsets[j])) continue;
+                    if (!isHmTrackedSkillset(hmJoinSkillsets[j], hmFltSkillsets)) continue;
                     if (!passesReferenceAndBarangay(hmJoinDpids[j])) continue;
                     var joinNormDpid = normalizeDpid(hmJoinDpids[j]);
                     if (!joinNormDpid) continue;
@@ -4380,27 +5338,26 @@
                     var joinLat = joinCoords[0];
                     var joinLng = joinCoords[1];
                     if (joinLat < 6.5 || joinLat > 8.0 || joinLng < 124.5 || joinLng > 126.5) continue;
-                    var joinSkill = String(hmJoinSkillsets[j] || '').trim().toLowerCase();
-                    var joinIsRepair = joinSkill.indexOf('repair') !== -1;
-                    var joinIsInstall = joinSkill.indexOf('install') !== -1;
-                    if (filterState.heatMode === 'repair' && !joinIsRepair) continue;
-                    if (filterState.heatMode === 'install' && !joinIsInstall) continue;
-                    if (filterState.heatMode === 'all' && !joinIsRepair && !joinIsInstall) continue;
+                    var joinKind = classifyHmSkillset(hmJoinSkillsets[j]);
+                    if (filterState.heatMode === 'repair' && joinKind !== 'repair') continue;
+                    if (filterState.heatMode === 'install' && joinKind !== 'install') continue;
                     points.push([joinLat, joinLng]);
                 }
                 heatLayer.setLatLngs(points);
             }
 
-            var DOT_STYLE_REPAIR = { radius: 3, color: '#1f7f1f', fillColor: '#32CD32', fillOpacity: 0.95, weight: 0.6, opacity: 0.98 };
-            var DOT_STYLE_INSTALL = { radius: 3, color: '#1a5eb0', fillColor: '#1E90FF', fillOpacity: 0.92, weight: 0.5, opacity: 0.95 };
             function renderDots(range) {
                 dotsGroup.clearLayers();
-                if (!filterState.repair && !filterState.install) return;
+                napMarkersByDpid = new Map();
+                napSearchData = [];
+                lastHighlightedMarker = null;
                 var napCoordByDpid = buildNapCoordByDpidIndex(range);
+                var seenDp = new Set();
                 for (var j = 0; j < hmJoinDateInts.length; j++) {
                     if (!isDateIntInRange(hmJoinDateInts[j], range)) continue;
                     if (!passJoinFilter(j)) continue;
-                    if (!matchesSkillsetGate(hmJoinSkillsets[j])) continue;
+                    if (!isHmTrackedSkillset(hmJoinSkillsets[j], hmFltSkillsets)) continue;
+                    if (!passesMapPinSkillset(hmJoinSkillsets[j])) continue;
                     if (!passesReferenceAndBarangay(hmJoinDpids[j])) continue;
                     var joinNormDpid = normalizeDpid(hmJoinDpids[j]);
                     if (!joinNormDpid) continue;
@@ -4410,25 +5367,68 @@
                     var joinLat = joinCoords[0];
                     var joinLng = joinCoords[1];
                     if (joinLat < 6.5 || joinLat > 8.0 || joinLng < 124.5 || joinLng > 126.5) continue;
-                    var joinSkill = String(hmJoinSkillsets[j] || '').trim().toLowerCase();
-                    var joinIsRepair = joinSkill.indexOf('repair') !== -1;
-                    var joinIsInstall = joinSkill.indexOf('install') !== -1;
-                    if (!joinIsRepair && !joinIsInstall) continue;
-                    if (joinIsRepair && !filterState.repair) continue;
-                    if (joinIsInstall && !filterState.install) continue;
                     var renderLat = computeJitter(joinLat, (j + 1) * 2.17);
                     var renderLng = computeJitter(joinLng, (j + 1) * 3.41);
-                    var joinDot = L.circleMarker([renderLat, renderLng], joinIsRepair ? DOT_STYLE_REPAIR : DOT_STYLE_INSTALL);
+                    var joinDot = L.circleMarker([renderLat, renderLng], dotStyleForSkillset(hmJoinSkillsets[j]));
                     var jDay = Math.round(hmJoinDateInts[j]) % 100;
                     var jYear = 2000 + Math.floor(Math.round(hmJoinDateInts[j]) / 10000);
                     var jMon = Math.floor((Math.round(hmJoinDateInts[j]) % 10000) / 100);
                     var jDateStr = jYear + '-' + (jMon < 10 ? '0' + jMon : String(jMon)) + '-' + (jDay < 10 ? '0' + jDay : String(jDay));
                     joinDot.bindTooltip(
-                        '<div class="nap-dot-tip-name">' + joinNormDpid + '</div><div class="nap-dot-tip-date">' + jDateStr + '</div>',
+                        '<div class="nap-dot-tip-name">' + joinNormDpid + '</div>' +
+                        '<div class="nap-dot-tip-coord"><span class="nap-dot-tip-lbl">SKILL</span><span>' + String(hmJoinSkillsets[j] || 'N/A') + '</span></div>' +
+                        '<div class="nap-dot-tip-coord"><span class="nap-dot-tip-lbl">STATUS</span><span>' + String(hmJoinStatuses[j] || 'N/A') + '</span></div>' +
+                        '<div class="nap-dot-tip-date">' + jDateStr + '</div>',
                         { direction: 'top', className: 'nap-dot-tip', permanent: false, sticky: false, offset: [0, -4] }
                     );
+                    joinDot.__baseStyle = dotStyleForSkillset(hmJoinSkillsets[j]);
+                    joinDot.__detail = {
+                        dpid: joinNormDpid,
+                        skillset: hmJoinSkillsets[j],
+                        status: hmJoinStatuses[j],
+                        territory: hmJoinTerritories[j],
+                        fixDescription: hmJoinFixDescriptions[j]
+                    };
+                    joinDot.on('click', function() {
+                        openPinModal(this.__detail, range);
+                    });
                     dotsGroup.addLayer(joinDot);
+                    if (!napMarkersByDpid.has(joinNormDpid)) {
+                        napMarkersByDpid.set(joinNormDpid, joinDot);
+                    }
+                    if (!seenDp.has(joinNormDpid)) {
+                        napSearchData.push({ dpid: joinNormDpid });
+                        seenDp.add(joinNormDpid);
+                    }
                 }
+                napSearchData.sort(function(a, b) { return a.dpid.localeCompare(b.dpid); });
+            }
+
+            function focusMarkerByDpid(rawDpid) {
+                var norm = normalizeDpid(rawDpid);
+                if (!norm) return;
+                var marker = napMarkersByDpid.get(norm);
+                if (!marker) {
+                    if (typeof showToast === 'function') showToast('No matching NAP found.', 'error');
+                    return;
+                }
+                if (lastHighlightedMarker && lastHighlightedMarker.__baseStyle) {
+                    lastHighlightedMarker.setStyle(lastHighlightedMarker.__baseStyle);
+                }
+                var latlng = marker.getLatLng();
+                napMap.setView(latlng, Math.max(15, napMap.getZoom()), { animate: true });
+                marker.setStyle({
+                    radius: 9,
+                    weight: 2.5,
+                    color: '#f59e0b',
+                    fillOpacity: 1
+                });
+                marker.openTooltip();
+                openPinModal(marker.__detail, getSelectedMonthRange());
+                lastHighlightedMarker = marker;
+                setTimeout(function() {
+                    if (marker && marker.__baseStyle) marker.setStyle(marker.__baseStyle);
+                }, 1800);
             }
 
             function renderBarangayAndFixPanels(range) {
@@ -4442,13 +5442,14 @@
                 for (var i = 0; i < hmJoinDateInts.length; i++) {
                     if (!isDateIntInRange(hmJoinDateInts[i], range)) continue;
                     if (!passJoinFilter(i)) continue;
-                    if (!matchesSkillsetGate(hmJoinSkillsets[i])) continue;
-                    if (!passesReferenceAndBarangay(hmJoinDpids[i])) continue;
+                    if (!isHmTrackedSkillset(hmJoinSkillsets[i], hmFltSkillsets)) continue;
 
                     total++;
-                    var sk = String(hmJoinSkillsets[i] || '').toLowerCase();
-                    if (sk.indexOf('repair') !== -1) repair++;
-                    if (sk.indexOf('install') !== -1) install++;
+                    var skKind = classifyHmSkillset(hmJoinSkillsets[i]);
+                    if (skKind === 'repair') repair++;
+                    else if (skKind === 'install') install++;
+
+                    if (!passesReferenceAndBarangay(hmJoinDpids[i])) continue;
 
                     var brgy = referenceBarangayForDpid(hmJoinDpids[i]);
                     if (selectedBarangay && brgy !== selectedBarangay) continue;
@@ -4484,6 +5485,8 @@
                 setTimeout(updateHeatAppearance, 20);
                 renderDots(range);
                 renderBarangayAndFixPanels(range);
+                requestAnimationFrame(invMapSize);
+                setTimeout(invMapSize, 60);
             }
 
             /* ── Zoom-adaptive heatmap opacity / radius ── */
@@ -4510,8 +5513,7 @@
             /* ── Native Fullscreen for the map wrapper ── */
             var SVG_EXPAND   = '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
             var SVG_COLLAPSE = '<svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>';
-            var mapWrap = document.getElementById('nap-davao-map-wrap');
-            var mapEl   = document.getElementById('nap-davao-map');
+            var mapElFs = document.getElementById('nap-davao-map');
 
             function fsIsActive() {
                 return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
@@ -4555,7 +5557,7 @@
                 }
                 /* Let the browser finish resizing before invalidating */
                 setTimeout(function () {
-                    mapEl.style.height = active ? '100%' : '';
+                    mapElFs.style.height = active ? '100%' : '';
                     napMap.invalidateSize({ pan: false });
                     updateHeatAppearance();
                 }, 120);
@@ -4600,7 +5602,7 @@
                 function getCheckedValues(group) {
                     var vals = new Set();
                     document.querySelectorAll('.hm-flt-cb[data-group="' + group + '"]:checked').forEach(function (cb) {
-                        vals.add(cb.value.trim().toUpperCase());
+                        vals.add(String(cb.value || '').trim().replace(/\s+/g, ' ').toUpperCase());
                     });
                     return vals;
                 }
@@ -4688,11 +5690,9 @@
                             var group = cb.dataset.group;
                             var val   = (cb.value || '').toLowerCase();
                             if (group === 'skillset') {
-                                cb.checked = val.indexOf('install') !== -1 || val.indexOf('repair') !== -1;
-                            } else if (group === 'status') {
-                                cb.checked = val.indexOf('cancelled') !== -1 || val.indexOf('completed') !== -1;
+                                cb.checked = val.indexOf('install') !== -1 || val.indexOf('repair') !== -1 || val.indexOf('migration') !== -1;
                             } else {
-                                cb.checked = true; // territory: all selected
+                                cb.checked = true; // territory and status: all selected (matches Excel "All")
                             }
                         });
                         applyHmFilter();
@@ -4729,26 +5729,44 @@
         }
         registerLazyVisual(lazyVisualTarget('nap-heatmap'), bootstrapNapHeatmap, 'nap-heatmap', teardownNapHeatmap);
         
-        (function initHeatmapTabsAndRecurring() {
+        (function initHeatmapTabs() {
             var totalBtn = document.getElementById('hm-tab-total');
             var recurringBtn = document.getElementById('hm-tab-recurring');
+            var defectiveBtn = document.getElementById('hm-tab-defective');
             var totalPanel = document.getElementById('hm-panel-total');
             var recurringPanel = document.getElementById('hm-panel-recurring');
-            if (!totalBtn || !recurringBtn || !totalPanel || !recurringPanel) return;
+            var defectivePanel = document.getElementById('hm-panel-defective');
+            var hmFilterBar = document.getElementById('hm-indep-filter');
+            if (!totalBtn || !recurringBtn || !defectiveBtn || !totalPanel || !recurringPanel || !defectivePanel) return;
             var recurringBootstrapped = false;
+            var defectiveBootstrapped = false;
+
+            function styleTab(btn, active, activeColor) {
+                btn.classList.toggle('hm-tab-active', active);
+                btn.classList.toggle('hm-tab-inactive', !active);
+            }
 
             function activateTab(tab) {
+                var isTotal = tab === 'total';
                 var isRecurring = tab === 'recurring';
-                totalPanel.classList.toggle('hidden', isRecurring);
+                var isDefective = tab === 'defective';
+                totalPanel.classList.toggle('hidden', !isTotal);
                 recurringPanel.classList.toggle('hidden', !isRecurring);
-                totalBtn.style.background = isRecurring ? 'transparent' : '#6366f1';
-                totalBtn.style.color = isRecurring ? '#a5b4fc' : '#fff';
-                recurringBtn.style.background = isRecurring ? '#6366f1' : 'transparent';
-                recurringBtn.style.color = isRecurring ? '#fff' : '#a5b4fc';
+                defectivePanel.classList.toggle('hidden', !isDefective);
+                styleTab(totalBtn, isTotal);
+                styleTab(recurringBtn, isRecurring);
+                styleTab(defectiveBtn, isDefective);
+                if (hmFilterBar) hmFilterBar.classList.toggle('hidden', isDefective);
+
                 if (!isRecurring && typeof window.unloadLazyVisualById === 'function') {
                     window.unloadLazyVisualById('recurring-heatmap');
                     recurringBootstrapped = false;
                 }
+                if (!isDefective && typeof window.unloadLazyVisualById === 'function') {
+                    window.unloadLazyVisualById('defective-heatmap');
+                    defectiveBootstrapped = false;
+                }
+
                 if (isRecurring && !recurringBootstrapped) {
                     var recurringEl = document.getElementById('hm-panel-recurring');
                     if (recurringEl && typeof window.__initRecurringHeatmapTab === 'function') {
@@ -4761,14 +5779,33 @@
                     }
                     recurringBootstrapped = true;
                 }
+                if (isDefective && !defectiveBootstrapped) {
+                    var defectiveEl = document.getElementById('hm-panel-defective');
+                    if (defectiveEl && typeof window.__initDefectiveHeatmapTab === 'function') {
+                        defectiveEl.__lazyInitFn = window.__initDefectiveHeatmapTab;
+                        if (typeof window.loadLazyVisualById === 'function') {
+                            window.loadLazyVisualById('defective-heatmap');
+                        } else {
+                            window.__initDefectiveHeatmapTab();
+                        }
+                    }
+                    defectiveBootstrapped = true;
+                }
+
                 if (isRecurring && typeof window.__invalidateRecurringHeatmap === 'function') {
                     window.__invalidateRecurringHeatmap();
                     setTimeout(window.__invalidateRecurringHeatmap, 120);
                     setTimeout(window.__invalidateRecurringHeatmap, 320);
                 }
+                if (isDefective && typeof window.__invalidateDefectiveHeatmap === 'function') {
+                    window.__invalidateDefectiveHeatmap();
+                    setTimeout(window.__invalidateDefectiveHeatmap, 120);
+                    setTimeout(window.__invalidateDefectiveHeatmap, 320);
+                }
             }
             totalBtn.addEventListener('click', function () { activateTab('total'); });
             recurringBtn.addEventListener('click', function () { activateTab('recurring'); });
+            defectiveBtn.addEventListener('click', function () { activateTab('defective'); });
             activateTab('total');
         })();
         
@@ -4788,7 +5825,8 @@
                 var modalList = document.getElementById('rhm-pin-list');
                 var modalClose = document.getElementById('rhm-pin-close');
                 var mapEl = document.getElementById('rhm-map');
-                if (!monthSel || !mapEl) return;
+                var mapWrap = document.getElementById('rhm-map-wrap');
+                if (!monthSel || !mapEl || !mapWrap) return;
 
                 var dateInts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapDateInts));
                 var facilityNames = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RecurringHeatmapFacilityNames));
@@ -4906,11 +5944,19 @@
                 window.__rhmLeafletMap = map;
                 L.control.zoom({ position: 'bottomright' }).addTo(map);
                 var dark = document.documentElement.getAttribute('data-theme') !== 'light';
-                L.tileLayer(dark ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+                var darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
+                var lightTiles = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+                var tileLayer = L.tileLayer(dark ? darkTiles : lightTiles, {
                     attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
                     maxZoom: 18,
                     subdomains: 'abcd'
                 }).addTo(map);
+                var labelLayer = L.tileLayer(
+                    dark
+                        ? 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png'
+                        : 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
+                    { maxZoom: 18, subdomains: 'abcd', pane: 'overlayPane', opacity: 0.7 }
+                ).addTo(map);
                 var heatLayer = L.heatLayer([], {
                     radius: 22,
                     blur: 28,
@@ -4925,6 +5971,9 @@
                     }
                 }).addTo(map);
                 var dots = L.layerGroup().addTo(map);
+                var invRhmSize = bindHeatmapMapAutoResize(mapWrap, map, [
+                    document.getElementById('rhm-sidebar')
+                ]);
 
                 function computeJitter(baseValue, seed) {
                     var n = (Math.sin(seed * 12.9898) * 43758.5453) % 1;
@@ -4993,21 +6042,17 @@
                         var coords = refCoords || csvCoordsByDp.get(facKey) || csvCoordsByDp.get(dpidKey);
                         if (napRefSet !== null && !refCoords) continue;
                         if (!coords) continue;
-                        var skill = String(recurringSkillsets[i] || '').toLowerCase();
-                        var isRepair = skill.indexOf('repair') !== -1;
-                        var isInstall = skill.indexOf('install') !== -1;
-                        if (!isRepair && !isInstall) continue;
+                        if (!isHmTrackedSkillset(recurringSkillsets[i], getCheckedValues('skillset'))) continue;
 
                         total++;
-                        if (isRepair) repair++;
-                        if (isInstall) install++;
+                        var skKind = classifyHmSkillset(recurringSkillsets[i]);
+                        if (skKind === 'repair') repair++;
+                        if (skKind === 'install') install++;
 
                         var jLat = computeJitter(coords[0], (i + 1) * 2.17 + 901);
                         var jLng = computeJitter(coords[1], (i + 1) * 3.41 + 433);
                         heatPts.push([jLat, jLng]);
-                        var marker = L.circleMarker([jLat, jLng], isRepair
-                            ? { radius: 3, color: '#1f7f1f', fillColor: '#32CD32', fillOpacity: 0.95, weight: 0.6, opacity: 0.98 }
-                            : { radius: 3, color: '#1a5eb0', fillColor: '#1E90FF', fillOpacity: 0.92, weight: 0.5, opacity: 0.95 });
+                        var marker = L.circleMarker([jLat, jLng], dotStyleForSkillset(recurringSkillsets[i]));
                         marker.bindTooltip('<div class="nap-dot-tip-name">' + napKey + '</div>', { direction: 'top', className: 'nap-dot-tip', offset: [0, -4] });
 
                         var row = {
@@ -5056,6 +6101,8 @@
                     if (repairEl) repairEl.textContent = repair.toLocaleString();
                     if (installEl) installEl.textContent = install.toLocaleString();
                     if (brgyEl) brgyEl.textContent = Object.keys(seenBrgy).length.toLocaleString();
+                    requestAnimationFrame(invRhmSize);
+                    setTimeout(invRhmSize, 60);
                 }
 
                 window.__rhmAbortController = new AbortController();
@@ -5074,6 +6121,16 @@
                         if (target && target.getAttribute('data-role') === 'close') closeModal();
                     }, { signal: rhmSignal });
                 }
+                var rhmThemeObs = new MutationObserver(function () {
+                    var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+                    tileLayer.setUrl(isDark ? darkTiles : lightTiles);
+                    labelLayer.setUrl(isDark
+                        ? 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png'
+                        : 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png');
+                });
+                rhmThemeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+                window.__rhmThemeObs = rhmThemeObs;
+
                 renderRecurring();
                 window.__recurringHmBootstrapped = true;
                 window.__invalidateRecurringHeatmap = function () {
@@ -5085,6 +6142,167 @@
             if (recurringPanel) {
                 recurringPanel.__lazyInitFn = window.__initRecurringHeatmapTab;
                 registerLazyVisual(recurringPanel, window.__initRecurringHeatmapTab, 'recurring-heatmap', teardownRecurringHeatmap);
+            }
+        })();
+
+        (function defineDefectiveHeatmapInit() {
+            window.__initDefectiveHeatmapTab = function () {
+                teardownDefectiveHeatmap();
+                var scopeLabel = document.getElementById('dhm-scope-label');
+                var totalEl = document.getElementById('dhm-metric-total');
+                var sfaEl = document.getElementById('dhm-metric-sfa');
+                var sspEl = document.getElementById('dhm-metric-ssp');
+                var brgyEl = document.getElementById('dhm-metric-brgys');
+                var brgyBars = document.getElementById('dhm-brgy-bars');
+                var napBars = document.getElementById('dhm-nap-bars');
+                var mapEl = document.getElementById('dhm-map');
+                if (!mapEl) return;
+
+                function computeJitter(baseValue, seed) {
+                    var n = (Math.sin(seed * 12.9898) * 43758.5453) % 1;
+                    var frac = n - Math.floor(n);
+                    return baseValue + ((frac - 0.5) * 0.00022);
+                }
+                function createRankRow(name, value, maxValue) {
+                    var pct = Math.round((value / Math.max(maxValue, 1)) * 100);
+                    var row = document.createElement('div');
+                    row.className = 'flex flex-col gap-0.5';
+                    row.innerHTML = '<div class="flex justify-between gap-2 text-[11px]"><span class="truncate font-mono" style="color:#c8c8e0;max-width:11rem" title="' +
+                        String(name).replace(/"/g, '&quot;') + '">' + String(name) + '</span><span class="font-mono flex-shrink-0" style="color:#f87171">' +
+                        Number(value || 0).toLocaleString() + '</span></div><div class="h-1.5 rounded-full overflow-hidden" style="background:rgba(42,42,74,0.6)"><div class="h-full rounded-full" style="width:' + pct +
+                        '%;background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.45)"></div></div>';
+                    return row;
+                }
+                function renderTopList(container, entries, emptyText) {
+                    if (!container) return;
+                    container.innerHTML = '';
+                    if (!entries.length) {
+                        var empty = document.createElement('p');
+                        empty.className = 'text-xs';
+                        empty.style.color = '#8a8ab0';
+                        empty.textContent = emptyText;
+                        container.appendChild(empty);
+                        return;
+                    }
+                    var maxValue = entries[0].value || 1;
+                    entries.slice(0, 5).forEach(function (entry) {
+                        container.appendChild(createRankRow(entry.name, entry.value, maxValue));
+                    });
+                }
+
+                var map = L.map(mapEl, { center: [7.0736, 125.6139], zoom: 12, zoomControl: false, attributionControl: true, preferCanvas: true });
+                window.__dhmLeafletMap = map;
+                L.control.zoom({ position: 'bottomright' }).addTo(map);
+                var dark = document.documentElement.getAttribute('data-theme') !== 'light';
+                L.tileLayer(dark ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
+                    maxZoom: 18,
+                    subdomains: 'abcd'
+                }).addTo(map);
+                L.tileLayer(
+                    dark
+                        ? 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png'
+                        : 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
+                    { maxZoom: 18, subdomains: 'abcd', pane: 'overlayPane', opacity: 0.7 }
+                ).addTo(map);
+                var dots = L.layerGroup().addTo(map);
+
+                function renderDefective() {
+                    var DAVAO_CENTER = [7.0736, 125.6139];
+                    var shared = window.__napRefShared || {};
+                    var entries = shared.defectiveEntries || [];
+                    var hasRef = shared.set && shared.set.size > 0;
+
+                    if (scopeLabel) {
+                        scopeLabel.textContent = hasRef
+                            ? (entries.length + ' defective NAP(s) · Davao North')
+                            : 'Upload NAP reference file';
+                    }
+
+                    dots.clearLayers();
+                    var byBrgy = {};
+                    var byNap = {};
+                    var seenBrgy = {};
+                    var total = 0;
+                    var totalSfa = 0;
+                    var totalSsp = 0;
+                    var heatPts = [];
+
+                    if (!hasRef || !entries.length) {
+                        if (totalEl) totalEl.textContent = '0';
+                        if (sfaEl) sfaEl.textContent = '0';
+                        if (sspEl) sspEl.textContent = '0';
+                        if (brgyEl) brgyEl.textContent = '0';
+                        renderTopList(brgyBars, [], hasRef ? 'No defective NAPs (S_FA + S_SP < 8).' : 'Upload the Davao North reference file (.xlsx).');
+                        renderTopList(napBars, [], hasRef ? 'No defective NAPs in reference.' : 'Upload reference file first.');
+                        map.setView(DAVAO_CENTER, 12);
+                        return;
+                    }
+
+                    entries.forEach(function (entry, i) {
+                        total++;
+                        totalSfa += entry.sFa || 0;
+                        totalSsp += entry.sSp || 0;
+                        var jLat = computeJitter(entry.lat, (i + 1) * 2.17 + 1201);
+                        var jLng = computeJitter(entry.lng, (i + 1) * 3.41 + 733);
+                        heatPts.push([jLat, jLng]);
+                        var marker = L.circleMarker([jLat, jLng], {
+                            radius: 4,
+                            color: '#b91c1c',
+                            fillColor: '#ef4444',
+                            fillOpacity: 0.95,
+                            weight: 0.8,
+                            opacity: 0.98
+                        });
+                        marker.bindTooltip(
+                            '<div class="nap-dot-tip-name">' + entry.dp + '</div>' +
+                            '<div class="nap-dot-tip-meta">S_FA: ' + (entry.sFa || 0) + ' · S_SP: ' + (entry.sSp || 0) + ' · Total: ' + (entry.sum || 0) + '</div>',
+                            { direction: 'top', className: 'nap-dot-tip', offset: [0, -4] }
+                        );
+                        dots.addLayer(marker);
+
+                        if (entry.brgy) {
+                            byBrgy[entry.brgy] = (byBrgy[entry.brgy] || 0) + 1;
+                            seenBrgy[entry.brgy] = true;
+                        }
+                        byNap[entry.dp] = entry.sum || 0;
+                    });
+
+                    if (heatPts.length > 0) {
+                        try {
+                            map.fitBounds(L.latLngBounds(heatPts), { padding: [20, 20], maxZoom: 15 });
+                        } catch (e) {
+                            map.setView(DAVAO_CENTER, 12);
+                        }
+                    } else {
+                        map.setView(DAVAO_CENTER, 12);
+                    }
+
+                    var brgyRanks = Object.keys(byBrgy).map(function (k) { return { name: k, value: byBrgy[k] }; })
+                        .sort(function (a, b) { return b.value - a.value; });
+                    var napRanks = Object.keys(byNap).map(function (k) { return { name: k, value: byNap[k] }; })
+                        .sort(function (a, b) { return b.value - a.value; });
+                    renderTopList(brgyBars, brgyRanks, 'No barangay data in reference file.');
+                    renderTopList(napBars, napRanks, 'No defective NAPs.');
+                    if (totalEl) totalEl.textContent = total.toLocaleString();
+                    if (sfaEl) sfaEl.textContent = totalSfa.toLocaleString();
+                    if (sspEl) sspEl.textContent = totalSsp.toLocaleString();
+                    if (brgyEl) brgyEl.textContent = Object.keys(seenBrgy).length.toLocaleString();
+                }
+
+                window.__dhmAbortController = new AbortController();
+                var dhmSignal = window.__dhmAbortController.signal;
+                window.addEventListener('nap-reference-updated', renderDefective, { signal: dhmSignal });
+                renderDefective();
+                window.__defectiveHmBootstrapped = true;
+                window.__invalidateDefectiveHeatmap = function () {
+                    try { map.invalidateSize({ pan: false }); } catch (e) {}
+                };
+            };
+            var defectivePanel = document.getElementById('hm-panel-defective');
+            if (defectivePanel) {
+                defectivePanel.__lazyInitFn = window.__initDefectiveHeatmapTab;
+                registerLazyVisual(defectivePanel, window.__initDefectiveHeatmapTab, 'defective-heatmap', teardownDefectiveHeatmap);
             }
         })();
         
@@ -5199,6 +6417,192 @@
                 }
             });
         }
+
+        (function initDashSidebarNav() {
+            var STORAGE_KEY = 'dash-active-panel';
+            var VALID_PANELS = ['overview', 'slot-adherence', 'kpi-counts', 'data-preview', 'heatmap', 'recurring'];
+            var app = document.getElementById('dash-app');
+            if (!app) return;
+
+            function syncDashChromeTop() {
+                var root = document.querySelector('.dash-layout-root');
+                var siteNav = root && root.querySelector('.dash-layout-nav');
+                if (!root) return;
+
+                var scrollbarW = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+                var scrollbarGutter = Math.max(16, scrollbarW + 10);
+                root.style.setProperty('--dash-scrollbar-gutter', scrollbarGutter + 'px');
+                document.documentElement.style.setProperty('--dash-scrollbar-gutter', scrollbarGutter + 'px');
+
+                if (siteNav) {
+                    var navHeight = siteNav.offsetHeight;
+                    root.style.setProperty('--dash-nav-height', navHeight + 'px');
+                    document.documentElement.style.setProperty('--dash-nav-height', navHeight + 'px');
+                }
+            }
+            syncDashChromeTop();
+            window.addEventListener('resize', syncDashChromeTop);
+            window.addEventListener('load', syncDashChromeTop);
+            if (typeof ResizeObserver !== 'undefined') {
+                var siteNavEl = document.querySelector('.dash-layout-root .dash-layout-nav');
+                if (siteNavEl) {
+                    var ro = new ResizeObserver(syncDashChromeTop);
+                    ro.observe(siteNavEl);
+                }
+            }
+
+            var layoutRoot = document.querySelector('.dash-layout-root');
+            var collapseBtn = document.getElementById('dash-sidebar-collapse');
+            var expandBtn = document.getElementById('dash-sidebar-expand');
+            var COLLAPSE_KEY = 'dash-sidebar-collapsed';
+            function toggleDashSidebarCollapsed() {
+                if (!layoutRoot) return;
+                layoutRoot.classList.toggle('dash-sidebar-collapsed');
+                var collapsed = layoutRoot.classList.contains('dash-sidebar-collapsed');
+                try { sessionStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (e) {}
+                syncDashChromeTop();
+                if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
+                var activePanel = app.querySelector('.dash-panel.is-active');
+                if (activePanel) {
+                    refreshMapsInPanel(activePanel.getAttribute('data-dash-panel'));
+                }
+            }
+            if (layoutRoot) {
+                try {
+                    if (sessionStorage.getItem(COLLAPSE_KEY) === '1') {
+                        layoutRoot.classList.add('dash-sidebar-collapsed');
+                    }
+                } catch (e) {}
+            }
+            if (collapseBtn) collapseBtn.addEventListener('click', toggleDashSidebarCollapsed);
+            if (expandBtn) expandBtn.addEventListener('click', toggleDashSidebarCollapsed);
+
+            var nav = document.getElementById('dash-sidebar-nav');
+            var sidebar = document.getElementById('dash-sidebar');
+            var backdrop = document.getElementById('dash-sidebar-backdrop');
+            var mobileToggle = document.getElementById('dash-mobile-toggle');
+            var navButtons = nav ? Array.from(nav.querySelectorAll('.dash-nav-item[data-dash-panel]')) : [];
+            var panels = Array.from(app.querySelectorAll('.dash-panel[data-dash-panel]'));
+
+            function closeMobileSidebar() {
+                if (sidebar) sidebar.classList.remove('is-open');
+                if (backdrop) backdrop.classList.remove('is-open');
+            }
+
+            function openMobileSidebar() {
+                if (sidebar) sidebar.classList.add('is-open');
+                if (backdrop) backdrop.classList.add('is-open');
+            }
+
+            function loadLazyVisualsInPanel(panelEl) {
+                if (!panelEl || typeof window.loadLazyVisualById !== 'function') return Promise.resolve();
+                var targets = panelEl.querySelectorAll('.lazy-visual-target[data-lazy-id]');
+                var promises = [];
+                targets.forEach(function(el) {
+                    var lazyId = el.getAttribute('data-lazy-id');
+                    if (lazyId) promises.push(window.loadLazyVisualById(lazyId));
+                });
+                return Promise.all(promises);
+            }
+
+            function refreshMapsInPanel(panelId) {
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        if (panelId === 'heatmap') {
+                            var st = window.__napHeatmapState;
+                            if (st && st.napMap) {
+                                try { st.napMap.invalidateSize({ pan: false }); } catch (e) {}
+                            }
+                            if (typeof window.__invalidateRecurringHeatmap === 'function') {
+                                try { window.__invalidateRecurringHeatmap(); } catch (e2) {}
+                            }
+                        }
+                    });
+                });
+            }
+
+            function activateDashPanel(panelId, options) {
+                options = options || {};
+                if (VALID_PANELS.indexOf(panelId) < 0) panelId = 'overview';
+
+                panels.forEach(function(panel) {
+                    var isActive = panel.getAttribute('data-dash-panel') === panelId;
+                    panel.classList.toggle('is-active', isActive);
+                    panel.hidden = !isActive;
+                });
+
+                navButtons.forEach(function(btn) {
+                    var isActive = btn.getAttribute('data-dash-panel') === panelId;
+                    btn.classList.toggle('is-active', isActive);
+                    if (isActive) btn.setAttribute('aria-current', 'page');
+                    else btn.removeAttribute('aria-current');
+                });
+
+                if (!options.skipStore) {
+                    try { sessionStorage.setItem(STORAGE_KEY, panelId); } catch (e) {}
+                }
+                if (!options.skipHash && window.history && window.history.replaceState) {
+                    var hash = panelId === 'overview' ? '' : '#' + panelId;
+                    var url = window.location.pathname + window.location.search + hash;
+                    window.history.replaceState(null, '', url);
+                }
+
+                if (!options.keepSidebarOpen) closeMobileSidebar();
+
+                var activePanel = app.querySelector('.dash-panel.is-active');
+                loadLazyVisualsInPanel(activePanel).then(function() {
+                    refreshMapsInPanel(panelId);
+                });
+
+                if (window.lucide && typeof lucide.createIcons === 'function') {
+                    lucide.createIcons();
+                }
+            }
+
+            window.activateDashPanel = activateDashPanel;
+
+            navButtons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    activateDashPanel(btn.getAttribute('data-dash-panel') || 'overview');
+                });
+            });
+
+            if (mobileToggle) {
+                mobileToggle.addEventListener('click', function() {
+                    if (sidebar && sidebar.classList.contains('is-open')) closeMobileSidebar();
+                    else openMobileSidebar();
+                });
+            }
+            if (backdrop) backdrop.addEventListener('click', closeMobileSidebar);
+
+            var initial = 'overview';
+            var hashPanel = (window.location.hash || '').replace(/^#/, '');
+            if (VALID_PANELS.indexOf(hashPanel) >= 0) {
+                initial = hashPanel;
+            } else {
+                try {
+                    var stored = sessionStorage.getItem(STORAGE_KEY);
+                    if (VALID_PANELS.indexOf(stored) >= 0) initial = stored;
+                } catch (e) {}
+            }
+
+            panels.forEach(function(panel) {
+                var id = panel.getAttribute('data-dash-panel');
+                var active = id === initial;
+                panel.hidden = !active;
+            });
+
+            activateDashPanel(initial, { skipStore: true, skipHash: true });
+
+            window.addEventListener('hashchange', function() {
+                var hp = (window.location.hash || '').replace(/^#/, '');
+                if (VALID_PANELS.indexOf(hp) >= 0) {
+                    activateDashPanel(hp, { skipHash: true });
+                } else if (!window.location.hash) {
+                    activateDashPanel('overview', { skipHash: true });
+                }
+            });
+        })();
 
         var tableColumns = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(previewTableCols));
         var sortableColumns = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(previewSortableCols.ToDictionary(c => c, _ => true)));
