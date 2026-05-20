@@ -472,10 +472,12 @@ public class CsvProcessingService : ICsvProcessingService
         var uniqueTerritories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var uniqueSkillsets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var failReasons = new Dictionary<string, int>(StringComparer.Ordinal);
+        var slotAdherenceByDate = new Dictionary<string, SlotAdherenceDayMetrics>(StringComparer.Ordinal);
 
         int totalRows = 0, amCount = 0, pmCount = 0, delayedCount = 0, lapsedCount = 0;
         int forVisitSubStatusCount = 0, forRescheduleSubStatusCount = 0, repairSkillsetCount = 0, completedStatusCount = 0;
         int passCount = 0, failCount = 0, naCount = 0;
+        int passAmCount = 0, passPmCount = 0, failAmCount = 0, failPmCount = 0;
         DateOnly? minDate = null, maxDate = null;
 
         var previewRows = new List<Dictionary<string, string>>();
@@ -610,10 +612,14 @@ public class CsvProcessingService : ICsvProcessingService
             {
                 case "Pass":
                     passCount++;
+                    if (isAmSlot) passAmCount++;
+                    else passPmCount++;
                     complianceLabel = "Pass";
                     break;
                 case "Fail":
                     failCount++;
+                    if (isAmSlot) failAmCount++;
+                    else failPmCount++;
                     complianceLabel = "Fail";
                     if (!string.IsNullOrEmpty(reason))
                         IncrementDist(failReasons, reason);
@@ -623,6 +629,18 @@ public class CsvProcessingService : ICsvProcessingService
                     complianceLabel = "N/A";
                     break;
             }
+
+            if (!slotAdherenceByDate.TryGetValue(dateKey, out var dayMetrics))
+            {
+                dayMetrics = new SlotAdherenceDayMetrics();
+                slotAdherenceByDate[dateKey] = dayMetrics;
+            }
+
+            dayMetrics.Scheduled++;
+            if (complianceLabel == "Pass")
+                dayMetrics.Pass++;
+            else if (complianceLabel == "Fail")
+                dayMetrics.Fail++;
 
             previewRows.Add(new Dictionary<string, string>
             {
@@ -677,7 +695,12 @@ public class CsvProcessingService : ICsvProcessingService
             CompliancePassCount = passCount,
             ComplianceFailCount = failCount,
             ComplianceNaCount = naCount,
+            CompliancePassAmCount = passAmCount,
+            CompliancePassPmCount = passPmCount,
+            ComplianceFailAmCount = failAmCount,
+            ComplianceFailPmCount = failPmCount,
             ComplianceFailReasons = failReasons,
+            SlotAdherenceByDate = slotAdherenceByDate,
             ComplianceMetricsAvailable = true,
             PreviewRows = previewRows,
             TotalFilteredRows = totalRows,
@@ -3213,6 +3236,159 @@ public class CsvProcessingService : ICsvProcessingService
         return ms;
     }
 
+    public async Task<KpiFileOverview> ExtractKpiFileOverviewAsync(
+        string csvFilePath,
+        CancellationToken cancellationToken = default)
+    {
+        var catalog = await ExtractKpiCsvAssistantCatalogAsync(csvFilePath, cancellationToken);
+        return catalog.Overview;
+    }
+
+    public async Task<KpiCsvAssistantCatalog> ExtractKpiCsvAssistantCatalogAsync(
+        string csvFilePath,
+        CancellationToken cancellationToken = default)
+    {
+        const int maxDatesInOverview = 60;
+        const int maxDistinctPerColumn = 80;
+        const int maxTopValues = 8;
+        const double minFillRateForDetail = 0.01;
+
+        var appointmentDateCol = Col("AppointmentDateColumn");
+        var lastUpdateDateCol = Col("LastUpdateDateColumn");
+
+        var alwaysProfileColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "appointmentdate", "lastupdatedate", "completiondate", "ordercreatedate", "createdate",
+            "status", "substatus", "skillset", "territory", "region", "area",
+            "customername", "customeraddress", "serviceidnumber", "workordernumber", "appointmentid",
+            "facilityname", "latitude", "longitude", "delaycode", "delayreason", "delaynotes",
+            "team", "contractorname", "technology", "customertype", "customersubtype", "queue",
+            "cabinetid", "napid", "source", "fixcode", "fixdescription", "faultcode", "faultdescription",
+            "workordertype", "orderactiontype", "activationstatus", "cancellationreason"
+        };
+
+        var byDate = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var totalRows = 0;
+        var rowsWithDate = 0;
+        DateOnly? minDate = null;
+        DateOnly? maxDate = null;
+
+        await using var fileStream = new FileStream(csvFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536, useAsync: true);
+        using var reader = new StreamReader(fileStream);
+        using var csv = new CsvReader(reader, DefaultCsvConfig);
+
+        await csv.ReadAsync();
+        csv.ReadHeader();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var headers = csv.HeaderRecord ?? [];
+        var columnNames = headers.Select(h => h.Trim()).Where(h => !string.IsNullOrEmpty(h)).ToList();
+
+        var accumulators = columnNames.ToDictionary(
+            h => h,
+            _ => new KpiColumnAccumulator(),
+            StringComparer.OrdinalIgnoreCase);
+
+        while (await csv.ReadAsync())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            totalRows++;
+
+            var rawApptDate = csv.GetField(appointmentDateCol) ?? "";
+            var rawLastUpdate = csv.GetField(lastUpdateDateCol) ?? "";
+            if (TryParseCsvDateLoose(rawApptDate, out var rowDate)
+                || TryParseCsvDateLoose(rawLastUpdate, out rowDate))
+            {
+                rowsWithDate++;
+                var key = rowDate.ToString("yyyy-MM-dd");
+                byDate[key] = byDate.GetValueOrDefault(key) + 1;
+                if (minDate is null || rowDate < minDate)
+                    minDate = rowDate;
+                if (maxDate is null || rowDate > maxDate)
+                    maxDate = rowDate;
+            }
+
+            foreach (var header in columnNames)
+            {
+                var raw = csv.GetField(header) ?? "";
+                if (string.IsNullOrWhiteSpace(raw))
+                    continue;
+
+                var value = raw.Trim();
+                var acc = accumulators[header];
+                acc.NonEmpty++;
+
+                if (acc.Capped && !acc.Values.ContainsKey(value))
+                    continue;
+
+                if (!acc.Values.ContainsKey(value) && acc.Values.Count >= maxDistinctPerColumn)
+                {
+                    acc.Capped = true;
+                    continue;
+                }
+
+                acc.Values[value] = acc.Values.GetValueOrDefault(value) + 1;
+            }
+        }
+
+        var cappedByDate = byDate.Count <= maxDatesInOverview
+            ? byDate
+            : byDate
+                .OrderByDescending(kv => kv.Value)
+                .Take(maxDatesInOverview)
+                .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
+
+        var profiles = new List<KpiCsvColumnProfile>();
+        foreach (var header in columnNames)
+        {
+            var acc = accumulators[header];
+            if (acc.NonEmpty == 0)
+                continue;
+
+            var fillRate = totalRows > 0 ? (double)acc.NonEmpty / totalRows : 0;
+            var key = header.Replace(" ", "").Replace("_", "");
+            if (fillRate < minFillRateForDetail && !alwaysProfileColumns.Contains(key)
+                && !alwaysProfileColumns.Contains(header))
+                continue;
+
+            profiles.Add(new KpiCsvColumnProfile
+            {
+                Name = header,
+                NonEmptyRows = acc.NonEmpty,
+                DistinctValues = acc.Values.Count,
+                DistinctValuesCapped = acc.Capped,
+                TopValues = acc.Values
+                    .OrderByDescending(kv => kv.Value)
+                    .Take(maxTopValues)
+                    .ToList()
+            });
+        }
+
+        profiles.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+
+        return new KpiCsvAssistantCatalog
+        {
+            Overview = new KpiFileOverview
+            {
+                TotalCsvRows = totalRows,
+                RowsWithAppointmentDate = rowsWithDate,
+                AppointmentDateMin = minDate?.ToString("yyyy-MM-dd"),
+                AppointmentDateMax = maxDate?.ToString("yyyy-MM-dd"),
+                DistinctAppointmentDates = byDate.Count,
+                AppointmentsByDate = cappedByDate
+            },
+            AllColumnNames = columnNames,
+            ColumnProfiles = profiles
+        };
+    }
+
+    private sealed class KpiColumnAccumulator
+    {
+        public int NonEmpty;
+        public readonly Dictionary<string, int> Values = new(StringComparer.OrdinalIgnoreCase);
+        public bool Capped;
+    }
+
     public async Task<ReportCsvQueryResult> QueryKpiCsvAsync(
         string csvFilePath,
         ReportCsvSessionFilterParams sessionFilters,
@@ -3230,7 +3406,12 @@ public class CsvProcessingService : ICsvProcessingService
         var appointmentIdCol = Col("AppointmentIdColumn");
         var workOrderCol = ColOr("WorkOrderColumn", appointmentIdCol);
         var orderCreateDateCol = Col("OrderCreateDateColumn");
+        var completionDateCol = Col("CompletionDateColumn");
+        var delayedValue = Col("DelayedStatusValue");
+        var cancelledValue = ColOr("CancelledStatusValue", "Cancelled");
         var amSlotMarker = Col("AmSlotMarker");
+        var needsCompliance = !string.IsNullOrWhiteSpace(extraFilters.Compliance);
+        var hasCompletionColumn = false;
 
         var territorySet = ToSet(sessionFilters.SelectedTerritories);
         var statusSet = ToSet(sessionFilters.SelectedStatuses);
@@ -3259,8 +3440,20 @@ public class CsvProcessingService : ICsvProcessingService
         cancellationToken.ThrowIfCancellationRequested();
 
         var headers = csv.HeaderRecord;
+        hasCompletionColumn = headers is not null
+            && headers.Any(h => string.Equals(h, completionDateCol, StringComparison.OrdinalIgnoreCase));
         var facilityCol = FindCoordColumn(headers, _config["CsvMapping:FacilityNameColumn"], "facilityname", "facility_name", "facility", "name");
         var addressCol = FindCoordColumn(headers, null, "customeraddress", "customer_address", "address");
+        var customerNameCol = FindCoordColumn(headers, null, "customername", "customer_name");
+        var serviceIdCol = FindCoordColumn(headers, null, "serviceidnumber", "serviceid", "service_id");
+        var teamCol = FindCoordColumn(headers, null, "team", "team_name");
+        var delayCodeCol = FindCoordColumn(headers, null, "delaycode", "delay_code");
+        var technologyCol = FindCoordColumn(headers, null, "technology");
+        var customerTypeCol = FindCoordColumn(headers, null, "customertype", "customer_type");
+        var queueCol = FindCoordColumn(headers, null, "queue");
+        var cabinetIdCol = FindCoordColumn(headers, null, "cabinetid", "cabinet_id");
+        var contractorCol = FindCoordColumn(headers, null, "contractorname", "contractor_name", "contractor");
+        var sourceCol = FindCoordColumn(headers, null, "source");
 
         while (await csv.ReadAsync())
         {
@@ -3270,7 +3463,13 @@ public class CsvProcessingService : ICsvProcessingService
             if (!TryExtractDate(rawAppointmentDate, out var rowDate))
                 continue;
 
-            if (!MatchesDateFilter(
+            if (!string.IsNullOrWhiteSpace(extraFilters.AppointmentDate))
+            {
+                if (!DateOnly.TryParse(extraFilters.AppointmentDate, out var targetDate)
+                    || rowDate != targetDate)
+                    continue;
+            }
+            else if (!MatchesDateFilter(
                     rowDate,
                     sessionFilters.DateFilterMode,
                     sessionFilters.SelectedDate,
@@ -3286,6 +3485,16 @@ public class CsvProcessingService : ICsvProcessingService
             var appointmentId = (csv.GetField(appointmentIdCol) ?? "").Trim();
             var workOrderNumber = (csv.GetField(workOrderCol) ?? "").Trim();
             var customerAddress = addressCol is not null ? (csv.GetField(addressCol) ?? "").Trim() : "";
+            var customerName = customerNameCol is not null ? (csv.GetField(customerNameCol) ?? "").Trim() : "";
+            var serviceIdNumber = serviceIdCol is not null ? (csv.GetField(serviceIdCol) ?? "").Trim() : "";
+            var team = teamCol is not null ? (csv.GetField(teamCol) ?? "").Trim() : "";
+            var delayCode = delayCodeCol is not null ? (csv.GetField(delayCodeCol) ?? "").Trim() : "";
+            var technology = technologyCol is not null ? (csv.GetField(technologyCol) ?? "").Trim() : "";
+            var customerType = customerTypeCol is not null ? (csv.GetField(customerTypeCol) ?? "").Trim() : "";
+            var queue = queueCol is not null ? (csv.GetField(queueCol) ?? "").Trim() : "";
+            var cabinetId = cabinetIdCol is not null ? (csv.GetField(cabinetIdCol) ?? "").Trim() : "";
+            var contractorName = contractorCol is not null ? (csv.GetField(contractorCol) ?? "").Trim() : "";
+            var sourceSystem = sourceCol is not null ? (csv.GetField(sourceCol) ?? "").Trim() : "";
             var facilityName = facilityCol is not null ? (csv.GetField(facilityCol) ?? "").Trim() : "";
             var isAmSlot = rawAppointmentDate.Contains(amSlotMarker, StringComparison.OrdinalIgnoreCase);
             var slotLabel = isAmSlot ? "AM" : "PM";
@@ -3295,6 +3504,9 @@ public class CsvProcessingService : ICsvProcessingService
             if (!MatchesFilter(subStatusSet, subStatus)) continue;
             if (!MatchesFilter(skillsetSet, skillset)) continue;
             if (!MatchesFilter(orderCreateDateSet, orderCreateDate)) continue;
+            if (!string.IsNullOrWhiteSpace(extraFilters.OrderCreateDate)
+                && !IsNormalizedMatch(orderCreateDate, extraFilters.OrderCreateDate))
+                continue;
 
             totalFilteredRows++;
 
@@ -3307,6 +3519,36 @@ public class CsvProcessingService : ICsvProcessingService
             if (!ContainsIgnoreCase(facilityName, extraFilters.FacilityContains)) continue;
             if (!MatchesExactQuery(extraFilters.AppointmentId, appointmentId)) continue;
             if (!MatchesExactQuery(extraFilters.WorkOrderNumber, workOrderNumber)) continue;
+            if (!ContainsIgnoreCase(customerName, extraFilters.CustomerNameContains)) continue;
+            if (!MatchesExactQuery(extraFilters.ServiceIdNumber, serviceIdNumber)) continue;
+            if (!ContainsIgnoreCase(team, extraFilters.TeamContains)) continue;
+            if (!MatchesQueryText(extraFilters.DelayCode, delayCode)) continue;
+            if (!MatchesQueryText(extraFilters.Technology, technology)) continue;
+            if (!MatchesQueryText(extraFilters.CustomerType, customerType)) continue;
+            if (!MatchesQueryText(extraFilters.Queue, queue)) continue;
+            if (!MatchesExactQuery(extraFilters.CabinetId, cabinetId)) continue;
+            if (!MatchesQueryText(extraFilters.ContractorName, contractorName)) continue;
+            if (!MatchesQueryText(extraFilters.SourceSystem, sourceSystem)) continue;
+            if (!MatchesDynamicColumnContains(csv, headers, extraFilters.ColumnContains)) continue;
+
+            if (needsCompliance)
+            {
+                if (!hasCompletionColumn)
+                    continue;
+
+                var isDelayed = string.Equals(status, delayedValue, StringComparison.OrdinalIgnoreCase);
+                var rawCompletion = csv.GetField(completionDateCol) ?? "";
+                var complianceLabel = ClassifyRowComplianceLabel(
+                    status,
+                    subStatus,
+                    isDelayed,
+                    rowDate,
+                    isAmSlot,
+                    rawCompletion,
+                    cancelledValue);
+                if (!MatchesComplianceFilter(extraFilters.Compliance, complianceLabel))
+                    continue;
+            }
 
             matchedRows++;
 
@@ -3319,6 +3561,14 @@ public class CsvProcessingService : ICsvProcessingService
                     "territory" => string.IsNullOrWhiteSpace(territory) ? "(blank)" : territory,
                     "skillset" => string.IsNullOrWhiteSpace(skillset) ? "(blank)" : skillset,
                     "slot" => slotLabel,
+                    "date" => rowDate.ToString("yyyy-MM-dd"),
+                    "team" => string.IsNullOrWhiteSpace(team) ? "(blank)" : team,
+                    "delaycode" => string.IsNullOrWhiteSpace(delayCode) ? "(blank)" : delayCode,
+                    "technology" => string.IsNullOrWhiteSpace(technology) ? "(blank)" : technology,
+                    "customertype" => string.IsNullOrWhiteSpace(customerType) ? "(blank)" : customerType,
+                    "queue" => string.IsNullOrWhiteSpace(queue) ? "(blank)" : queue,
+                    "contractorname" => string.IsNullOrWhiteSpace(contractorName) ? "(blank)" : contractorName,
+                    "source" => string.IsNullOrWhiteSpace(sourceSystem) ? "(blank)" : sourceSystem,
                     _ => "(unknown)"
                 };
                 breakdown[key] = breakdown.GetValueOrDefault(key) + 1;
@@ -3342,6 +3592,12 @@ public class CsvProcessingService : ICsvProcessingService
             }
         }
 
+        string? note = null;
+        if (!string.IsNullOrWhiteSpace(extraFilters.AddressContains))
+            note = "Barangay/location counts use customeraddress text search from the uploaded KPI CSV, not the browser-only NAP Reference heatmap join.";
+        else if (needsCompliance && !hasCompletionColumn)
+            note = "Compliance (Pass/Fail) requires an All Status KPI file with a completion date column.";
+
         return new ReportCsvQueryResult
         {
             Ran = true,
@@ -3351,11 +3607,38 @@ public class CsvProcessingService : ICsvProcessingService
             Breakdown = breakdown,
             SampleRows = sampleRows,
             FiltersApplied = BuildFiltersApplied(sessionFilters, extraFilters),
-            Note = !string.IsNullOrWhiteSpace(extraFilters.AddressContains)
-                ? "Barangay/location counts use customeraddress text search from the uploaded KPI CSV, not the browser-only NAP Reference heatmap join."
-                : null
+            Note = note
         };
     }
+
+    private static string ClassifyRowComplianceLabel(
+        string status,
+        string subStatus,
+        bool isDelayed,
+        DateOnly rowDate,
+        bool isAmSlot,
+        string rawCompletion,
+        string cancelledValue)
+    {
+        var (tier, _) = ClassifyComplianceWithCancelledReschedule(
+            isDelayed,
+            status,
+            subStatus,
+            cancelledValue,
+            rowDate,
+            isAmSlot,
+            rawCompletion);
+        return tier switch
+        {
+            "Pass" => "Pass",
+            "Fail" => "Fail",
+            _ => "N/A"
+        };
+    }
+
+    private static bool MatchesComplianceFilter(string? filter, string label) =>
+        string.IsNullOrWhiteSpace(filter)
+        || string.Equals(filter.Trim(), label, StringComparison.OrdinalIgnoreCase);
 
     private static string? NormalizeGroupBy(string? groupBy)
     {
@@ -3365,9 +3648,36 @@ public class CsvProcessingService : ICsvProcessingService
         var g = groupBy.Trim().ToLowerInvariant();
         return g switch
         {
-            "status" or "substatus" or "territory" or "skillset" or "slot" => g,
+            "status" or "substatus" or "territory" or "skillset" or "slot" or "date"
+                or "team" or "delaycode" or "technology" or "customertype" or "queue"
+                or "contractorname" or "source" => g,
             _ => null
         };
+    }
+
+    private static bool MatchesDynamicColumnContains(
+        CsvReader csv,
+        string[]? headers,
+        Dictionary<string, string> columnContains)
+    {
+        if (columnContains.Count == 0 || headers is null)
+            return true;
+
+        foreach (var (columnName, needle) in columnContains)
+        {
+            if (string.IsNullOrWhiteSpace(needle))
+                continue;
+
+            var col = Array.Find(headers, h => string.Equals(h.Trim(), columnName.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (col is null)
+                return false;
+
+            var value = csv.GetField(col) ?? "";
+            if (!ContainsIgnoreCase(value, needle))
+                return false;
+        }
+
+        return true;
     }
 
     private static bool MatchesQueryText(string? filterValue, string rowValue)
@@ -3437,7 +3747,21 @@ public class CsvProcessingService : ICsvProcessingService
                 ["addressContains"] = extraFilters.AddressContains,
                 ["facilityContains"] = extraFilters.FacilityContains,
                 ["appointmentId"] = extraFilters.AppointmentId,
-                ["workOrderNumber"] = extraFilters.WorkOrderNumber
+                ["workOrderNumber"] = extraFilters.WorkOrderNumber,
+                ["appointmentDate"] = extraFilters.AppointmentDate,
+                ["orderCreateDate"] = extraFilters.OrderCreateDate,
+                ["compliance"] = extraFilters.Compliance,
+                ["customerNameContains"] = extraFilters.CustomerNameContains,
+                ["serviceIdNumber"] = extraFilters.ServiceIdNumber,
+                ["teamContains"] = extraFilters.TeamContains,
+                ["delayCode"] = extraFilters.DelayCode,
+                ["technology"] = extraFilters.Technology,
+                ["customerType"] = extraFilters.CustomerType,
+                ["queue"] = extraFilters.Queue,
+                ["cabinetId"] = extraFilters.CabinetId,
+                ["contractorName"] = extraFilters.ContractorName,
+                ["sourceSystem"] = extraFilters.SourceSystem,
+                ["columnContains"] = extraFilters.ColumnContains.Count > 0 ? extraFilters.ColumnContains : null
             }
         };
 

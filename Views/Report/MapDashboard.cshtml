@@ -1,0 +1,209 @@
+@{
+    ViewData["Title"] = "Circuit Map";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+    ViewData["ActiveTab"] = "map";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+<style>
+    .circuit-map-page {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 11rem);
+        margin: 0 -4px;
+    }
+    .circuit-map-wrap {
+        position: relative;
+        flex: 1;
+        min-height: 520px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--theme-surface-border, #2a2a4a);
+    }
+    #circuit-map {
+        position: absolute;
+        inset: 0;
+        background: #0d0d1a;
+    }
+    :root[data-theme="light"] #circuit-map { background: #e8ecf4; }
+
+    .circuit-map-upload {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 1000;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--theme-accent, #6366f1);
+        background: rgba(22, 22, 42, 0.92);
+        border: 1px solid var(--theme-surface-border, #2a2a4a);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+        transition: background 0.15s;
+    }
+    .circuit-map-upload:hover { background: rgba(99, 102, 241, 0.18); }
+    :root[data-theme="light"] .circuit-map-upload {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: #d8deea;
+        color: #4f46e5;
+    }
+
+    .circuit-map-status {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 1000;
+        max-width: 280px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        color: var(--theme-text-muted, #8a8ab0);
+        background: rgba(22, 22, 42, 0.92);
+        border: 1px solid var(--theme-surface-border, #2a2a4a);
+        backdrop-filter: blur(8px);
+        display: none;
+    }
+    .circuit-map-status.visible { display: block; }
+    :root[data-theme="light"] .circuit-map-status {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: #d8deea;
+        color: #556084;
+    }
+
+    .circuit-map-legend {
+        position: absolute;
+        bottom: 12px;
+        left: 12px;
+        z-index: 1000;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        background: rgba(22, 22, 42, 0.92);
+        border: 1px solid var(--theme-surface-border, #2a2a4a);
+        backdrop-filter: blur(8px);
+        display: none;
+    }
+    .circuit-map-legend.visible { display: block; }
+    .circuit-map-legend-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0;
+        color: var(--theme-text-dim, #c8c8e0);
+    }
+    .circuit-map-legend-swatch {
+        width: 24px;
+        height: 4px;
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+    :root[data-theme="light"] .circuit-map-legend {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: #d8deea;
+    }
+    :root[data-theme="light"] .circuit-map-legend-row { color: #33415f; }
+
+    .circuit-label-icon {
+        background: transparent !important;
+        border: none !important;
+    }
+    .circuit-label-icon span {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+    }
+
+    .leaflet-popup-content-wrapper {
+        background: rgba(15, 15, 30, 0.96) !important;
+        border: 1px solid #3a3a5a !important;
+        border-radius: 10px !important;
+        color: #e0e7ff !important;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55) !important;
+        font-family: 'DM Sans', sans-serif !important;
+    }
+    .leaflet-popup-tip { background: rgba(15, 15, 30, 0.96) !important; }
+    .leaflet-popup-close-button { color: #8a8ab0 !important; }
+    .leaflet-control-attribution { background: rgba(10, 10, 22, 0.7) !important; color: #4a4a6e !important; }
+    .leaflet-control-attribution a { color: #5a5af0 !important; }
+    .leaflet-control-zoom a {
+        background: rgba(22, 22, 42, 0.92) !important;
+        color: #c8c8e0 !important;
+        border-color: #2a2a4a !important;
+    }
+    .leaflet-control-zoom a:hover { background: rgba(99, 102, 241, 0.25) !important; }
+    :root[data-theme="light"] .leaflet-popup-content-wrapper {
+        background: #ffffff !important;
+        border-color: #d8deea !important;
+        color: #1f2a44 !important;
+    }
+    :root[data-theme="light"] .leaflet-popup-tip { background: #ffffff !important; }
+    :root[data-theme="light"] .leaflet-control-zoom a {
+        background: #ffffff !important;
+        color: #33415f !important;
+        border-color: #d8deea !important;
+    }
+    :root[data-theme="light"] .leaflet-control-attribution {
+        background: rgba(255, 255, 255, 0.85) !important;
+        color: #64748b !important;
+    }
+</style>
+
+<div class="circuit-map-page">
+    <div class="circuit-map-wrap">
+        <div id="circuit-map"></div>
+
+        <div id="circuit-map-status" class="circuit-map-status"></div>
+
+        <div id="circuit-map-legend" class="circuit-map-legend">
+            <div id="circuit-legend-overall" class="circuit-map-legend-row" style="display:none;">
+                <span class="circuit-map-legend-swatch" style="background:#fbbf24;"></span>
+                <span>Street route</span>
+            </div>
+            <div id="circuit-legend-91-92" class="circuit-map-legend-row" style="display:none;">
+                <span class="circuit-map-legend-swatch" style="background:#6366f1;"></span>
+                <span>CIRCUIT NO 91 / 92</span>
+            </div>
+            <div id="circuit-legend-93" class="circuit-map-legend-row" style="display:none;">
+                <span class="circuit-map-legend-swatch" style="background:#14b8a6;"></span>
+                <span>CIRCUIT NO 93</span>
+            </div>
+        </div>
+
+        <label class="circuit-map-upload" for="circuit-map-file-input" title="Upload SWU coordinate file (.xlsx)">
+            <i data-lucide="upload" style="width:16px;height:16px;"></i>
+            <span>Upload XLSX</span>
+            <input type="file" id="circuit-map-file-input" accept=".xlsx" class="hidden" />
+        </label>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="~/js/circuit-map.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.CircuitMap && typeof window.CircuitMap.init === 'function') {
+                window.CircuitMap.init();
+            }
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
+}

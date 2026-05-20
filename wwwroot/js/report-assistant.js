@@ -137,7 +137,7 @@
         }
 
         if (messagesEl && history.length === 0) {
-            appendBubble('assistant', 'Ask a question about the numbers and filters for this page. Greetings get an instant reply.', false);
+            appendBubble('assistant', 'Ask me anything — general questions or numbers from this page’s report. Greetings get an instant reply.', false);
         }
 
         function toggle() { setOpen(!open); }

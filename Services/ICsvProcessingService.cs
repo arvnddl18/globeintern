@@ -122,6 +122,14 @@ public interface ICsvProcessingService
     Task<MemoryStream> GenerateRecurringTicketsCsvAsync(List<RecurringTicketRow> rows);
     Task<MemoryStream> GenerateRecurringTicketsXlsxAsync(List<RecurringTicketRow> rows);
 
+    Task<KpiFileOverview> ExtractKpiFileOverviewAsync(
+        string csvFilePath,
+        CancellationToken cancellationToken = default);
+
+    Task<KpiCsvAssistantCatalog> ExtractKpiCsvAssistantCatalogAsync(
+        string csvFilePath,
+        CancellationToken cancellationToken = default);
+
     Task<ReportCsvQueryResult> QueryKpiCsvAsync(
         string csvFilePath,
         ReportCsvSessionFilterParams sessionFilters,

@@ -346,8 +346,8 @@
                     </div>
                 </div>
             </div>
-            <!-- Tab row: KPI / Operational -->
-            @if (_activeTab == "kpi" || _activeTab == "operational")
+            <!-- Tab row: KPI / Operational / Map -->
+            @if (_activeTab == "kpi" || _activeTab == "operational" || _activeTab == "map")
             {
                 <div class="flex items-center justify-center gap-1 pt-1 pb-0">
                     <a asp-controller="Report" asp-action="Dashboard"
@@ -365,6 +365,14 @@
                            : "color: var(--theme-text-muted); border-bottom: 2px solid transparent; background: transparent;")">
                         <i data-lucide="activity" style="width:14px; height:14px;"></i>
                         Operational
+                    </a>
+                    <a asp-controller="Report" asp-action="Map"
+                       class="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-t-lg transition-colors"
+                       style="@(_activeTab == "map"
+                           ? "color: var(--theme-accent); border-bottom: 2px solid var(--theme-accent); background: var(--theme-accent-soft);"
+                           : "color: var(--theme-text-muted); border-bottom: 2px solid transparent; background: transparent;")">
+                        <i data-lucide="map" style="width:14px; height:14px;"></i>
+                        Map
                     </a>
                 </div>
             }

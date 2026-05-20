@@ -11,7 +11,8 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
     private const int DistTopN = 25;
     private const int DateSeriesTopN = 40;
     private const int PreviewRowCap = 15;
-    private const int PreviewColCap = 14;
+    private const int PreviewColCap = 22;
+    private const int ColumnCatalogCap = 90;
     private const int ListCap = 60;
     private const int OperationalSeriesCap = 96;
     private const int RecurringSampleCap = 8;
@@ -105,12 +106,67 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
         }
 
         var (kpi, isArchived, activeView) = (resolved.Kpi, resolved.IsArchived, resolved.ActiveView);
+
+        FilterOptionsViewModel? filterOptions = null;
+        KpiFileOverview? fileOverview = null;
+        KpiCsvAssistantCatalog? csvCatalog = null;
+        string? sourceFileName = null;
+        DateTime? uploadedUtc = null;
+
+        if (!isArchived && _sessionStore.TryGetCsvPath(token!, out var csvPathForMeta))
+        {
+            var sessionForOpts = await _sessionStore.LoadAsync(token!, cancellationToken);
+            if (sessionForOpts is not null)
+            {
+                filterOptions = await GetFilterOptionsForDashboardAsync(
+                    token!,
+                    csvPathForMeta,
+                    sessionForOpts,
+                    cancellationToken);
+                kpi.AvailableDates = filterOptions.AvailableDates;
+                kpi.AvailableTerritories = filterOptions.AvailableTerritories;
+                kpi.AvailableStatuses = filterOptions.AvailableStatuses;
+                kpi.AvailableSubStatuses = filterOptions.AvailableSubStatuses;
+                kpi.AvailableSkillsets = filterOptions.AvailableSkillsets;
+                kpi.AvailableOrderCreateDates = filterOptions.AvailableOrderCreateDates;
+            }
+
+            try
+            {
+                csvCatalog = await _csvService.ExtractKpiCsvAssistantCatalogAsync(csvPathForMeta, cancellationToken);
+                fileOverview = csvCatalog.Overview;
+            }
+            catch
+            {
+                // CSV catalog is optional; dashboard totals still apply.
+            }
+
+            var uploadMeta = await _db.ReportUploads.AsNoTracking()
+                .Where(u => u.Token == token && u.UserId == userId)
+                .Select(u => new { u.OriginalFileName, u.UploadedUtc })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (uploadMeta is not null)
+            {
+                sourceFileName = uploadMeta.OriginalFileName;
+                uploadedUtc = uploadMeta.UploadedUtc;
+            }
+        }
+
         var fingerprint = BuildKpiFingerprint(token!, activeView, kpi, isArchived);
         var cacheKey = $"rac-kpi:{userId:N}:{fingerprint}";
         if (_cache.TryGetValue(cacheKey, out Dictionary<string, object?>? cached) && cached is not null)
             return cached;
 
-        var slim = MapKpiToContext(pageKind, activeView, isArchived, kpi);
+        var slim = MapKpiToContext(
+            pageKind,
+            activeView,
+            isArchived,
+            kpi,
+            filterOptions,
+            fileOverview,
+            csvCatalog,
+            sourceFileName,
+            uploadedUtc);
         slim["reportSections"] = new[]
         {
             "slotAdherence",
@@ -366,9 +422,18 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
         ReportAssistantPageKind pageKind,
         string activeView,
         bool isArchived,
-        KpiDashboardViewModel k)
+        KpiDashboardViewModel k,
+        FilterOptionsViewModel? filterOptions,
+        KpiFileOverview? fileOverview,
+        KpiCsvAssistantCatalog? csvCatalog,
+        string? sourceFileName,
+        DateTime? uploadedUtc)
     {
         var page = pageKind == ReportAssistantPageKind.KpiFilter ? "kpi_filter" : "kpi_dashboard";
+        var slotAdherence = BuildSlotAdherenceTotals(k);
+        var fileByDate = fileOverview?.AppointmentsByDate ?? new Dictionary<string, int>();
+        var availableDates = filterOptions?.AvailableDates ?? k.AvailableDates;
+
         return new Dictionary<string, object?>
         {
             ["page"] = page,
@@ -376,40 +441,56 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
             ["isArchivedReadOnly"] = isArchived,
             ["activeDashboardView"] = activeView,
             ["csvSourceKind"] = k.CsvSourceKind.ToString(),
-            ["dateFilterMode"] = k.DateFilterMode,
-            ["selectedDate"] = k.SelectedDate,
-            ["dateRangeStart"] = k.DateRangeStart,
-            ["dateRangeEnd"] = k.DateRangeEnd,
-            ["dateRangeDisplay"] = k.DateRangeDisplay,
-            ["selectedTerritories"] = CapList(k.SelectedTerritories, ListCap),
-            ["selectedStatuses"] = CapList(k.SelectedStatuses, ListCap),
-            ["selectedSubStatuses"] = CapList(k.SelectedSubStatuses, ListCap),
-            ["selectedSkillsets"] = CapList(k.SelectedSkillsets, ListCap),
-            ["selectedOrderCreateDates"] = CapList(k.SelectedOrderCreateDates, ListCap),
-            ["totals"] = new Dictionary<string, object?>
+            ["dataset"] = new Dictionary<string, object?>
             {
-                ["totalAppointments"] = k.TotalAppointments,
-                ["totalFilteredRows"] = k.TotalFilteredRows,
-                ["uniqueTerritories"] = k.UniqueTerritoriesCount,
-                ["uniqueSkillsets"] = k.UniqueSkillsetsCount,
-                ["amSlotCount"] = k.AmSlotCount,
-                ["pmSlotCount"] = k.PmSlotCount,
-                ["delayedCount"] = k.DelayedCount,
-                ["lapsedCount"] = k.LapsedCount,
-                ["forVisitSubStatusCount"] = k.ForVisitSubStatusCount,
-                ["forRescheduleSubStatusCount"] = k.ForRescheduleSubStatusCount,
-                ["repairSkillsetCount"] = k.RepairSkillsetCount,
-                ["completedStatusCount"] = k.CompletedStatusCount,
-                ["complianceMetricsAvailable"] = k.ComplianceMetricsAvailable,
-                ["compliancePass"] = k.CompliancePassCount,
-                ["complianceFail"] = k.ComplianceFailCount,
-                ["complianceNa"] = k.ComplianceNaCount
+                ["sourceFileName"] = sourceFileName,
+                ["uploadedUtc"] = uploadedUtc?.ToString("O"),
+                ["totalCsvRows"] = fileOverview?.TotalCsvRows,
+                ["rowsWithAppointmentDate"] = fileOverview?.RowsWithAppointmentDate,
+                ["appointmentDateRangeInFile"] = new Dictionary<string, object?>
+                {
+                    ["min"] = fileOverview?.AppointmentDateMin ?? availableDates.LastOrDefault(),
+                    ["max"] = fileOverview?.AppointmentDateMax ?? availableDates.FirstOrDefault(),
+                    ["distinctDateCount"] = fileOverview?.DistinctAppointmentDates ?? availableDates.Count
+                },
+                ["appointmentsByDateInFile"] = TopCounts(fileByDate, DateSeriesTopN),
+                ["availableAppointmentDates"] = CapList(availableDates, ListCap),
+                ["availableTerritories"] = CapList(filterOptions?.AvailableTerritories ?? k.AvailableTerritories, ListCap),
+                ["availableStatuses"] = CapList(filterOptions?.AvailableStatuses ?? k.AvailableStatuses, ListCap),
+                ["availableSubStatuses"] = CapList(filterOptions?.AvailableSubStatuses ?? k.AvailableSubStatuses, ListCap),
+                ["availableSkillsets"] = CapList(filterOptions?.AvailableSkillsets ?? k.AvailableSkillsets, ListCap),
+                ["availableOrderCreateDates"] = CapList(
+                    filterOptions?.AvailableOrderCreateDates ?? k.AvailableOrderCreateDates,
+                    ListCap)
             },
+            ["activeFilters"] = new Dictionary<string, object?>
+            {
+                ["summary"] = DescribeActiveFilters(k),
+                ["dateFilterMode"] = k.DateFilterMode,
+                ["selectedDate"] = k.SelectedDate,
+                ["dateRangeStart"] = k.DateRangeStart,
+                ["dateRangeEnd"] = k.DateRangeEnd,
+                ["dateRangeDisplay"] = k.DateRangeDisplay,
+                ["selectedTerritories"] = CapList(k.SelectedTerritories, ListCap),
+                ["selectedStatuses"] = CapList(k.SelectedStatuses, ListCap),
+                ["selectedSubStatuses"] = CapList(k.SelectedSubStatuses, ListCap),
+                ["selectedSkillsets"] = CapList(k.SelectedSkillsets, ListCap),
+                ["selectedOrderCreateDates"] = CapList(k.SelectedOrderCreateDates, ListCap),
+                ["note"] =
+                    "slotAdherence and appointmentsByDateFiltered reflect these dashboard filters. dataset.appointmentsByDateInFile is the full uploaded CSV (unfiltered by dashboard date)."
+            },
+            ["slotAdherence"] = slotAdherence,
+            ["totals"] = slotAdherence,
             ["statusDistributionTop"] = TopCounts(k.StatusDistribution, DistTopN),
             ["subStatusDistributionTop"] = TopCounts(k.SubStatusDistribution, DistTopN),
             ["territoryDistributionTop"] = TopCounts(k.TerritoryDistribution, DistTopN),
             ["skillsetDistributionTop"] = TopCounts(k.SkillsetDistribution, DistTopN),
+            ["appointmentsByDateFiltered"] = TopCounts(k.AppointmentsByDate, DateSeriesTopN),
             ["appointmentsByDateTop"] = TopCounts(k.AppointmentsByDate, DateSeriesTopN),
+            ["slotAdherenceByDate"] = MapSlotAdherenceByDate(k),
+            ["slotAdherenceByDateNote"] =
+                "Daily scheduled/pass/fail for active dashboard filters — same rules as the slot adherence chart (Pass/Fail from complianceRules). " +
+                "For 'how many passed on March 5', use the pass value for that yyyy-MM-dd date here, or queryResults with compliance=Pass and appointmentDate (no skillset/slot unless the user asked for them).",
             ["complianceFailReasonsTop"] = TopCounts(k.ComplianceFailReasons, DistTopN),
             ["topDelayReasons"] = k.TopDelayReasons.Take(20).Select(p => new Dictionary<string, object?>
             {
@@ -417,10 +498,44 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
                 ["count"] = p.Value
             }).ToList(),
             ["skillsetBySlot"] = k.SkillsetBySlot,
-            ["availableColumns"] = new[]
+            ["skillsetBySlotNote"] =
+                "AM/PM appointment counts per skillset for active dashboard filters only. For Pass/Fail by AM/PM on a specific date, use queryResults with compliance filter and groupBy slot.",
+            ["complianceRules"] = k.ComplianceMetricsAvailable
+                ? ReportComplianceRulesReference.ForAssistantContext(
+                    ReportComplianceRulesReference.AmSlotMarkerDefault,
+                    13,
+                    24)
+                : null,
+            ["csvCatalog"] = csvCatalog is null ? null : MapCsvCatalog(csvCatalog),
+            ["complianceBySlot"] = k.ComplianceMetricsAvailable
+                ? new Dictionary<string, object?>
+                {
+                    ["forActiveDashboardFilters"] = true,
+                    ["pass"] = new Dictionary<string, object?>
+                    {
+                        ["am"] = k.CompliancePassAmCount,
+                        ["pm"] = k.CompliancePassPmCount,
+                        ["total"] = k.CompliancePassCount
+                    },
+                    ["fail"] = new Dictionary<string, object?>
+                    {
+                        ["am"] = k.ComplianceFailAmCount,
+                        ["pm"] = k.ComplianceFailPmCount,
+                        ["total"] = k.ComplianceFailCount
+                    },
+                    ["na"] = k.ComplianceNaCount,
+                    ["passRatePercent"] = k.CompliancePassCount + k.ComplianceFailCount > 0
+                        ? Math.Round(
+                            (double)k.CompliancePassCount / (k.CompliancePassCount + k.ComplianceFailCount) * 100,
+                            1)
+                        : (double?)null,
+                    ["passRateFormula"] = "Pass / (Pass + Fail); N/A excluded"
+                }
+                : null,
+            ["queryableFields"] = new[]
             {
-                "appointmentdate", "skillset", "status", "substatus", "territory",
-                "customeraddress", "facilityname", "appointmentid", "workordernumber", "ordercreatedate"
+                "appointmentDate (yyyy-MM-dd)", "compliance (Pass/Fail/N/A)", "orderCreateDate", "skillset", "status",
+                "subStatus", "territory", "AM/PM slot", "customeraddress", "facilityname", "appointmentid", "workordernumber"
             },
             ["previewRowsSample"] = k.PreviewRows.Take(PreviewRowCap).Select(row =>
             {
@@ -428,6 +543,103 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
                 return (object)take;
             }).ToList()
         };
+    }
+
+    private static Dictionary<string, object?> MapCsvCatalog(KpiCsvAssistantCatalog catalog)
+    {
+        var profiles = catalog.ColumnProfiles
+            .Take(ColumnCatalogCap)
+            .Select(p => new Dictionary<string, object?>
+            {
+                ["column"] = p.Name,
+                ["nonEmptyRows"] = p.NonEmptyRows,
+                ["distinctValues"] = p.DistinctValues,
+                ["distinctValuesCapped"] = p.DistinctValuesCapped,
+                ["topValues"] = p.TopValues.Select(kv => new Dictionary<string, object?>
+                {
+                    ["value"] = kv.Key.Length > 80 ? kv.Key[..80] + "…" : kv.Key,
+                    ["count"] = kv.Value
+                }).ToList()
+            })
+            .ToList();
+
+        return new Dictionary<string, object?>
+        {
+            ["totalColumns"] = catalog.AllColumnNames.Count,
+            ["allColumnNames"] = catalog.AllColumnNames.Count <= 220
+                ? catalog.AllColumnNames
+                : CapList(catalog.AllColumnNames, 220),
+            ["columnProfiles"] = profiles,
+            ["note"] =
+                "Full KPI CSV schema for this upload. Use columnProfiles topValues for distinct field values; " +
+                "use row queries (queryResults) for counts filtered by any column via columnContains or named filters (team, delayCode, technology, etc.)."
+        };
+    }
+
+    private static List<Dictionary<string, object?>> MapSlotAdherenceByDate(KpiDashboardViewModel k)
+    {
+        if (!k.ComplianceMetricsAvailable || k.SlotAdherenceByDate.Count == 0)
+            return [];
+
+        return k.SlotAdherenceByDate
+            .OrderByDescending(kv => kv.Key, StringComparer.Ordinal)
+            .Take(DateSeriesTopN)
+            .OrderBy(kv => kv.Key, StringComparer.Ordinal)
+            .Select(kv => new Dictionary<string, object?>
+            {
+                ["date"] = kv.Key,
+                ["scheduled"] = kv.Value.Scheduled,
+                ["pass"] = kv.Value.Pass,
+                ["fail"] = kv.Value.Fail
+            })
+            .ToList();
+    }
+
+    private static Dictionary<string, object?> BuildSlotAdherenceTotals(KpiDashboardViewModel k) =>
+        new()
+        {
+            ["totalAppointments"] = k.TotalAppointments,
+            ["totalFilteredRows"] = k.TotalFilteredRows,
+            ["uniqueTerritories"] = k.UniqueTerritoriesCount,
+            ["uniqueSkillsets"] = k.UniqueSkillsetsCount,
+            ["amSlotCount"] = k.AmSlotCount,
+            ["pmSlotCount"] = k.PmSlotCount,
+            ["delayedCount"] = k.DelayedCount,
+            ["lapsedCount"] = k.LapsedCount,
+            ["forVisitSubStatusCount"] = k.ForVisitSubStatusCount,
+            ["forRescheduleSubStatusCount"] = k.ForRescheduleSubStatusCount,
+            ["repairSkillsetCount"] = k.RepairSkillsetCount,
+            ["completedStatusCount"] = k.CompletedStatusCount,
+            ["complianceMetricsAvailable"] = k.ComplianceMetricsAvailable,
+            ["compliancePass"] = k.CompliancePassCount,
+            ["complianceFail"] = k.ComplianceFailCount,
+            ["complianceNa"] = k.ComplianceNaCount
+        };
+
+    private static string DescribeActiveFilters(KpiDashboardViewModel k)
+    {
+        var parts = new List<string> { $"view={k.ActiveDashboardView}", $"csvKind={k.CsvSourceKind}" };
+
+        parts.Add(k.DateFilterMode switch
+        {
+            "single" when !string.IsNullOrWhiteSpace(k.SelectedDate) => $"appointment date = {k.SelectedDate}",
+            "range" when !string.IsNullOrWhiteSpace(k.DateRangeStart) && !string.IsNullOrWhiteSpace(k.DateRangeEnd)
+                => $"appointment dates {k.DateRangeStart} to {k.DateRangeEnd}",
+            _ => "all appointment dates in file"
+        });
+
+        if (k.SelectedTerritories.Count > 0)
+            parts.Add($"territories: {string.Join(", ", k.SelectedTerritories.Take(8))}{(k.SelectedTerritories.Count > 8 ? "…" : "")}");
+        if (k.SelectedStatuses.Count > 0)
+            parts.Add($"statuses: {string.Join(", ", k.SelectedStatuses.Take(8))}");
+        if (k.SelectedSubStatuses.Count > 0)
+            parts.Add($"sub-statuses: {string.Join(", ", k.SelectedSubStatuses.Take(8))}");
+        if (k.SelectedSkillsets.Count > 0)
+            parts.Add($"skillsets: {string.Join(", ", k.SelectedSkillsets.Take(8))}");
+        if (k.SelectedOrderCreateDates.Count > 0)
+            parts.Add($"order create dates: {string.Join(", ", k.SelectedOrderCreateDates.Take(5))}");
+
+        return string.Join("; ", parts);
     }
 
     private async Task<object> BuildOperationalAsync(Guid userId, CancellationToken cancellationToken)

@@ -352,6 +352,9 @@ public class ReportController : Controller
         return RedirectToAction(nameof(Upload));
     }
 
+    [HttpGet("Map")]
+    public IActionResult Map() => View("MapDashboard");
+
     [HttpGet("OperationalDashboard")]
     public async Task<IActionResult> OperationalDashboard(
         [FromQuery] string? group = null,
