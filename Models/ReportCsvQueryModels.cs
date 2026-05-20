@@ -11,6 +11,23 @@ public sealed class ReportCsvQueryFilters
     public string? FacilityContains { get; set; }
     public string? AppointmentId { get; set; }
     public string? WorkOrderNumber { get; set; }
+    /// <summary>yyyy-MM-dd — narrows to this appointment date (ignores session date filter).</summary>
+    public string? AppointmentDate { get; set; }
+    public string? OrderCreateDate { get; set; }
+    /// <summary>Pass, Fail, or N/A — requires All Status CSV with completion date column.</summary>
+    public string? Compliance { get; set; }
+    public string? CustomerNameContains { get; set; }
+    public string? ServiceIdNumber { get; set; }
+    public string? TeamContains { get; set; }
+    public string? DelayCode { get; set; }
+    public string? Technology { get; set; }
+    public string? CustomerType { get; set; }
+    public string? Queue { get; set; }
+    public string? CabinetId { get; set; }
+    public string? ContractorName { get; set; }
+    public string? SourceSystem { get; set; }
+    /// <summary>Case-insensitive column name → substring to match (for uncommon CSV columns).</summary>
+    public Dictionary<string, string> ColumnContains { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 public sealed class ReportCsvSessionFilterParams

@@ -77,7 +77,7 @@ public sealed class ReportAssistantService : IReportAssistantService
         {
             return new ReportAssistantChatResponse
             {
-                Reply = "Ask a question about your report, or say hi.",
+                Reply = "Ask me anything — about your report or general topics.",
                 UsedModel = false
             };
         }
@@ -99,7 +99,7 @@ public sealed class ReportAssistantService : IReportAssistantService
             return new ReportAssistantChatResponse
             {
                 Reply =
-                    "Hi — I can answer questions about Slot Adherence, heatmaps, recurring tickets, and operational reports from your uploaded data. Try “How many recurring instances?” or “How many Repair appointments in AM slot?”",
+                    "Hi — I can help with general questions and with your report data on this page (Slot Adherence, heatmaps, recurring tickets, operational metrics). Try “What is 1+1?” or “How many recurring instances in this file?”",
                 UsedModel = false
             };
         }
@@ -125,83 +125,124 @@ public sealed class ReportAssistantService : IReportAssistantService
             };
         }
 
-        if (lastUser is not null
-            && context is Dictionary<string, object?> contextDict
-            && IsKpiPage(request.PageKind)
-            && !string.IsNullOrWhiteSpace(request.Token))
+        if (context is Dictionary<string, object?> contextDict
+            && lastUser is not null
+            && IsKpiPage(request.PageKind))
         {
-            try
+            var slotResolved = ReportAssistantSlotAdherenceResolver.TryResolve(lastUser.Content, contextDict);
+            if (slotResolved is { IsSimpleTotalOnDate: true })
             {
-                var plan = await _queryPlanner.PlanAsync(
-                    lastUser.Content,
-                    trimmed,
-                    context,
-                    cancellationToken);
-
-                if (plan.ShouldQuery && plan.QueryType == ReportAssistantQueryType.KpiCsv && plan.KpiRequest is not null)
+                var filterSummary = ReportAssistantSlotAdherenceResolver.GetActiveFiltersSummary(contextDict);
+                return new ReportAssistantChatResponse
                 {
-                    var queryResult = await _csvQueryService.ExecuteAsync(
-                        userId,
-                        request.Token,
-                        request.View,
-                        plan.KpiRequest,
-                        cancellationToken);
-
-                    contextDict["queryResults"] = new Dictionary<string, object?>
-                    {
-                        ["queryKind"] = "kpiCsv",
-                        ["interpretedAs"] = queryResult.InterpretedAs ?? plan.KpiRequest.InterpretedAs,
-                        ["matchedRows"] = queryResult.MatchedRows,
-                        ["totalFilteredRows"] = queryResult.TotalFilteredRows,
-                        ["breakdown"] = queryResult.Breakdown,
-                        ["sampleRows"] = queryResult.SampleRows,
-                        ["filtersApplied"] = queryResult.FiltersApplied,
-                        ["note"] = queryResult.Note,
-                        ["ran"] = queryResult.Ran
-                    };
-                }
-                else if (plan.ShouldQuery
-                         && plan.QueryType == ReportAssistantQueryType.Recurring
-                         && plan.RecurringRequest is not null)
-                {
-                    var recurringResult = await _recurringQueryService.ExecuteAsync(
-                        userId,
-                        request.Token,
-                        plan.RecurringRequest,
-                        cancellationToken);
-
-                    contextDict["queryResults"] = new Dictionary<string, object?>
-                    {
-                        ["queryKind"] = "recurringTickets",
-                        ["interpretedAs"] = recurringResult.InterpretedAs ?? plan.RecurringRequest.InterpretedAs,
-                        ["matchedRows"] = recurringResult.MatchedRows,
-                        ["totalRecurringInstances"] = recurringResult.TotalRecurringInstances,
-                        ["distinctServiceIds"] = recurringResult.DistinctServiceIds,
-                        ["breakdown"] = recurringResult.Breakdown,
-                        ["sampleRows"] = recurringResult.SampleRows,
-                        ["filtersApplied"] = recurringResult.FiltersApplied,
-                        ["note"] = recurringResult.Note,
-                        ["ran"] = recurringResult.Ran
-                    };
-                }
+                    Reply = ReportAssistantSlotAdherenceResolver.FormatReply(slotResolved, filterSummary),
+                    UsedModel = false
+                };
             }
-            catch (Exception ex)
+
+            if (slotResolved is not null)
             {
-                _logger.LogWarning(ex, "Report assistant CSV query failed");
+                contextDict["slotAdherenceAnswer"] = new Dictionary<string, object?>
+                {
+                    ["appointmentDate"] = slotResolved.AppointmentDateIso,
+                    ["complianceTier"] = slotResolved.Tier,
+                    ["count"] = slotResolved.Count,
+                    ["scheduled"] = slotResolved.Scheduled,
+                    ["pass"] = slotResolved.Pass,
+                    ["fail"] = slotResolved.Fail,
+                    ["instruction"] =
+                        $"Mandatory: user asked how many {slotResolved.Tier}. Reply with count={slotResolved.Count} only. " +
+                        $"Never use scheduled ({slotResolved.Scheduled}) or appointmentsByDateFiltered as Pass count."
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Token))
+            {
+                try
+                {
+                    var plan = await _queryPlanner.PlanAsync(
+                        lastUser.Content,
+                        trimmed,
+                        context,
+                        cancellationToken);
+
+                    if (plan.ShouldQuery && plan.QueryType == ReportAssistantQueryType.KpiCsv && plan.KpiRequest is not null)
+                    {
+                        var queryResult = await _csvQueryService.ExecuteAsync(
+                            userId,
+                            request.Token,
+                            request.View,
+                            plan.KpiRequest,
+                            cancellationToken);
+
+                        contextDict["queryResults"] = new Dictionary<string, object?>
+                        {
+                            ["queryKind"] = "kpiCsv",
+                            ["interpretedAs"] = queryResult.InterpretedAs ?? plan.KpiRequest.InterpretedAs,
+                            ["matchedRows"] = queryResult.MatchedRows,
+                            ["totalFilteredRows"] = queryResult.TotalFilteredRows,
+                            ["breakdown"] = queryResult.Breakdown,
+                            ["sampleRows"] = queryResult.SampleRows,
+                            ["filtersApplied"] = queryResult.FiltersApplied,
+                            ["note"] = queryResult.Note ?? "matchedRows is the row count matching all filters in filtersApplied.",
+                            ["ran"] = queryResult.Ran
+                        };
+                    }
+                    else if (plan.ShouldQuery
+                             && plan.QueryType == ReportAssistantQueryType.Recurring
+                             && plan.RecurringRequest is not null)
+                    {
+                        var recurringResult = await _recurringQueryService.ExecuteAsync(
+                            userId,
+                            request.Token,
+                            plan.RecurringRequest,
+                            cancellationToken);
+
+                        contextDict["queryResults"] = new Dictionary<string, object?>
+                        {
+                            ["queryKind"] = "recurringTickets",
+                            ["interpretedAs"] = recurringResult.InterpretedAs ?? plan.RecurringRequest.InterpretedAs,
+                            ["matchedRows"] = recurringResult.MatchedRows,
+                            ["totalRecurringInstances"] = recurringResult.TotalRecurringInstances,
+                            ["distinctServiceIds"] = recurringResult.DistinctServiceIds,
+                            ["breakdown"] = recurringResult.Breakdown,
+                            ["sampleRows"] = recurringResult.SampleRows,
+                            ["filtersApplied"] = recurringResult.FiltersApplied,
+                            ["note"] = recurringResult.Note,
+                            ["ran"] = recurringResult.Ran
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Report assistant CSV query failed");
+                }
             }
         }
 
         var contextJson = JsonSerializer.Serialize(context, JsonOpts);
         const string systemPrompt =
-            "You are a concise analytics assistant for a telecom field-operations KPI web app. " +
-            "The current_report_context JSON includes all major report sections on the page: slotAdherence (totals), heatmapAnalysis, recurringTickets (total instances, top facilities/cabinets/teams, sample rows), recurringHeatmap, and on the Operational page alarm, performance, operationAging. " +
-            "When queryResults is present, treat it as authoritative: queryKind kpiCsv = slot adherence row scan; queryKind recurringTickets = recurring-ticket instances from the full KPI CSV. " +
-            "Prefer queryResults over summary fields for granular questions (customer name, service ID, cabinet, facility, team). " +
+            "You are a helpful assistant embedded in a telecom field-operations KPI web app. " +
+            "Answer general questions (math, definitions, explanations, how-to, coding, brainstorming) using your own knowledge — do not refuse them because they are unrelated to reports. " +
+            "When the user asks about their uploaded data, KPIs, dashboards, heatmaps, recurring tickets, alarms, or operational metrics, use ONLY facts from current_report_context and queryResults below. " +
+            "The current_report_context JSON includes: dataset (full-file date range, appointmentsByDateInFile, all available filter values), csvCatalog (allColumnNames + columnProfiles with topValues for every meaningful CSV column in the upload), activeFilters, slotAdherence/totals, slotAdherenceByDate (daily scheduled/pass/fail — same as the slot adherence chart), complianceRules, complianceBySlot, appointmentsByDateFiltered, distributions, heatmapAnalysis, recurringTickets, recurringHeatmap, and on the Operational page alarm, performance, operationAging. " +
+            "Use csvCatalog.columnProfiles to see allowed values for team, delaycode, technology, customertype, queue, contractorname, source, skillset, status, etc. " +
+            "Use dataset for questions about dates in the uploaded file; use activeFilters to explain what the dashboard is currently showing vs the whole file. " +
+            "When queryResults is present with ran true, queryResults.matchedRows is the exact answer for 'how many' questions matching filtersApplied — state that number directly; do not say the intersection is unavailable. " +
+            "For total Pass or Fail on a specific appointment date (without AM/PM split), prefer slotAdherenceByDate for that date's pass/fail field, or queryResults.matchedRows with only compliance and appointmentDate in filtersApplied — appointmentsByDateFiltered is scheduled volume, not Pass count. " +
+            "When queryResults.breakdown is present with groupBy slot, breakdown.AM and breakdown.PM are the authoritative counts per slot for the compliance filter used (Pass or Fail) — report both; never say AM/PM is unavailable if breakdown exists. matchedRows is the total across both slots. " +
+            "Never derive failed AM/PM counts by subtracting passed from totals; run or use queryResults with compliance=Fail and groupBy slot. " +
+            "complianceRules and complianceBySlot in context describe the same Pass/Fail formulas as the Status dashboard (Delayed→Fail; AM appt completed ≥12:59 PM→Fail SlotMismatch; same-day completion otherwise Pass; N/A without completion time). " +
+            "queryKind kpiCsv = row scan (supports appointmentDate, compliance Pass/Fail/N/A, orderCreateDate, skillset, status, territory, slot filter OR groupBy slot for AM+PM split); queryKind recurringTickets = recurring-ticket instances. " +
+            "complianceBySlot.pass/fail am/pm are totals for active dashboard filters only; for a specific date use queryResults with appointmentDate + compliance + groupBy slot (never slot=AM when user asks for both AM and PM). " +
+            "skillsetBySlot is appointment volume by skillset and slot, not compliance Pass/Fail. " +
+            "When the user asks for AM and PM counts for a skillset on a date (e.g. Repair on March 5), use queryResults.breakdown.AM and breakdown.PM — do not say the split is unavailable if queryResults ran. " +
+            "Prefer queryResults over summary fields for granular report questions (specific date + skillset + slot, customer name, service ID, cabinet, facility, team). " +
             "For recurring tickets, matchedRows is the count of recurring instances matching the filters; distinctServiceIds counts unique service IDs. " +
-            "Otherwise use facts in current_report_context only. " +
-            "If the answer is not in that JSON, say it is not in the current dataset. " +
-            "Prefer short bullet lists or one short paragraph. Include specific numbers when they appear in the context. " +
-            "Never invent territories, statuses, customers, cabinets, or counts. " +
+            "For report questions, if the needed fact is not in current_report_context or queryResults, say it is not available in the loaded dataset and suggest uploading or opening the relevant KPI/operational page — do not guess numbers. " +
+            "Never invent territories, statuses, customers, cabinets, or counts for report-specific answers. " +
+            "For mixed questions, answer the general part normally and the data part only from context. " +
+            "Prefer short bullet lists or one short paragraph unless the user asks for more detail. Include specific numbers from context when answering report questions. " +
             "If queryResults.note mentions address-based barangay search, mention that limitation when relevant.";
 
         var apiMessages = new List<object>

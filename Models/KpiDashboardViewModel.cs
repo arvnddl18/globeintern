@@ -49,7 +49,14 @@ public class KpiDashboardViewModel
     public int CompliancePassCount { get; set; }
     public int ComplianceFailCount { get; set; }
     public int ComplianceNaCount { get; set; }
+    public int CompliancePassAmCount { get; set; }
+    public int CompliancePassPmCount { get; set; }
+    public int ComplianceFailAmCount { get; set; }
+    public int ComplianceFailPmCount { get; set; }
     public Dictionary<string, int> ComplianceFailReasons { get; set; } = new();
+
+    /// <summary>Per appointment-date scheduled / pass / fail for slot adherence chart and assistant.</summary>
+    public Dictionary<string, SlotAdherenceDayMetrics> SlotAdherenceByDate { get; set; } = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Top delay reasons aggregated from the delayreason column, ordered by count descending.
