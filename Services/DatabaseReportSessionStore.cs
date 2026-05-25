@@ -186,6 +186,7 @@ public class DatabaseReportSessionStore : IReportSessionStore
         existing.SelectedStatuses = filters.SelectedStatuses?.ToList() ?? [];
         existing.SelectedSubStatuses = filters.SelectedSubStatuses?.ToList() ?? [];
         existing.SelectedSkillsets = filters.SelectedSkillsets?.ToList() ?? [];
+        existing.SelectedCustomerTypes = filters.SelectedCustomerTypes?.ToList() ?? [];
         existing.SelectedOrderCreateDates = filters.SelectedOrderCreateDates?.ToList() ?? [];
 
         var activeView = string.Equals(filters.ActiveDashboardView, "status", StringComparison.OrdinalIgnoreCase)
@@ -202,6 +203,7 @@ public class DatabaseReportSessionStore : IReportSessionStore
             existing.StatusSelectedStatuses = existing.SelectedStatuses.ToList();
             existing.StatusSelectedSubStatuses = existing.SelectedSubStatuses.ToList();
             existing.StatusSelectedSkillsets = existing.SelectedSkillsets.ToList();
+            existing.StatusSelectedCustomerTypes = existing.SelectedCustomerTypes.ToList();
             existing.StatusSelectedOrderCreateDates = existing.SelectedOrderCreateDates.ToList();
         }
         else
@@ -215,6 +217,7 @@ public class DatabaseReportSessionStore : IReportSessionStore
             existing.PendingSelectedStatuses = existing.SelectedStatuses.ToList();
             existing.PendingSelectedSubStatuses = existing.SelectedSubStatuses.ToList();
             existing.PendingSelectedSkillsets = existing.SelectedSkillsets.ToList();
+            existing.PendingSelectedCustomerTypes = existing.SelectedCustomerTypes.ToList();
             existing.PendingSelectedOrderCreateDates = existing.SelectedOrderCreateDates.ToList();
         }
 
@@ -223,6 +226,7 @@ public class DatabaseReportSessionStore : IReportSessionStore
         existing.CachedAvailableStatuses = filters.AvailableStatuses?.ToList();
         existing.CachedAvailableSubStatuses = filters.AvailableSubStatuses?.ToList();
         existing.CachedAvailableSkillsets = filters.AvailableSkillsets?.ToList();
+        existing.CachedAvailableCustomerTypes = filters.AvailableCustomerTypes?.ToList();
         existing.CachedAvailableOrderCreateDates = filters.AvailableOrderCreateDates?.ToList();
 
         entity.SessionJson = JsonSerializer.Serialize(existing, ReportSessionJson.Options);

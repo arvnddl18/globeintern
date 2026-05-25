@@ -99,6 +99,7 @@ public class ReportSessionStore : IReportSessionStore
         existing.SelectedStatuses = filters.SelectedStatuses?.ToList() ?? [];
         existing.SelectedSubStatuses = filters.SelectedSubStatuses?.ToList() ?? [];
         existing.SelectedSkillsets = filters.SelectedSkillsets?.ToList() ?? [];
+        existing.SelectedCustomerTypes = filters.SelectedCustomerTypes?.ToList() ?? [];
         existing.SelectedOrderCreateDates = filters.SelectedOrderCreateDates?.ToList() ?? [];
 
         existing.CachedAvailableDates = filters.AvailableDates?.ToList();
@@ -106,6 +107,7 @@ public class ReportSessionStore : IReportSessionStore
         existing.CachedAvailableStatuses = filters.AvailableStatuses?.ToList();
         existing.CachedAvailableSubStatuses = filters.AvailableSubStatuses?.ToList();
         existing.CachedAvailableSkillsets = filters.AvailableSkillsets?.ToList();
+        existing.CachedAvailableCustomerTypes = filters.AvailableCustomerTypes?.ToList();
         existing.CachedAvailableOrderCreateDates = filters.AvailableOrderCreateDates?.ToList();
 
         await WriteSessionAsync(dir, existing, cancellationToken);

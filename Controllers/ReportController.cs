@@ -20,7 +20,14 @@ namespace SlotAd_Globe.Controllers;
 [Route("[controller]")]
 public class ReportController : Controller
 {
+    private static readonly JsonSerializerOptions TempDataJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly ICsvProcessingService _csvService;
+    private readonly ISwuPoleProcessingService _swuPoleService;
     private readonly IReportSessionStore _sessionStore;
     private readonly IOperationalReportService _operationalService;
     private readonly AppDbContext _db;
@@ -31,6 +38,7 @@ public class ReportController : Controller
 
     public ReportController(
         ICsvProcessingService csvService,
+        ISwuPoleProcessingService swuPoleService,
         IReportSessionStore sessionStore,
         IOperationalReportService operationalService,
         AppDbContext db,
@@ -40,6 +48,7 @@ public class ReportController : Controller
         IConfiguration configuration)
     {
         _csvService = csvService;
+        _swuPoleService = swuPoleService;
         _sessionStore = sessionStore;
         _operationalService = operationalService;
         _db = db;
@@ -143,7 +152,7 @@ public class ReportController : Controller
         {
             return BadRequest();
         }
-        TempData["CleanDataSummary"] = JsonSerializer.Serialize(summary);
+        TempData["CleanDataSummary"] = JsonSerializer.Serialize(summary, TempDataJsonOptions);
         return Ok();
     }
 
@@ -246,6 +255,108 @@ public class ReportController : Controller
         ms.Position = 0;
 
         return File(ms, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "CleanedDataMaster.xlsx");
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    [DisableRequestSizeLimit]
+    public async Task<IActionResult> UploadSwuRawDataApi(
+        IFormFile? xlsxFile,
+        string? batchId,
+        bool isFirstInBatch = false)
+    {
+        if (xlsxFile is null || xlsxFile.Length == 0)
+            return BadRequest(new { error = "The uploaded file is empty." });
+
+        if (!xlsxFile.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { error = "Only .xlsx files are supported for SWU pole raw data." });
+
+        if (string.IsNullOrWhiteSpace(batchId))
+            batchId = Guid.NewGuid().ToString("N");
+
+        try
+        {
+            await using var uploadStream = xlsxFile.OpenReadStream();
+            var summary = await _swuPoleService.ReorganizeAndAppendToBatchAsync(
+                uploadStream,
+                xlsxFile.FileName,
+                batchId,
+                isFirstInBatch,
+                HttpContext.RequestAborted);
+            return Json(summary);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing SWU raw data upload for file {FileName}", xlsxFile.FileName);
+            return BadRequest(new { error = $"Error processing file: {ex.Message}" });
+        }
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    public IActionResult SetSwuAggregatedSummary([FromBody] SwuReorganizedSummary summary)
+    {
+        if (summary == null)
+            return BadRequest();
+
+        TempData["SwuReorganizedSummary"] = JsonSerializer.Serialize(summary, TempDataJsonOptions);
+        return Ok();
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    public IActionResult ClearSwuBatch(string? batchId)
+    {
+        if (!string.IsNullOrWhiteSpace(batchId))
+            _swuPoleService.ClearBatch(batchId);
+        return Ok();
+    }
+
+    [HttpGet("[action]")]
+    public IActionResult SwuReorganizedExport(string? batchId)
+    {
+        if (TempData["SwuReorganizedSummary"] is string summaryJson)
+        {
+            var summary = JsonSerializer.Deserialize<SwuReorganizedSummary>(summaryJson, TempDataJsonOptions)
+                ?? new SwuReorganizedSummary();
+            if (string.IsNullOrWhiteSpace(summary.BatchId) && !string.IsNullOrWhiteSpace(batchId))
+                summary.BatchId = batchId;
+            return View(summary);
+        }
+
+        if (!string.IsNullOrWhiteSpace(batchId) && _swuPoleService.BatchFileExists(batchId))
+        {
+            return View(new SwuReorganizedSummary { BatchId = batchId });
+        }
+
+        return View(new SwuReorganizedSummary());
+    }
+
+    [HttpGet("[action]")]
+    public IActionResult DownloadSwuReorganizedXlsx(string? batchId)
+    {
+        if (string.IsNullOrWhiteSpace(batchId) && TempData["SwuReorganizedSummary"] is string summaryJson)
+        {
+            var summary = JsonSerializer.Deserialize<SwuReorganizedSummary>(summaryJson, TempDataJsonOptions);
+            batchId = summary?.BatchId;
+            TempData.Keep("SwuReorganizedSummary");
+        }
+
+        if (string.IsNullOrWhiteSpace(batchId))
+        {
+            TempData["Error"] = "No reorganized data available.";
+            return RedirectToAction(nameof(SwuReorganizedExport));
+        }
+
+        var batchPath = _swuPoleService.GetBatchFilePath(batchId);
+        if (!System.IO.File.Exists(batchPath))
+        {
+            TempData["Error"] = "No reorganized data available.";
+            return RedirectToAction(nameof(SwuReorganizedExport));
+        }
+
+        var fs = new FileStream(batchPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return File(fs, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "SwuReorganizedPoles.xlsx");
     }
 
     [HttpPost("[action]")]
@@ -653,6 +764,7 @@ public class ReportController : Controller
             Statuses: activeFilters.SelectedStatuses,
             SubStatuses: activeFilters.SelectedSubStatuses,
             Skillsets: activeFilters.SelectedSkillsets,
+            CustomerTypes: activeFilters.SelectedCustomerTypes,
             OrderCreateDates: activeFilters.SelectedOrderCreateDates);
 
         KpiDashboardViewModel kpi;
@@ -669,6 +781,7 @@ public class ReportController : Controller
                 filterArgs.Statuses,
                 filterArgs.SubStatuses,
                 filterArgs.Skillsets,
+                filterArgs.CustomerTypes,
                 filterArgs.OrderCreateDates);
 
             if (sourceKind != CsvSourceKind.AllStatus)
@@ -689,6 +802,7 @@ public class ReportController : Controller
                 filterArgs.Statuses,
                 filterArgs.SubStatuses,
                 filterArgs.Skillsets,
+                filterArgs.CustomerTypes,
                 filterArgs.OrderCreateDates);
         }
 
@@ -701,6 +815,7 @@ public class ReportController : Controller
         kpi.SelectedStatuses = filterArgs.Statuses;
         kpi.SelectedSubStatuses = filterArgs.SubStatuses;
         kpi.SelectedSkillsets = filterArgs.Skillsets;
+        kpi.SelectedCustomerTypes = filterArgs.CustomerTypes;
         kpi.SelectedOrderCreateDates = filterArgs.OrderCreateDates;
 
         kpi.AvailableDates = filterOptions.AvailableDates;
@@ -708,6 +823,7 @@ public class ReportController : Controller
         kpi.AvailableStatuses = filterOptions.AvailableStatuses;
         kpi.AvailableSubStatuses = filterOptions.AvailableSubStatuses;
         kpi.AvailableSkillsets = filterOptions.AvailableSkillsets;
+        kpi.AvailableCustomerTypes = filterOptions.AvailableCustomerTypes;
         kpi.AvailableOrderCreateDates = filterOptions.AvailableOrderCreateDates;
 
         kpi.ActiveDashboardView = activeView;
@@ -859,6 +975,7 @@ public class ReportController : Controller
         kpi.SelectedStatuses = activeFilters.SelectedStatuses;
         kpi.SelectedSubStatuses = activeFilters.SelectedSubStatuses;
         kpi.SelectedSkillsets = activeFilters.SelectedSkillsets;
+        kpi.SelectedCustomerTypes = activeFilters.SelectedCustomerTypes;
         kpi.SelectedOrderCreateDates = activeFilters.SelectedOrderCreateDates;
 
         kpi.AvailableDates = filterOptions.AvailableDates;
@@ -866,6 +983,7 @@ public class ReportController : Controller
         kpi.AvailableStatuses = filterOptions.AvailableStatuses;
         kpi.AvailableSubStatuses = filterOptions.AvailableSubStatuses;
         kpi.AvailableSkillsets = filterOptions.AvailableSkillsets;
+        kpi.AvailableCustomerTypes = filterOptions.AvailableCustomerTypes;
         kpi.AvailableOrderCreateDates = filterOptions.AvailableOrderCreateDates;
 
         kpi.ActiveDashboardView = activeView;
@@ -1225,6 +1343,7 @@ public class ReportController : Controller
                     activeFilters.SelectedStatuses,
                     activeFilters.SelectedSubStatuses,
                     activeFilters.SelectedSkillsets,
+                    activeFilters.SelectedCustomerTypes,
                     activeFilters.SelectedOrderCreateDates)
                 : await _csvService.ComputeKpiAsync(
                     csvPath,
@@ -1236,6 +1355,7 @@ public class ReportController : Controller
                     activeFilters.SelectedStatuses,
                     activeFilters.SelectedSubStatuses,
                     activeFilters.SelectedSkillsets,
+                    activeFilters.SelectedCustomerTypes,
                     activeFilters.SelectedOrderCreateDates);
 
             kpi.ReportToken = token;
@@ -1249,6 +1369,7 @@ public class ReportController : Controller
             kpi.SelectedStatuses = activeFilters.SelectedStatuses;
             kpi.SelectedSubStatuses = activeFilters.SelectedSubStatuses;
             kpi.SelectedSkillsets = activeFilters.SelectedSkillsets;
+            kpi.SelectedCustomerTypes = activeFilters.SelectedCustomerTypes;
             kpi.SelectedOrderCreateDates = activeFilters.SelectedOrderCreateDates;
             return (kpi, false);
         }
@@ -1378,6 +1499,7 @@ public class ReportController : Controller
             AvailableStatuses = session.CachedAvailableStatuses ?? [],
             AvailableSubStatuses = session.CachedAvailableSubStatuses ?? [],
             AvailableSkillsets = session.CachedAvailableSkillsets ?? [],
+            AvailableCustomerTypes = session.CachedAvailableCustomerTypes ?? [],
             AvailableOrderCreateDates = session.CachedAvailableOrderCreateDates ?? []
         };
 
@@ -1391,6 +1513,7 @@ public class ReportController : Controller
         vm.SelectedStatuses = session.SelectedStatuses ?? [];
         vm.SelectedSubStatuses = session.SelectedSubStatuses ?? [];
         vm.SelectedSkillsets = session.SelectedSkillsets ?? [];
+        vm.SelectedCustomerTypes = session.SelectedCustomerTypes ?? [];
         vm.SelectedOrderCreateDates = session.SelectedOrderCreateDates ?? [];
     }
 

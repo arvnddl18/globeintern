@@ -12,6 +12,7 @@ public class KpiDashboardViewModel
     public List<string> SelectedStatuses { get; set; } = [];
     public List<string> SelectedSubStatuses { get; set; } = [];
     public List<string> SelectedSkillsets { get; set; } = [];
+    public List<string> SelectedCustomerTypes { get; set; } = [];
     public List<string> SelectedOrderCreateDates { get; set; } = [];
 
     public List<string> AvailableDates { get; set; } = [];
@@ -19,6 +20,7 @@ public class KpiDashboardViewModel
     public List<string> AvailableStatuses { get; set; } = [];
     public List<string> AvailableSubStatuses { get; set; } = [];
     public List<string> AvailableSkillsets { get; set; } = [];
+    public List<string> AvailableCustomerTypes { get; set; } = [];
     public List<string> AvailableOrderCreateDates { get; set; } = [];
 
     public int TotalAppointments { get; set; }

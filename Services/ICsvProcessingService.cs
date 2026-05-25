@@ -33,6 +33,7 @@ public interface ICsvProcessingService
         IReadOnlyCollection<string> selectedStatuses,
         IReadOnlyCollection<string> selectedSubStatuses,
         IReadOnlyCollection<string> selectedSkillsets,
+        IReadOnlyCollection<string> selectedCustomerTypes,
         IReadOnlyCollection<string> selectedOrderCreateDates);
 
     Task<KpiDashboardViewModel> ComputeAllStatusComplianceKpiAsync(
@@ -45,6 +46,7 @@ public interface ICsvProcessingService
         IReadOnlyCollection<string> selectedStatuses,
         IReadOnlyCollection<string> selectedSubStatuses,
         IReadOnlyCollection<string> selectedSkillsets,
+        IReadOnlyCollection<string> selectedCustomerTypes,
         IReadOnlyCollection<string> selectedOrderCreateDates);
 
     Task<MemoryStream> GenerateFilteredXlsxAsync(

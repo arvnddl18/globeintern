@@ -40,6 +40,7 @@ public sealed class ReportCsvSessionFilterParams
     public List<string> SelectedStatuses { get; set; } = [];
     public List<string> SelectedSubStatuses { get; set; } = [];
     public List<string> SelectedSkillsets { get; set; } = [];
+    public List<string> SelectedCustomerTypes { get; set; } = [];
     public List<string> SelectedOrderCreateDates { get; set; } = [];
 }
 

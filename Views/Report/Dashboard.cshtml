@@ -2353,6 +2353,7 @@
                         @{ ModalFilterPanel("Status", "SelectedStatuses", Model.AvailableStatuses, Model.SelectedStatuses); }
                         @{ ModalFilterPanel("SubStatus", "SelectedSubStatuses", Model.AvailableSubStatuses, Model.SelectedSubStatuses); }
                         @{ ModalFilterPanel("Skillset", "SelectedSkillsets", Model.AvailableSkillsets, Model.SelectedSkillsets); }
+                        @{ ModalFilterPanel("CustomerType", "SelectedCustomerTypes", Model.AvailableCustomerTypes, Model.SelectedCustomerTypes); }
                     </div>
                 </div>
 
@@ -2815,6 +2816,30 @@
                     <span class="text-right font-mono" style="color:#fca5a5;">@failPm.ToString("N0")</span>
                     <span class="text-right font-mono">@Model.ComplianceFailCount.ToString("N0")</span>
                     <span class="text-right font-mono">@failPct.ToString("F1")%</span>
+                </div>
+                @{
+                    var failInstallAm = _failRowsAM.Count(r => (r.GetValueOrDefault("Skillset") ?? "").Contains("Install", StringComparison.OrdinalIgnoreCase));
+                    var failInstallPm = _failRowsPM.Count(r => (r.GetValueOrDefault("Skillset") ?? "").Contains("Install", StringComparison.OrdinalIgnoreCase));
+                    var failInstallTotal = failInstallAm + failInstallPm;
+                    var failInstallPct = Model.ComplianceFailCount > 0 ? (double)failInstallTotal / Model.ComplianceFailCount * 100 : 0d;
+                    var failRepairAm = _failRowsAM.Count(r => (r.GetValueOrDefault("Skillset") ?? "").Contains("Repair", StringComparison.OrdinalIgnoreCase));
+                    var failRepairPm = _failRowsPM.Count(r => (r.GetValueOrDefault("Skillset") ?? "").Contains("Repair", StringComparison.OrdinalIgnoreCase));
+                    var failRepairTotal = failRepairAm + failRepairPm;
+                    var failRepairPct = Model.ComplianceFailCount > 0 ? (double)failRepairTotal / Model.ComplianceFailCount * 100 : 0d;
+                }
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row" style="background: rgba(244, 63, 94, 0.08); border-top: 1px solid rgba(42,42,74,0.6); color: #fecdd3;">
+                    <span class="font-semibold">Failed Install</span>
+                    <span class="text-right font-mono" style="color:#93c5fd;">@failInstallAm.ToString("N0")</span>
+                    <span class="text-right font-mono" style="color:#fca5a5;">@failInstallPm.ToString("N0")</span>
+                    <span class="text-right font-mono">@failInstallTotal.ToString("N0")</span>
+                    <span class="text-right font-mono">@failInstallPct.ToString("F1")%</span>
+                </div>
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_4rem_4rem] gap-2 px-4 py-3 text-sm kpi-row" style="background: rgba(251, 146, 60, 0.08); border-top: 1px solid rgba(42,42,74,0.6); color: #fed7aa;">
+                    <span class="font-semibold">Failed Repair</span>
+                    <span class="text-right font-mono" style="color:#93c5fd;">@failRepairAm.ToString("N0")</span>
+                    <span class="text-right font-mono" style="color:#fca5a5;">@failRepairPm.ToString("N0")</span>
+                    <span class="text-right font-mono">@failRepairTotal.ToString("N0")</span>
+                    <span class="text-right font-mono">@failRepairPct.ToString("F1")%</span>
                 </div>
 
                 @foreach (var statusName in statusItems)

@@ -11,6 +11,7 @@ public readonly record struct ViewFilterSnapshot(
     List<string> SelectedStatuses,
     List<string> SelectedSubStatuses,
     List<string> SelectedSkillsets,
+    List<string> SelectedCustomerTypes,
     List<string> SelectedOrderCreateDates);
 
 public static class ReportSessionFilterResolver
@@ -30,6 +31,7 @@ public static class ReportSessionFilterResolver
                 session.StatusSelectedStatuses ?? [],
                 session.StatusSelectedSubStatuses ?? [],
                 session.StatusSelectedSkillsets ?? [],
+                session.StatusSelectedCustomerTypes ?? [],
                 session.StatusSelectedOrderCreateDates ?? []);
         }
 
@@ -44,6 +46,7 @@ public static class ReportSessionFilterResolver
                 session.PendingSelectedStatuses ?? [],
                 session.PendingSelectedSubStatuses ?? [],
                 session.PendingSelectedSkillsets ?? [],
+                session.PendingSelectedCustomerTypes ?? [],
                 session.PendingSelectedOrderCreateDates ?? []);
         }
 
@@ -58,6 +61,7 @@ public static class ReportSessionFilterResolver
                     null,
                     null,
                     null,
+                    [],
                     [],
                     [],
                     [],
@@ -77,6 +81,7 @@ public static class ReportSessionFilterResolver
                 [],
                 [],
                 [],
+                [],
                 []);
         }
 
@@ -87,6 +92,7 @@ public static class ReportSessionFilterResolver
                 null,
                 null,
                 null,
+                [],
                 [],
                 [],
                 [],
@@ -103,6 +109,7 @@ public static class ReportSessionFilterResolver
             session.SelectedStatuses ?? [],
             session.SelectedSubStatuses ?? [],
             session.SelectedSkillsets ?? [],
+            session.SelectedCustomerTypes ?? [],
             session.SelectedOrderCreateDates ?? []);
     }
 }

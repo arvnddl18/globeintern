@@ -1,0 +1,156 @@
+@model SlotAd_Globe.Models.SwuReorganizedSummary
+@using SlotAd_Globe.Models
+
+@{
+    ViewData["Title"] = "SWU Reorganized Export";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
+    ViewData["ActiveTab"] = "kpi";
+    ViewBag.ReportAssistantPageKind = ReportAssistantPageKind.SwuReorganizedExport;
+}
+
+<style>
+    .export-container { max-width: 1000px; margin: 0 auto; }
+    .glass-card {
+        background: var(--theme-surface-soft);
+        border: 1px solid var(--theme-surface-border);
+        border-radius: 24px;
+        overflow: hidden;
+    }
+    .stat-card {
+        background: var(--theme-surface);
+        border: 1px solid var(--theme-surface-border);
+        border-radius: 20px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .stat-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+    .stat-value {
+        font-family: var(--font-mono);
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+        color: var(--theme-text);
+    }
+    .stat-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--theme-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+    .btn-xlsx {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1.5px solid rgba(16, 185, 129, 0.4);
+    }
+    .btn-xlsx:hover { background: #10b981; color: white; border-color: #10b981; }
+    .btn-dashboard {
+        background: var(--theme-accent);
+        color: white;
+        box-shadow: 0 4px 14px 0 var(--theme-accent-soft);
+    }
+</style>
+
+<div class="export-container fade-in">
+    <header class="text-center mb-12 slide-up">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-4"
+             style="background: var(--theme-accent-soft); color: var(--theme-accent);">
+            <i data-lucide="check-circle-2" style="width:14px; height:14px;"></i>
+            <span>REORGANIZATION COMPLETE</span>
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-black tracking-tight mb-4" style="color: var(--theme-text);">
+            SWU Pole Data Export
+        </h1>
+        <p class="text-lg max-w-2xl mx-auto" style="color: var(--theme-text-dim);">
+            Your raw SWU pole removal files have been merged into one clean table. A <strong>FILE TITLE</strong> column identifies which file each row came from.
+        </p>
+    </header>
+
+    @if (TempData["Error"] is string err)
+    {
+        <div class="mb-8 rounded-2xl px-6 py-4 flex items-center gap-4 border"
+             style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444;">
+            <i data-lucide="alert-triangle" style="width:20px; height:20px;"></i>
+            <span class="text-sm font-medium">@err</span>
+        </div>
+    }
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
+        <div class="stat-card">
+            <div class="stat-icon-wrapper bg-indigo-500/10 text-indigo-500">
+                <i data-lucide="files" style="width:24px; height:24px;"></i>
+            </div>
+            <div class="stat-value">@Model.FilesProcessed.ToString("N0")</div>
+            <div class="stat-label">Files Processed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon-wrapper bg-emerald-500/10 text-emerald-500">
+                <i data-lucide="map-pin" style="width:24px; height:24px;"></i>
+            </div>
+            <div class="stat-value text-emerald-500">@Model.TotalPolesExtracted.ToString("N0")</div>
+            <div class="stat-label">Total Poles</div>
+        </div>
+    </div>
+
+    @if (Model.SourceFileNames.Count > 0)
+    {
+        <div class="mb-8 p-6 rounded-2xl" style="background: var(--theme-surface); border: 1px solid var(--theme-surface-border);">
+            <h3 class="text-sm font-bold uppercase tracking-widest mb-4" style="color: var(--theme-text-muted);">Source Files</h3>
+            <ul class="space-y-2">
+                @foreach (var name in Model.SourceFileNames)
+                {
+                    <li class="flex items-center gap-2 text-sm font-medium" style="color: var(--theme-text);">
+                        <i data-lucide="file-spreadsheet" style="width:16px; height:16px; color: var(--theme-accent);"></i>
+                        @name
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="glass-card p-8 sm:p-10">
+        <h2 class="text-2xl font-extrabold mb-3" style="color: var(--theme-text);">Download Reorganized Workbook</h2>
+        <p class="text-base mb-6" style="color: var(--theme-text-dim);">
+            The export contains a single unified table with a <strong>FILE TITLE</strong> column, ITEM, POLE NO., LATLONG, and LOCATION.
+        </p>
+        @if (!string.IsNullOrWhiteSpace(Model.BatchId))
+        {
+            <a asp-action="DownloadSwuReorganizedXlsx" asp-controller="Report" asp-route-batchId="@Model.BatchId"
+               class="btn-xlsx inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl text-base font-bold transition-all">
+                <i data-lucide="file-spreadsheet" style="width:20px; height:20px;"></i>
+                <span>Download XLSX</span>
+            </a>
+        }
+        else
+        {
+            <p class="text-sm font-medium" style="color: var(--theme-text-muted);">No batch data available.</p>
+        }
+        <div class="mt-8 flex flex-wrap gap-4">
+            <a asp-action="Upload" asp-controller="Report"
+               class="btn-dashboard inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold">
+                <i data-lucide="upload" style="width:18px; height:18px;"></i>
+                Upload More Files
+            </a>
+            <a asp-action="MapDashboard" asp-controller="Report" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold"
+               style="color: var(--theme-accent); border: 1px solid var(--theme-surface-border);">
+                <i data-lucide="map" style="width:18px; height:18px;"></i>
+                Open Circuit Map
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>if (window.lucide) lucide.createIcons();</script>
+}

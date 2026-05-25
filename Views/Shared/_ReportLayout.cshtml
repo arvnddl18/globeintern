@@ -294,8 +294,8 @@
     @{
         var _activeTab = ViewData["ActiveTab"] as string ?? "";
     }
-    <div class="w-full @(_activeTab == "kpi" ? "max-w-none mx-0 px-0 pb-6 sm:pb-8 pt-0 dash-layout-root" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12")">
-        <nav class="slide-up @(_activeTab == "kpi" ? "dash-layout-nav dash-floating-nav" : "mb-8")" style="@(_activeTab == "kpi" ? "" : "border-bottom: 1px solid var(--theme-surface-border);")">
+    <div class="w-full @(_activeTab == "kpi" || _activeTab == "map" ? "max-w-none mx-0 px-0 pb-6 sm:pb-8 pt-0 dash-layout-root" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12")">
+        <nav class="slide-up @(_activeTab == "kpi" || _activeTab == "map" ? "dash-layout-nav dash-floating-nav" : "mb-8")" style="@(_activeTab == "kpi" || _activeTab == "map" ? "" : "border-bottom: 1px solid var(--theme-surface-border);")">
             <!-- Top bar: controls -->
             <div class="flex flex-wrap items-center justify-between gap-3 pb-3">
                 <div class="flex items-center gap-4">
@@ -378,10 +378,10 @@
             }
         </nav>
 
-        <div class="@(_activeTab == "kpi" ? "dash-layout-body" : "")">
+        <div class="@(_activeTab == "kpi" || _activeTab == "map" ? "dash-layout-body" : "")">
         @RenderBody()
 
-        <footer class="mt-16 mb-6 text-center @(_activeTab == "kpi" ? "dash-layout-footer" : "")">
+        <footer class="mt-16 mb-6 text-center @(_activeTab == "kpi" || _activeTab == "map" ? "dash-layout-footer" : "")">
             <div class="flex items-center justify-center gap-1.5 text-xs" style="color: var(--theme-footer);">
                 <i data-lucide="shield-check" style="width:12px; height:12px;"></i>
                 <span>&copy; 2026 SlotAd Globe &bull; Pending Report Converter</span>

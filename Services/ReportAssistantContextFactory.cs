@@ -49,6 +49,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
         {
             ReportAssistantPageKind.Upload => UploadHint("upload"),
             ReportAssistantPageKind.CleanedDataExport => UploadHint("cleaned_data_export"),
+            ReportAssistantPageKind.SwuReorganizedExport => UploadHint("swu_reorganized_export"),
             ReportAssistantPageKind.Operational => await BuildOperationalAsync(userId, cancellationToken),
             ReportAssistantPageKind.KpiDashboard or ReportAssistantPageKind.KpiFilter =>
                 await BuildKpiAsync(userId, pageKind, token, view, cancellationToken),
@@ -128,6 +129,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
                 kpi.AvailableStatuses = filterOptions.AvailableStatuses;
                 kpi.AvailableSubStatuses = filterOptions.AvailableSubStatuses;
                 kpi.AvailableSkillsets = filterOptions.AvailableSkillsets;
+                kpi.AvailableCustomerTypes = filterOptions.AvailableCustomerTypes;
                 kpi.AvailableOrderCreateDates = filterOptions.AvailableOrderCreateDates;
             }
 
@@ -323,6 +325,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
                     activeFilters.SelectedStatuses,
                     activeFilters.SelectedSubStatuses,
                     activeFilters.SelectedSkillsets,
+                    activeFilters.SelectedCustomerTypes,
                     activeFilters.SelectedOrderCreateDates)
                 : await _csvService.ComputeKpiAsync(
                     csvPath,
@@ -334,6 +337,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
                     activeFilters.SelectedStatuses,
                     activeFilters.SelectedSubStatuses,
                     activeFilters.SelectedSkillsets,
+                    activeFilters.SelectedCustomerTypes,
                     activeFilters.SelectedOrderCreateDates);
 
             kpi.ReportToken = "";
@@ -347,6 +351,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
             kpi.SelectedStatuses = activeFilters.SelectedStatuses;
             kpi.SelectedSubStatuses = activeFilters.SelectedSubStatuses;
             kpi.SelectedSkillsets = activeFilters.SelectedSkillsets;
+            kpi.SelectedCustomerTypes = activeFilters.SelectedCustomerTypes;
             kpi.SelectedOrderCreateDates = activeFilters.SelectedOrderCreateDates;
             return new KpiResolveResult(true, kpi, false, activeView, null);
         }
@@ -381,6 +386,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
         archivedKpi.SelectedStatuses = archiveActiveFilters.SelectedStatuses;
         archivedKpi.SelectedSubStatuses = archiveActiveFilters.SelectedSubStatuses;
         archivedKpi.SelectedSkillsets = archiveActiveFilters.SelectedSkillsets;
+        archivedKpi.SelectedCustomerTypes = archiveActiveFilters.SelectedCustomerTypes;
         archivedKpi.SelectedOrderCreateDates = archiveActiveFilters.SelectedOrderCreateDates;
         archivedKpi.IsReadOnly = true;
         return new KpiResolveResult(true, archivedKpi, true, activeViewArchive, null);
@@ -401,6 +407,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
             kpi.SelectedStatuses,
             kpi.SelectedSubStatuses,
             kpi.SelectedSkillsets,
+            kpi.SelectedCustomerTypes,
             kpi.SelectedOrderCreateDates);
 
         return string.Join('\u001f',
@@ -415,6 +422,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
             string.Join(',', f.SelectedStatuses.Order(StringComparer.OrdinalIgnoreCase)),
             string.Join(',', f.SelectedSubStatuses.Order(StringComparer.OrdinalIgnoreCase)),
             string.Join(',', f.SelectedSkillsets.Order(StringComparer.OrdinalIgnoreCase)),
+            string.Join(',', f.SelectedCustomerTypes.Order(StringComparer.OrdinalIgnoreCase)),
             string.Join(',', f.SelectedOrderCreateDates.Order(StringComparer.OrdinalIgnoreCase)));
     }
 
@@ -459,6 +467,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
                 ["availableStatuses"] = CapList(filterOptions?.AvailableStatuses ?? k.AvailableStatuses, ListCap),
                 ["availableSubStatuses"] = CapList(filterOptions?.AvailableSubStatuses ?? k.AvailableSubStatuses, ListCap),
                 ["availableSkillsets"] = CapList(filterOptions?.AvailableSkillsets ?? k.AvailableSkillsets, ListCap),
+                ["availableCustomerTypes"] = CapList(filterOptions?.AvailableCustomerTypes ?? k.AvailableCustomerTypes, ListCap),
                 ["availableOrderCreateDates"] = CapList(
                     filterOptions?.AvailableOrderCreateDates ?? k.AvailableOrderCreateDates,
                     ListCap)
@@ -475,6 +484,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
                 ["selectedStatuses"] = CapList(k.SelectedStatuses, ListCap),
                 ["selectedSubStatuses"] = CapList(k.SelectedSubStatuses, ListCap),
                 ["selectedSkillsets"] = CapList(k.SelectedSkillsets, ListCap),
+                ["selectedCustomerTypes"] = CapList(k.SelectedCustomerTypes, ListCap),
                 ["selectedOrderCreateDates"] = CapList(k.SelectedOrderCreateDates, ListCap),
                 ["note"] =
                     "slotAdherence and appointmentsByDateFiltered reflect these dashboard filters. dataset.appointmentsByDateInFile is the full uploaded CSV (unfiltered by dashboard date)."
@@ -636,6 +646,8 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
             parts.Add($"sub-statuses: {string.Join(", ", k.SelectedSubStatuses.Take(8))}");
         if (k.SelectedSkillsets.Count > 0)
             parts.Add($"skillsets: {string.Join(", ", k.SelectedSkillsets.Take(8))}");
+        if (k.SelectedCustomerTypes.Count > 0)
+            parts.Add($"customer types: {string.Join(", ", k.SelectedCustomerTypes.Take(8))}");
         if (k.SelectedOrderCreateDates.Count > 0)
             parts.Add($"order create dates: {string.Join(", ", k.SelectedOrderCreateDates.Take(5))}");
 
@@ -914,6 +926,7 @@ public sealed class ReportAssistantContextFactory : IReportAssistantContextFacto
             AvailableStatuses = session.CachedAvailableStatuses ?? [],
             AvailableSubStatuses = session.CachedAvailableSubStatuses ?? [],
             AvailableSkillsets = session.CachedAvailableSkillsets ?? [],
+            AvailableCustomerTypes = session.CachedAvailableCustomerTypes ?? [],
             AvailableOrderCreateDates = session.CachedAvailableOrderCreateDates ?? []
         };
 

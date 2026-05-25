@@ -3,25 +3,60 @@
 
     var DAVAO_CENTER = [7.0736, 125.6139];
     var DAVAO_ZOOM = 12;
-    var OSRM_BASE = 'https://router.project-osrm.org/route/v1/driving';
 
-    var COLORS = {
-        default: '#fbbf24',
-        circuit91_92: '#6366f1',
-        circuit93: '#14b8a6',
-        pin: '#6366f1'
-    };
+    var COLORS = { pin: '#6366f1' };
+
+    /** Distinct pin colors per table block in multi-table workbooks */
+    var PIN_COLORS = [
+        '#6366f1',
+        '#10b981',
+        '#f59e0b',
+        '#ef4444',
+        '#8b5cf6',
+        '#06b6d4',
+        '#ec4899',
+        '#84cc16'
+    ];
 
     var map = null;
     var tileLayer = null;
     var labelLayer = null;
     var pinsLayer = null;
-    var routesLayer = null;
-    var decorators = [];
-    var renderGeneration = 0;
 
     function normCol(s) {
         return String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    }
+
+    function cellText(cell) {
+        if (!cell) return '';
+        if (cell.w != null && String(cell.w).trim() !== '') return String(cell.w).trim();
+        if (cell.v == null || cell.v === '') return '';
+        return String(cell.v).trim();
+    }
+
+    /** Dense grid: column 0 = A, 1 = B, … so header indices match every data row. */
+    function sheetToDenseRows(ws) {
+        if (!ws) return [];
+        var range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+        
+        // Safety: Recalculate max row/col to handle stale !ref properties from ClosedXML appends
+        for (var key in ws) {
+            if (key.charAt(0) === '!') continue;
+            var cell = XLSX.utils.decode_cell(key);
+            if (cell.r > range.e.r) range.e.r = cell.r;
+            if (cell.c > range.e.c) range.e.c = cell.c;
+        }
+
+        var rows = [];
+        for (var R = range.s.r; R <= range.e.r; R++) {
+            var row = [];
+            for (var C = range.s.c; C <= range.e.c; C++) {
+                var addr = XLSX.utils.encode_cell({ r: R, c: C });
+                row.push(cellText(ws[addr]));
+            }
+            rows.push(row);
+        }
+        return rows;
     }
 
     function splitLines(val) {
@@ -31,10 +66,19 @@
 
     function parseLatLong(str) {
         if (!str) return null;
-        var m = String(str).match(/^\s*([+-]?\d+\.?\d*)\s*,\s*([+-]?\d+\.?\d*)\s*$/);
+        var s = String(str).trim().replace(/\u00a0/g, ' ');
+        var m = s.match(/^\s*([+-]?\d+(?:\.\d+)?)\s*[,;\s]\s*([+-]?\d+(?:\.\d+)?)\s*$/);
         if (!m) return null;
         var lat = parseFloat(m[1]);
         var lng = parseFloat(m[2]);
+        if (!isFinite(lat) || !isFinite(lng)) return null;
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+        return { lat: lat, lng: lng };
+    }
+
+    function parseLatLngColumns(latStr, lngStr) {
+        var lat = parseFloat(String(latStr || '').replace(/,/g, ''));
+        var lng = parseFloat(String(lngStr || '').replace(/,/g, ''));
         if (!isFinite(lat) || !isFinite(lng)) return null;
         if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
         return { lat: lat, lng: lng };
@@ -45,207 +89,237 @@
         return isFinite(n) ? n : 9999;
     }
 
-    function resolveCircuitKey(ckt) {
-        var u = String(ckt || '').toUpperCase();
-        if (!u) return null;
-        var has91 = u.indexOf('CIRCUIT NO 91') !== -1 || u.indexOf('CIRCUIT 91') !== -1;
-        var has92 = u.indexOf('CIRCUIT NO 92') !== -1 || u.indexOf('CIRCUIT 92') !== -1;
-        var has93 = u.indexOf('CIRCUIT NO 93') !== -1 || u.indexOf('CIRCUIT 93') !== -1;
-        if (has93 && !has91 && !has92) return '93';
-        if (has91 && has92) return '91-92';
-        if (has93) return '93';
-        if (has91) return '91-92';
-        if (has92) return '91-92';
+    function findColIndex(cols, names, allowPartial) {
+        for (var i = 0; i < names.length; i++) {
+            var idx = cols.indexOf(names[i]);
+            if (idx !== -1) return idx;
+        }
+        if (!allowPartial) return -1;
+        for (var j = 0; j < cols.length; j++) {
+            var c = cols[j];
+            for (var k = 0; k < names.length; k++) {
+                if (names[k].length < 4) continue;
+                if (c.indexOf(names[k]) !== -1) return j;
+            }
+        }
+        return -1;
+    }
+
+    function findOuRemarksIdx(cols) {
+        return findColIndex(cols, ['OU REMARKS', 'OU REMARK', 'OU_REMARKS', 'OUREMARKS'], true);
+    }
+
+    function findLocationIdx(cols) {
+        return findColIndex(cols, ['LOCATION', 'LOC', 'AREA', 'SITE', 'PLACE'], true);
+    }
+
+    function findLatLongIdx(cols) {
+        var idx = findColIndex(cols, ['LATLONG', 'LAT LONG', 'LAT/LONG', 'LAT_LON', 'COORDINATES', 'COORDS'], true);
+        if (idx !== -1) return idx;
+        return cols.findIndex(function (c) {
+            return c.indexOf('LAT') !== -1 && c.indexOf('LONG') !== -1;
+        });
+    }
+
+    function findLatLngIndices(cols) {
+        var latIdx = findColIndex(cols, ['LATITUDE', 'LAT', 'NORTHING']);
+        var lngIdx = findColIndex(cols, ['LONGITUDE', 'LNG', 'LON', 'LONG', 'EASTING']);
+        if (latIdx !== -1 && lngIdx !== -1) return { latIdx: latIdx, lngIdx: lngIdx };
         return null;
     }
 
-    function circuitLabel(key) {
-        if (key === '93') return 'CIRCUIT NO 93';
-        if (key === '91-92') return 'CIRCUIT NO 91 / CIRCUIT NO 92';
-        if (key === 'default') return 'Route';
-        return 'Route';
+    var SWU_TITLE_RE = /SWU\s*P\s*0?\d+/i;
+
+    function rowIsSwuTitle(row) {
+        if (!row || !row.length) return false;
+        for (var c = 0; c < row.length; c++) {
+            if (SWU_TITLE_RE.test(String(row[c] || ''))) return true;
+        }
+        return false;
     }
 
-    function colorForSegment(key) {
-        if (key === '93') return COLORS.circuit93;
-        if (key === '91-92') return COLORS.circuit91_92;
-        return COLORS.default;
+    function buildHeaderFromRow(row, index) {
+        var cols = row.map(normCol);
+        var itemIdx = findColIndex(cols, ['ITEM', 'ITEM NO', 'ITEM NO.', '#'], false);
+        if (itemIdx === -1) return null;
+        var latLongIdx = findLatLongIdx(cols);
+        var latLng = findLatLngIndices(cols);
+        var pnIdx = findColIndex(cols, ['PN', 'POLE NO.', 'POLE NO', 'POLE NUMBER', 'POLE NO.', 'POLE#', 'POLE'], true);
+        var base = {
+            index: index,
+            itemIdx: itemIdx,
+            pnIdx: pnIdx,
+            ouRemarksIdx: findOuRemarksIdx(cols),
+            locationIdx: findLocationIdx(cols)
+        };
+        if (latLongIdx !== -1) {
+            return Object.assign(base, { latLongIdx: latLongIdx, latIdx: -1, lngIdx: -1 });
+        }
+        if (latLng) {
+            return Object.assign(base, { latLongIdx: -1, latIdx: latLng.latIdx, lngIdx: latLng.lngIdx });
+        }
+        return null;
     }
 
     function findHeaderRow(rows) {
         for (var i = 0; i < rows.length; i++) {
-            var row = rows[i];
-            if (!row || !row.length) continue;
-            var cols = row.map(normCol);
-            var itemIdx = cols.indexOf('ITEM');
-            var latIdx = cols.findIndex(function (c) { return c === 'LATLONG' || c === 'LAT LONG' || c === 'LAT/LONG'; });
-            if (itemIdx !== -1 && latIdx !== -1) {
-                return { index: i, itemIdx: itemIdx, cktIdx: cols.indexOf('CKT'), pnIdx: cols.indexOf('PN'), latIdx: latIdx };
-            }
+            var header = buildHeaderFromRow(rows[i], i);
+            if (header) return header;
         }
         return null;
     }
 
-    function parseSwuSheet(rows) {
-        var header = findHeaderRow(rows);
-        if (!header) {
-            throw new Error('Could not find ITEM and LATLONG columns in the spreadsheet.');
+    /** Every ITEM + LATLONG/LAT+LNG header row (reorganized exports repeat headers per table). */
+    function findAllHeaderRows(rows) {
+        var headers = [];
+        for (var i = 0; i < rows.length; i++) {
+            var header = buildHeaderFromRow(rows[i], i);
+            if (header) headers.push(header);
         }
+        return headers;
+    }
 
-        var points = [];
-        var currentCkt = '';
-        var hasAnyCkt = false;
+    function parseSheetMeta(rows, headerIndex) {
+        var swuCode = '';
+        var location = '';
+        var swuRe = /SWU\s*P\s*0?\d+/i;
 
-        for (var r = header.index + 1; r < rows.length; r++) {
+        for (var r = 0; r < headerIndex; r++) {
             var row = rows[r];
-            if (!row || !row.length) continue;
+            if (!row) continue;
+            for (var c = 0; c < row.length; c++) {
+                var cell = String(row[c] || '').trim();
+                if (!cell) continue;
+                var upper = normCol(cell);
+                if (upper === 'CKT' || upper === 'ITEM' || upper === 'PN') continue;
 
-            var itemRaw = row[header.itemIdx] != null ? String(row[header.itemIdx]).trim() : '';
-            var cktRaw = header.cktIdx >= 0 && row[header.cktIdx] != null ? String(row[header.cktIdx]).trim() : '';
-            var pnRaw = header.pnIdx >= 0 && row[header.pnIdx] != null ? String(row[header.pnIdx]).trim() : '';
-            var latRaw = row[header.latIdx] != null ? String(row[header.latIdx]).trim() : '';
-
-            if (normCol(itemRaw) === 'ITEM') continue;
-
-            if (cktRaw) {
-                currentCkt = cktRaw;
-                hasAnyCkt = true;
-            }
-
-            if (!latRaw) continue;
-
-            var items = splitLines(itemRaw);
-            var pns = splitLines(pnRaw);
-            var lls = splitLines(latRaw);
-            var count = Math.max(items.length, pns.length, lls.length);
-
-            for (var j = 0; j < count; j++) {
-                var llStr = lls[j] !== undefined && lls[j] !== '' ? lls[j] : (lls.length === 1 ? lls[0] : '');
-                var coords = parseLatLong(llStr);
-                if (!coords) continue;
-
-                var itemVal = items[j] !== undefined && items[j] !== '' ? items[j] : (items[0] || String(points.length + 1));
-                var pnVal = pns[j] !== undefined ? pns[j] : (pns[0] || '');
-                var segKey = resolveCircuitKey(currentCkt);
-
-                points.push({
-                    item: itemVal,
-                    itemNum: parseItemNum(itemVal),
-                    pn: pnVal,
-                    ckt: currentCkt,
-                    segmentKey: segKey,
-                    lat: coords.lat,
-                    lng: coords.lng
-                });
+                if (!swuCode && swuRe.test(cell)) {
+                    swuCode = cell.match(swuRe)[0].replace(/\s+/g, ' ').replace(/\s*P\s*/i, ' P');
+                }
+                if (!location && cell.indexOf('(') !== -1 && !swuRe.test(cell)) {
+                    location = cell;
+                }
             }
         }
 
-        if (!points.length) {
-            throw new Error('No valid coordinates found in LATLONG column.');
-        }
-
-        points.sort(function (a, b) {
-            if (a.itemNum !== b.itemNum) return a.itemNum - b.itemNum;
-            return 0;
-        });
-
-        return { points: points, hasCircuits: hasAnyCkt };
-    }
-
-    /** Group consecutive points with the same circuit; routes never cross circuit boundaries. */
-    function buildCircuitGroups(points, hasCircuits) {
-        var groups = [];
-        var current = null;
-
-        points.forEach(function (p) {
-            var key = hasCircuits ? (p.segmentKey || 'unknown') : 'default';
-            if (!current || current.key !== key) {
-                current = { key: key, points: [] };
-                groups.push(current);
+        if (!swuCode || !location) {
+            var metaCells = [];
+            for (var r2 = 0; r2 < headerIndex; r2++) {
+                var row2 = rows[r2];
+                if (!row2) continue;
+                for (var c2 = 0; c2 < row2.length; c2++) {
+                    var cell2 = String(row2[c2] || '').trim();
+                    if (!cell2) continue;
+                    var u2 = normCol(cell2);
+                    if (u2 === 'CKT' || u2 === 'ITEM' || u2 === 'PN') continue;
+                    metaCells.push(cell2);
+                }
             }
-            current.points.push(p);
-        });
-
-        return groups.filter(function (g) { return g.points.length > 0; });
-    }
-
-    function isDarkTheme() {
-        return document.documentElement.getAttribute('data-theme') !== 'light';
-    }
-
-    function clearDecorators() {
-        decorators.forEach(function (d) {
-            try { if (map && d) map.removeLayer(d); } catch (e) { /* ignore */ }
-        });
-        decorators = [];
-    }
-
-    function clearLayers() {
-        clearDecorators();
-        if (pinsLayer) { pinsLayer.clearLayers(); }
-        if (routesLayer) { routesLayer.clearLayers(); }
-    }
-
-    function midpointAlongPath(latlngs) {
-        if (!latlngs.length) return null;
-        if (latlngs.length === 1) return latlngs[0];
-        var total = 0;
-        var dists = [0];
-        for (var i = 1; i < latlngs.length; i++) {
-            total += latlngs[i - 1].distanceTo(latlngs[i]);
-            dists.push(total);
-        }
-        if (total === 0) return latlngs[Math.floor(latlngs.length / 2)];
-        var half = total / 2;
-        for (var j = 1; j < dists.length; j++) {
-            if (dists[j] >= half) {
-                var t = (half - dists[j - 1]) / (dists[j] - dists[j - 1] || 1);
-                var a = latlngs[j - 1];
-                var b = latlngs[j];
-                return L.latLng(a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t);
+            if (!swuCode && metaCells.length) {
+                for (var mi = 0; mi < metaCells.length; mi++) {
+                    if (swuRe.test(metaCells[mi])) {
+                        swuCode = metaCells[mi].match(swuRe)[0].replace(/\s+/g, ' ').replace(/\s*P\s*/i, ' P');
+                        break;
+                    }
+                }
+                if (!swuCode) swuCode = metaCells[0];
+            }
+            if (!location && metaCells.length > 1) {
+                for (var lj = 0; lj < metaCells.length; lj++) {
+                    if (metaCells[lj] !== swuCode && metaCells[lj].indexOf('(') !== -1) {
+                        location = metaCells[lj];
+                        break;
+                    }
+                }
+                if (!location) {
+                    for (var lk = 0; lk < metaCells.length; lk++) {
+                        if (metaCells[lk] !== swuCode) {
+                            location = metaCells[lk];
+                            break;
+                        }
+                    }
+                }
             }
         }
-        return latlngs[latlngs.length - 1];
+
+        return { swuCode: swuCode, location: location };
     }
 
-    function addArrowPolyline(latlngs, color, weight, opacity) {
-        if (latlngs.length < 2) return null;
-        var line = L.polyline(latlngs, {
-            color: color,
-            weight: weight,
-            opacity: opacity,
-            lineCap: 'round',
-            lineJoin: 'round'
-        });
-        routesLayer.addLayer(line);
-
-        if (typeof L.polylineDecorator === 'function') {
-            var deco = L.polylineDecorator(line, {
-                patterns: [{
-                    offset: '100%',
-                    repeat: 0,
-                    symbol: L.Symbol.arrowHead({
-                        pixelSize: 12,
-                        polygon: false,
-                        pathOptions: { stroke: true, color: color, weight: weight + 1, opacity: 1 }
-                    })
-                }]
-            });
-            deco.addTo(map);
-            decorators.push(deco);
+    function formatPnDisplay(pn) {
+        var s = String(pn || '').trim();
+        if (!s) return '';
+        if (/^0+\d+$/.test(s)) {
+            var stripped = s.replace(/^0+(?=\d)/, '');
+            return stripped || s;
         }
-        return line;
+        return s;
     }
 
-    function addCircuitLabel(latlng, text, bgColor) {
-        var icon = L.divIcon({
-            className: 'circuit-label-icon',
-            html: '<span style="background:' + bgColor + ';">' + escapeHtml(text) + '</span>',
-            iconSize: null,
-            iconAnchor: [0, 14]
-        });
-        var marker = L.marker(latlng, { icon: icon, interactive: false, zIndexOffset: 500 });
-        routesLayer.addLayer(marker);
+    function formatOuRemarksForTitle(text) {
+        var t = String(text || '').trim();
+        if (!t) return '';
+        t = t.replace(/^\*\s*/, '');
+        t = t.replace(/^request\s+for\s+/i, '');
+        return t.trim();
+    }
+
+    function buildPinDescription(meta, point) {
+        // Unified-table format stores fileTitle directly on the point
+        var fileTitle = point.fileTitle || meta.swuCode || '';
+        var metaLoc   = point.fileTitle ? '' : (meta.location || ''); // skip redundant meta loc in new format
+        var area      = String(point.location || '').trim();
+        var remarks   = formatOuRemarksForTitle(point.ouRemarks);
+        var pn        = formatPnDisplay(point.pn) || '\u2014';
+        var item      = String(point.item || '').trim();
+        var latLng    = (point.lat != null && point.lng != null)
+            ? point.lat.toFixed(7) + ', ' + point.lng.toFixed(7)
+            : '';
+
+        // ---- plain text (used for tooltip) ----
+        var textLines = [];
+        if (fileTitle) textLines.push(fileTitle);
+        if (metaLoc)   textLines.push(metaLoc);
+        if (item)      textLines.push('Item: '     + item);
+        textLines.push('PN: ' + pn);
+        if (area)      textLines.push('Location: ' + area);
+        if (latLng)    textLines.push(latLng);
+        if (remarks)   textLines.push('OU REMARKS: ' + remarks);
+
+        // ---- rich HTML (used for click-popup) ----
+        var html = '<div class="circuit-pin-popup">';
+        if (fileTitle) {
+            html += '<div class="circuit-pin-line circuit-pin-swu" style="border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:4px;margin-bottom:4px">' +
+                escapeHtml(fileTitle) + '</div>';
+        }
+        if (metaLoc) {
+            html += '<div class="circuit-pin-line">' + escapeHtml(metaLoc) + '</div>';
+        }
+        if (item) {
+            html += '<div class="circuit-pin-line"><span class="circuit-pin-label">Item:</span> ' +
+                escapeHtml(item) + '</div>';
+        }
+        html += '<div class="circuit-pin-line circuit-pin-pn"><span class="circuit-pin-label">Pole No.:</span> ' +
+            escapeHtml(pn) + '</div>';
+        if (area) {
+            html += '<div class="circuit-pin-line"><span class="circuit-pin-label">Location:</span> ' +
+                escapeHtml(area) + '</div>';
+        }
+        if (latLng) {
+            html += '<div class="circuit-pin-line" style="font-size:0.72rem;opacity:0.65">' +
+                escapeHtml(latLng) + '</div>';
+        }
+        if (remarks) {
+            html += '<div class="circuit-pin-line"><span class="circuit-pin-label">OU Remarks:</span> ' +
+                escapeHtml(remarks) + '</div>';
+        }
+        html += '</div>';
+
+        return { html: html, text: textLines.join('\n') };
+    }
+
+    /** @deprecated Use buildPinDescription */
+    function buildPinTitle(meta, point) {
+        return buildPinDescription(meta, point).text;
     }
 
     function escapeHtml(s) {
@@ -256,140 +330,433 @@
             .replace(/"/g, '&quot;');
     }
 
-    /** Fetch street-aligned path through waypoints in order (OSRM). */
-    function fetchStreetRoute(latlngs) {
-        if (latlngs.length < 2) {
-            return Promise.resolve(latlngs.slice());
+    function coordsFromRow(row, header) {
+        if (header.latLongIdx >= 0) {
+            var latRaw = row[header.latLongIdx] != null ? String(row[header.latLongIdx]).trim() : '';
+            return latRaw ? parseLatLong(latRaw) : null;
+        }
+        if (header.latIdx >= 0 && header.lngIdx >= 0) {
+            var latS = row[header.latIdx] != null ? String(row[header.latIdx]).trim() : '';
+            var lngS = row[header.lngIdx] != null ? String(row[header.lngIdx]).trim() : '';
+            return parseLatLngColumns(latS, lngS);
+        }
+        return null;
+    }
+
+    function parseSwuSheet(rows, endRow) {
+        var header = findHeaderRow(rows);
+        if (!header) {
+            throw new Error('Could not find ITEM and coordinate columns (LATLONG or LAT/LNG) in the spreadsheet.');
         }
 
-        var coordStr = latlngs.map(function (ll) {
-            return ll.lng.toFixed(7) + ',' + ll.lat.toFixed(7);
-        }).join(';');
+        var lastRow = endRow != null ? endRow : rows.length;
+        var meta = parseSheetMeta(rows, header.index);
+        var points = [];
+        var currentOuBlock = '';
+        var currentLocation = '';
 
-        var url = OSRM_BASE + '/' + coordStr +
-            '?overview=full&geometries=geojson&steps=false';
+        for (var r = header.index + 1; r < lastRow; r++) {
+            var row = rows[r];
+            if (!row || !row.length) continue;
+            if (isRowEmpty(row)) continue;
 
-        return fetch(url).then(function (res) {
-            if (!res.ok) throw new Error('Routing service unavailable (' + res.status + ').');
-            return res.json();
-        }).then(function (data) {
-            if (!data || data.code !== 'Ok' || !data.routes || !data.routes[0]) {
-                throw new Error(data && data.message ? data.message : 'Could not find a street route for these points.');
+            var itemRaw = row[header.itemIdx] != null ? String(row[header.itemIdx]).trim() : '';
+            var pnRaw = header.pnIdx >= 0 && row[header.pnIdx] != null ? String(row[header.pnIdx]).trim() : '';
+            var latRaw = header.latLongIdx >= 0 && row[header.latLongIdx] != null
+                ? String(row[header.latLongIdx]).trim()
+                : '';
+            var ouRaw = header.ouRemarksIdx >= 0 && row[header.ouRemarksIdx] != null
+                ? String(row[header.ouRemarksIdx]).trim()
+                : '';
+            var locRaw = header.locationIdx >= 0 && row[header.locationIdx] != null
+                ? String(row[header.locationIdx]).trim()
+                : '';
+            var locParts = locRaw ? splitLines(locRaw) : [];
+            if (locRaw) {
+                for (var li = 0; li < locParts.length; li++) {
+                    if (locParts[li]) {
+                        currentLocation = locParts[li];
+                        break;
+                    }
+                }
             }
-            var geom = data.routes[0].geometry;
-            if (!geom || !geom.coordinates || !geom.coordinates.length) {
-                throw new Error('Empty route returned from routing service.');
+
+            if (normCol(itemRaw) === 'ITEM') continue;
+
+            if (buildHeaderFromRow(row, r)) continue;
+
+            if (ouRaw) {
+                if (ouRaw.charAt(0) === '*') {
+                    currentOuBlock = ouRaw;
+                } else {
+                    currentOuBlock = currentOuBlock ? currentOuBlock + ' ' + ouRaw : ouRaw;
+                }
             }
-            return geom.coordinates.map(function (c) {
-                return L.latLng(c[1], c[0]);
+
+            var rowCoords = coordsFromRow(row, header);
+            if (!rowCoords && !latRaw) {
+                if (itemRaw && !/^\d+$/.test(itemRaw) && normCol(itemRaw) !== 'ITEM') {
+                    currentLocation = itemRaw;
+                }
+                if (ouRaw && points.length) {
+                    var prev = points[points.length - 1];
+                    prev.ouRemarks = (prev.ouRemarks ? prev.ouRemarks + ' ' : '') + ouRaw;
+                }
+                continue;
+            }
+
+            var items = splitLines(itemRaw);
+            var pns = splitLines(pnRaw);
+            var lls = splitLines(latRaw);
+            var count = Math.max(items.length, pns.length, lls.length, 1);
+
+            for (var j = 0; j < count; j++) {
+                var coords = null;
+                if (header.latLongIdx >= 0 && lls.length) {
+                    var llStr = lls[j] !== undefined && lls[j] !== '' ? lls[j] : (lls.length === 1 ? lls[0] : '');
+                    coords = parseLatLong(llStr);
+                } else if (rowCoords && count === 1) {
+                    coords = rowCoords;
+                } else if (header.latIdx >= 0 && header.lngIdx >= 0) {
+                    var latParts = splitLines(row[header.latIdx] != null ? String(row[header.latIdx]) : '');
+                    var lngParts = splitLines(row[header.lngIdx] != null ? String(row[header.lngIdx]) : '');
+                    coords = parseLatLngColumns(
+                        latParts[j] !== undefined ? latParts[j] : latParts[0],
+                        lngParts[j] !== undefined ? lngParts[j] : lngParts[0]
+                    );
+                }
+                if (!coords) continue;
+
+                var itemVal = items[j] !== undefined && items[j] !== '' ? items[j] : (items[0] || String(points.length + 1));
+                var pnVal = pns[j] !== undefined && pns[j] !== '' ? pns[j] : (pns[0] || '');
+                var pointLoc = currentLocation;
+                if (locParts[j]) {
+                    pointLoc = locParts[j];
+                } else if (locParts.length === 1 && locParts[0]) {
+                    pointLoc = locParts[0];
+                }
+
+                points.push({
+                    item: itemVal,
+                    itemNum: parseItemNum(itemVal),
+                    pn: pnVal,
+                    ouRemarks: currentOuBlock,
+                    location: pointLoc,
+                    lat: coords.lat,
+                    lng: coords.lng
+                });
+            }
+        }
+
+        if (!points.length) {
+            throw new Error('No valid coordinates found in the spreadsheet.');
+        }
+
+        points.sort(function (a, b) {
+            if (a.itemNum !== b.itemNum) return a.itemNum - b.itemNum;
+            return 0;
+        });
+
+        return { points: points, meta: meta };
+    }
+
+    function isRowEmpty(row) {
+        if (!row || !row.length) return true;
+        for (var i = 0; i < row.length; i++) {
+            if (String(row[i] || '').trim() !== '') return false;
+        }
+        return true;
+    }
+
+    /** Split sheet rows into blocks separated by fully empty rows (reorganized multi-table export). */
+    function splitRowsIntoBlocks(rows) {
+        var blocks = [];
+        var current = [];
+        for (var i = 0; i < rows.length; i++) {
+            if (isRowEmpty(rows[i])) {
+                if (current.length) {
+                    blocks.push(current);
+                    current = [];
+                }
+            } else {
+                if (current.length && rowIsSwuTitle(rows[i]) && blockHasHeader(current)) {
+                    blocks.push(current);
+                    current = [];
+                }
+                current.push(rows[i]);
+            }
+        }
+        if (current.length) blocks.push(current);
+        return blocks;
+    }
+
+    function blockHasHeader(blockRows) {
+        for (var i = 0; i < blockRows.length; i++) {
+            if (buildHeaderFromRow(blockRows[i], i)) return true;
+        }
+        return false;
+    }
+
+    function extractBlockLabel(blockRows, meta) {
+        for (var r = 0; r < Math.min(blockRows.length, 4); r++) {
+            var row = blockRows[r];
+            if (!row) continue;
+            for (var c = 0; c < row.length; c++) {
+                var cell = String(row[c] || '').trim();
+                if (!cell) continue;
+                if (SWU_TITLE_RE.test(cell)) {
+                    var m = cell.match(SWU_TITLE_RE);
+                    return m ? m[0].replace(/\s+/g, ' ').replace(/\s*P\s*/i, ' P') : cell;
+                }
+            }
+        }
+        if (meta && meta.swuCode) return meta.swuCode;
+        if (meta && meta.location) return meta.location;
+        return 'Table';
+    }
+
+    function splitBlockByHeaders(blockRows) {
+        var headers = findAllHeaderRows(blockRows);
+        if (headers.length <= 1) return [blockRows];
+
+        var slices = [];
+        for (var h = 0; h < headers.length; h++) {
+            var header = headers[h];
+            var start = h === 0 ? 0 : headers[h - 1].index;
+            for (var t = header.index - 1; t >= start; t--) {
+                if (isRowEmpty(blockRows[t])) break;
+                if (rowIsSwuTitle(blockRows[t])) {
+                    start = t;
+                    break;
+                }
+            }
+
+            var end = h < headers.length - 1 ? headers[h + 1].index : blockRows.length;
+            while (end > header.index + 1 && isRowEmpty(blockRows[end - 1])) {
+                end--;
+            }
+            if (h < headers.length - 1) {
+                var beforeNext = headers[h + 1].index - 1;
+                if (beforeNext > header.index && rowIsSwuTitle(blockRows[beforeNext])) {
+                    end = beforeNext;
+                }
+            }
+
+            var segment = blockRows.slice(start, end);
+            if (segment.length) slices.push(segment);
+        }
+
+        return slices.length ? slices : [blockRows];
+    }
+
+    // ---------------------------------------------------------------------------
+    // NEW: Unified single-table parser (FILE TITLE column format)
+    // ---------------------------------------------------------------------------
+
+    /** Return the column index of the FILE TITLE column, or -1. */
+    function findFileTitleIdx(cols) {
+        return findColIndex(cols, ['FILE TITLE', 'FILETITLE', 'FILE_TITLE'], true);
+    }
+
+    /**
+     * Parse the new unified-table format produced by SwuPoleProcessingService.
+     * The sheet has one header row: FILE TITLE | ITEM | POLE NO. | LATLONG | LOCATION
+     * Rows are grouped by the FILE TITLE value; each unique value becomes a block
+     * with its own pin color.
+     *
+     * Returns null if the sheet does not have a FILE TITLE column (legacy file).
+     */
+    function parseUnifiedSwuTable(rows) {
+        var headerRowIdx  = -1;
+        var fileTitleIdx  = -1;
+        var itemIdx       = -1;
+        var pnIdx         = -1;
+        var latLongIdx    = -1;
+        var locationIdx   = -1;
+
+        // Find the header row that contains both FILE TITLE and a coordinate column
+        for (var i = 0; i < rows.length; i++) {
+            var cols = rows[i].map(normCol);
+            var fti  = findFileTitleIdx(cols);
+            if (fti === -1) continue;
+
+            var ii  = findColIndex(cols, ['ITEM', 'ITEM NO', 'ITEM NO.', '#'], false);
+            var lli = findLatLongIdx(cols);
+            if (ii === -1 || lli === -1) continue;
+
+            headerRowIdx = i;
+            fileTitleIdx = fti;
+            itemIdx      = ii;
+            pnIdx        = findColIndex(cols, ['PN', 'POLE NO.', 'POLE NO', 'POLE NUMBER', 'POLE#', 'POLE'], true);
+            latLongIdx   = lli;
+            locationIdx  = findLocationIdx(cols);
+            break;
+        }
+
+        if (headerRowIdx === -1) return null; // not unified format
+
+        // Group data rows by FILE TITLE
+        var groups     = {}; // fileTitle -> []
+        var groupOrder = []; // insertion-order of unique titles
+
+        for (var r = headerRowIdx + 1; r < rows.length; r++) {
+            var row = rows[r];
+            if (!row || isRowEmpty(row)) continue;
+
+            var fileTitle = (row[fileTitleIdx] || '').trim();
+            if (!fileTitle) continue;
+
+            var latRaw = latLongIdx >= 0 ? (row[latLongIdx] || '').trim() : '';
+            var coords = parseLatLong(latRaw);
+            if (!coords) continue; // skip rows without valid coordinates
+
+            if (!groups[fileTitle]) {
+                groups[fileTitle] = [];
+                groupOrder.push(fileTitle);
+            }
+
+            var itemVal = itemIdx    >= 0 ? (row[itemIdx]    || '').trim() : '';
+            var pnVal   = pnIdx     >= 0 ? (row[pnIdx]      || '').trim() : '';
+            var locVal  = locationIdx >= 0 ? (row[locationIdx] || '').trim() : '';
+
+            groups[fileTitle].push({
+                fileTitle : fileTitle,
+                item      : itemVal,
+                itemNum   : parseItemNum(itemVal),
+                pn        : pnVal,
+                location  : locVal,
+                ouRemarks : '',
+                lat       : coords.lat,
+                lng       : coords.lng
             });
+        }
+
+        if (!groupOrder.length) return null;
+
+        return groupOrder.map(function (title, idx) {
+            var pts = groups[title];
+            pts.sort(function (a, b) { return a.itemNum - b.itemNum; });
+            return {
+                points : pts,
+                meta   : { swuCode: title, location: '' },
+                label  : title,
+                color  : PIN_COLORS[idx % PIN_COLORS.length]
+            };
         });
     }
 
-    function drawPins(points) {
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Parse one or more SWU tables from a sheet.
+     * Tries the new unified FILE TITLE format first; falls back to the
+     * legacy blank-row-separated multi-table format.
+     * @returns {Array<{points: Array, meta: object, label: string, color: string}>}
+     */
+    function parseSwuWorkbookMulti(rows) {
+        // ---- Try new unified single-table format first ----
+        var unified = parseUnifiedSwuTable(rows);
+        if (unified && unified.length > 0) return unified;
+
+        // ---- Fall back: legacy blank-row-separated blocks ----
+        var parsedBlocks = [];
+
+        var rowBlocks = splitRowsIntoBlocks(rows);
+        rowBlocks.forEach(function (blockRows, blockIndex) {
+            var headerSlices = splitBlockByHeaders(blockRows);
+            headerSlices.forEach(function (sliceRows, sliceIndex) {
+                try {
+                    var parsed = parseSwuSheet(sliceRows);
+                    if (!parsed.points.length) return;
+                    parsedBlocks.push({
+                        points: parsed.points,
+                        meta  : parsed.meta,
+                        label : extractBlockLabel(sliceRows, parsed.meta),
+                        color : PIN_COLORS[parsedBlocks.length % PIN_COLORS.length]
+                    });
+                } catch (err) {
+                    console.warn('SWU block ' + (blockIndex + 1) + '.' + (sliceIndex + 1) + ' skipped:', err.message);
+                }
+            });
+        });
+
+        if (parsedBlocks.length === 0) {
+            var single = parseSwuSheet(rows);
+            parsedBlocks.push({
+                points: single.points,
+                meta  : single.meta,
+                label : extractBlockLabel(rows, single.meta),
+                color : PIN_COLORS[0]
+            });
+        }
+
+        return parsedBlocks;
+    }
+
+    function isDarkTheme() {
+        return document.documentElement.getAttribute('data-theme') !== 'light';
+    }
+
+    function clearLayers() {
+        if (pinsLayer) pinsLayer.clearLayers();
+    }
+
+    function drawPins(points, meta, pinColor) {
+        var fill = pinColor || COLORS.pin;
         points.forEach(function (p) {
+            var desc = buildPinDescription(meta, p);
             var marker = L.circleMarker([p.lat, p.lng], {
-                radius: 6,
-                fillColor: COLORS.pin,
+                radius: 7,
+                fillColor: fill,
                 color: '#ffffff',
                 weight: 2,
                 opacity: 1,
                 fillOpacity: 0.95
             });
-            var popup = '<strong>Item ' + escapeHtml(p.item) + '</strong>';
-            if (p.pn) popup += '<br>PN: ' + escapeHtml(p.pn);
-            if (p.ckt) popup += '<br>CKT: ' + escapeHtml(p.ckt);
-            popup += '<br>' + p.lat.toFixed(7) + ', ' + p.lng.toFixed(7);
-            marker.bindPopup(popup);
+
+            marker.bindTooltip(desc.text, {
+                direction: 'top',
+                offset: [0, -8],
+                opacity: 0.95,
+                sticky: true,
+                className: 'circuit-pin-tooltip'
+            });
+            marker.bindPopup(desc.html, { maxWidth: 380, minWidth: 220 });
             pinsLayer.addLayer(marker);
         });
     }
 
-    function renderCircuitGroup(group) {
-        var waypoints = group.points.map(function (p) { return L.latLng(p.lat, p.lng); });
-        var color = colorForSegment(group.key);
-        var label = circuitLabel(group.key);
-
-        if (waypoints.length < 2) {
-            if (waypoints.length === 1 && group.key !== 'unknown') {
-                addCircuitLabel(waypoints[0], label, color);
-            }
-            return Promise.resolve({ fallback: false });
-        }
-
-        return fetchStreetRoute(waypoints).then(function (routed) {
-            addArrowPolyline(routed, color, 5, 0.92);
-            addCircuitLabel(midpointAlongPath(routed), label, color);
-            return { fallback: false };
-        }).catch(function () {
-            addArrowPolyline(waypoints, color, 5, 0.75);
-            addCircuitLabel(midpointAlongPath(waypoints), label, color);
-            return { fallback: true };
-        });
+    function renderPoints(data) {
+        renderBlocks([{
+            points: data.points,
+            meta: data.meta,
+            color: COLORS.pin
+        }]);
     }
 
-    function renderPoints(data) {
-        var gen = ++renderGeneration;
+    function renderBlocks(blocks) {
         clearLayers();
+        var allBounds = [];
 
-        var points = data.points;
-        var groups = buildCircuitGroups(points, data.hasCircuits);
+        blocks.forEach(function (block) {
+            drawPins(block.points, block.meta, block.color);
+            block.points.forEach(function (p) {
+                allBounds.push(L.latLng(p.lat, p.lng));
+            });
+        });
 
-        drawPins(points);
-
-        var allBounds = points.map(function (p) { return L.latLng(p.lat, p.lng); });
         if (allBounds.length) {
             map.fitBounds(L.latLngBounds(allBounds), { padding: [40, 40], maxZoom: 16 });
         }
-
-        updateLegend(data.hasCircuits, points);
-
-        if (groups.length === 0) return Promise.resolve();
-
-        setStatus('<strong>Routing along streets…</strong><br>Drawing paths per circuit.', true);
-
-        var chain = Promise.resolve();
-        var routedCount = 0;
-        var usedFallback = false;
-
-        groups.forEach(function (group) {
-            if (group.key === 'unknown') return;
-
-            chain = chain.then(function () {
-                if (gen !== renderGeneration) return;
-                return renderCircuitGroup(group).then(function (result) {
-                    routedCount++;
-                    if (result && result.fallback) usedFallback = true;
-                });
-            });
-        });
-
-        return chain.then(function () {
-            if (gen !== renderGeneration) return { usedFallback: usedFallback, routedCount: routedCount };
-            return { usedFallback: usedFallback, routedCount: routedCount };
-        });
     }
 
-    function updateLegend(hasCircuits, points) {
-        var legend = document.getElementById('circuit-map-legend');
-        var leg91 = document.getElementById('circuit-legend-91-92');
-        var leg93 = document.getElementById('circuit-legend-93');
-        var legOverall = document.getElementById('circuit-legend-overall');
-        if (!legend) return;
-
-        var has91 = false;
-        var has93 = false;
-        if (hasCircuits && points) {
-            points.forEach(function (p) {
-                if (p.segmentKey === '91-92') has91 = true;
-                if (p.segmentKey === '93') has93 = true;
-            });
-        }
-
-        if (leg91) leg91.style.display = has91 ? 'flex' : 'none';
-        if (leg93) leg93.style.display = has93 ? 'flex' : 'none';
-        if (legOverall) legOverall.style.display = hasCircuits ? 'none' : 'flex';
-        legend.classList.add('visible');
+    function buildBlocksLegendHtml(blocks) {
+        if (!blocks || blocks.length <= 1) return '';
+        return '<div class="circuit-map-legend">' + blocks.map(function (b) {
+            return '<div class="circuit-map-legend-item">' +
+                '<span class="circuit-map-legend-dot" style="background:' + escapeHtml(b.color) + '"></span>' +
+                '<span>' + escapeHtml(b.label) + ' (' + b.points.length + ')</span></div>';
+        }).join('') + '</div>';
     }
 
     function setStatus(html, visible) {
@@ -447,7 +814,6 @@
         applyTiles();
 
         pinsLayer = L.layerGroup().addTo(map);
-        routesLayer = L.layerGroup().addTo(map);
 
         setTimeout(function () { map.invalidateSize(); }, 100);
 
@@ -479,33 +845,37 @@
                     throw new Error('XLSX library not loaded.');
                 }
                 var data = new Uint8Array(ev.target.result);
-                var wb = XLSX.read(data, { type: 'array' });
+                var wb = XLSX.read(data, { type: 'array', cellText: true, cellDates: true });
                 var ws = wb.Sheets[wb.SheetNames[0]];
-                var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-                var parsed = parseSwuSheet(rows);
+                var rows = sheetToDenseRows(ws);
+                var blocks = parseSwuWorkbookMulti(rows);
+
+                if (!blocks.length) {
+                    throw new Error('No tables with coordinates were found in this file.');
+                }
+
+                renderBlocks(blocks);
+
+                var totalPins = blocks.reduce(function (n, b) { return n + b.points.length; }, 0);
+                if (totalPins === 0) {
+                    throw new Error('No valid coordinates found in the spreadsheet.');
+                }
+                var metaLine = '';
+                if (blocks.length === 1 && (blocks[0].meta.swuCode || blocks[0].meta.location)) {
+                    metaLine = '<br>' + escapeHtml(blocks[0].meta.swuCode || '');
+                    if (blocks[0].meta.location) {
+                        metaLine += (blocks[0].meta.swuCode ? ' · ' : '') + escapeHtml(blocks[0].meta.location);
+                    }
+                }
 
                 setStatus(
-                    '<strong>' + escapeHtml(file.name) + '</strong><br>' +
-                    parsed.points.length + ' pin' + (parsed.points.length === 1 ? '' : 's') + ' — routing…',
+                    '<strong>' + escapeHtml(file.name) + '</strong>' + metaLine + '<br>' +
+                    totalPins + ' pin' + (totalPins === 1 ? '' : 's') + ' plotted' +
+                    (blocks.length > 1 ? ' across ' + blocks.length + ' tables' : '') + '. ' +
+                    'Hover or click a pin for PN and details.' +
+                    buildBlocksLegendHtml(blocks),
                     true
                 );
-
-                renderPoints(parsed).then(function (routeResult) {
-                    var circuitNote = parsed.hasCircuits
-                        ? ' Street-aligned paths per circuit (no cross-circuit links).'
-                        : ' Street-aligned path in item order.<br><em>No circuit labels in file.</em>';
-                    if (routeResult && routeResult.usedFallback) {
-                        circuitNote += ' Some segments used direct lines (routing unavailable).';
-                    }
-                    setStatus(
-                        '<strong>' + escapeHtml(file.name) + '</strong><br>' +
-                        parsed.points.length + ' pin' + (parsed.points.length === 1 ? '' : 's') + ' plotted.' +
-                        circuitNote,
-                        true
-                    );
-                }).catch(function (err) {
-                    showError(err.message || 'Failed to draw routes.');
-                });
             } catch (err) {
                 showError(err.message || 'Failed to parse the spreadsheet.');
             }
@@ -529,12 +899,18 @@
     function init() {
         initMap();
         bindUpload();
-        setStatus('Upload an SWU coordinate .xlsx file to plot pins and street-aligned routes per circuit.', true);
+        setStatus('Upload an SWU coordinate .xlsx file to plot pins. Hover or click a pin to see PN and details.', true);
     }
 
     global.CircuitMap = {
         init: init,
         parseSwuSheet: parseSwuSheet,
-        buildCircuitGroups: buildCircuitGroups
+        parseSwuWorkbookMulti: parseSwuWorkbookMulti,
+        parseUnifiedSwuTable: parseUnifiedSwuTable,
+        findAllHeaderRows: findAllHeaderRows,
+        splitRowsIntoBlocks: splitRowsIntoBlocks,
+        sheetToDenseRows: sheetToDenseRows,
+        buildPinDescription: buildPinDescription,
+        buildPinTitle: buildPinTitle
     };
 })(window);

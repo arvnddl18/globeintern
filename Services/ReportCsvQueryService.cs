@@ -82,6 +82,7 @@ public sealed class ReportCsvQueryService : IReportCsvQueryService
             SelectedStatuses = activeFilters.SelectedStatuses,
             SelectedSubStatuses = activeFilters.SelectedSubStatuses,
             SelectedSkillsets = activeFilters.SelectedSkillsets,
+            SelectedCustomerTypes = activeFilters.SelectedCustomerTypes,
             SelectedOrderCreateDates = activeFilters.SelectedOrderCreateDates
         };
 
@@ -148,6 +149,7 @@ public sealed class ReportCsvQueryService : IReportCsvQueryService
                 AvailableStatuses = session.CachedAvailableStatuses ?? [],
                 AvailableSubStatuses = session.CachedAvailableSubStatuses ?? [],
                 AvailableSkillsets = session.CachedAvailableSkillsets ?? [],
+                AvailableCustomerTypes = session.CachedAvailableCustomerTypes ?? [],
                 AvailableOrderCreateDates = session.CachedAvailableOrderCreateDates ?? []
             };
         }

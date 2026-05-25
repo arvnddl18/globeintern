@@ -9,8 +9,49 @@
 
 <style>
     .upload-container {
-        max-width: 800px;
+        max-width: 1200px;
         margin: 0 auto;
+    }
+
+    .upload-panel {
+        background: var(--theme-surface-soft);
+        border: 1px solid var(--theme-surface-border);
+        border-radius: 24px;
+        padding: 1.25rem;
+    }
+
+    .upload-panel-title {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--theme-text-muted);
+        margin-bottom: 0.75rem;
+    }
+
+    .drop-zone-swu {
+        border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    .drop-zone-swu:hover,
+    .drop-zone-swu.drop-zone-active {
+        border-color: #10b981 !important;
+        background: rgba(16, 185, 129, 0.08) !important;
+    }
+
+    .btn-swu {
+        background: #10b981;
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-swu:hover:not(:disabled) {
+        opacity: 0.92;
+        transform: translateY(-1px);
+    }
+
+    .progress-bar-fill-swu {
+        background: linear-gradient(90deg, #10b981, #6ee7b7);
     }
 
     .drop-zone {
@@ -79,8 +120,9 @@
         <h1 class="text-4xl sm:text-5xl font-black tracking-tight mb-4" style="color: var(--theme-text);">
             Raw Data Cleaner
         </h1>
-        <p class="text-lg max-w-lg mx-auto" style="color: var(--theme-text-dim);">
-            Upload your raw data file to extract, filter to <span class="font-bold">DAVAO NORTH</span>, and append to the master dataset.
+        <p class="text-lg max-w-2xl mx-auto" style="color: var(--theme-text-dim);">
+            <span class="font-semibold">Left:</span> KPI appointment dumps — clean, filter to <span class="font-bold">DAVAO NORTH</span>, append to master.
+            <span class="font-semibold">Right:</span> SWU pole removal spreadsheets — reorganize into clean tables and download as one workbook.
         </p>
     </header>
 
@@ -102,10 +144,13 @@
         </div>
     }
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <div class="upload-panel slide-up" style="animation-delay: 0.05s;">
+        <p class="upload-panel-title">KPI appointment raw data</p>
     <form asp-action="UploadRawDataCleaner" asp-controller="Report" method="post" enctype="multipart/form-data" id="uploadForm">
         @Html.AntiForgeryToken()
 
-        <section class="slide-up" style="animation-delay: 0.1s;">
+        <section>
             <div id="drop-zone" class="drop-zone p-10 sm:p-16 text-center"
                  onclick="document.getElementById('CsvFile').click()">
 
@@ -188,17 +233,87 @@
             </div>
         </section>
         
-        <!-- Quick Nav if no file selected -->
-        <section id="initial-nav" class="mt-12 pt-8 border-t border-inherit text-center slide-up" style="animation-delay: 0.2s;">
-            <p class="text-sm font-bold uppercase tracking-widest mb-6" style="color: var(--theme-text-muted);">Or continue to analytics</p>
+        <section id="initial-nav" class="mt-8 pt-6 border-t border-inherit text-center">
             <a asp-action="Dashboard" asp-controller="Report"
-               class="inline-flex items-center gap-2 text-base font-black px-6 py-3 rounded-xl transition-all"
+               class="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl transition-all"
                style="color: var(--theme-accent); background: var(--theme-accent-soft);">
-                <i data-lucide="layout-dashboard" style="width:20px; height:20px;"></i>
+                <i data-lucide="layout-dashboard" style="width:16px; height:16px;"></i>
                 <span>View Dashboard</span>
             </a>
         </section>
     </form>
+    </div>
+
+    <div class="upload-panel slide-up" style="animation-delay: 0.1s;">
+        <p class="upload-panel-title">SWU pole removal raw data</p>
+    <form id="swuUploadForm">
+        @Html.AntiForgeryToken()
+
+        <section>
+            <div id="swu-drop-zone" class="drop-zone drop-zone-swu p-8 sm:p-10 text-center"
+                 onclick="document.getElementById('SwuXlsxFile').click()">
+                <input type="file" accept=".xlsx" class="hidden" id="SwuXlsxFile" multiple />
+
+                <div class="mx-auto w-16 h-16 rounded-3xl flex items-center justify-center mb-4"
+                     style="background: rgba(16, 185, 129, 0.12);">
+                    <i data-lucide="map-pin" style="width:32px; height:32px; color: #10b981;"></i>
+                </div>
+
+                <h3 id="swu-upload-prompt" class="text-lg font-bold mb-2" style="color: var(--theme-text);">
+                    Drop SWU pole .xlsx files here
+                </h3>
+                <p class="text-sm mb-3" style="color: var(--theme-text-muted);">or click to browse</p>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase"
+                     style="background: var(--theme-nav-pill); color: var(--theme-text-muted);">
+                    <span>MAX 500MB • .XLSX</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="swu-queue-section" class="hidden mt-4">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h4 class="text-xs font-bold uppercase tracking-widest" style="color: var(--theme-text-muted);">Queue</h4>
+                <button type="button" onclick="clearAllSwuFiles()" class="text-xs font-bold text-red-500">Clear All</button>
+            </div>
+            <div id="swu-file-queue-list" class="space-y-2"></div>
+        </section>
+
+        <section id="swu-stats-section" class="hidden mt-4 grid grid-cols-2 gap-3">
+            <div class="info-card p-3">
+                <p class="text-[10px] font-bold uppercase tracking-wider mb-1" style="color: var(--theme-text-muted);">Files</p>
+                <p id="swu-stat-total-files" class="text-base font-black font-mono">0</p>
+            </div>
+            <div class="info-card p-3">
+                <p class="text-[10px] font-bold uppercase tracking-wider mb-1" style="color: var(--theme-text-muted);">Size</p>
+                <p id="swu-stat-total-size" class="text-base font-black font-mono">0 KB</p>
+            </div>
+        </section>
+
+        <section id="swu-submit-section" class="hidden mt-6 text-center">
+            <button type="submit" id="swu-submit-btn"
+                    class="btn-swu inline-flex items-center gap-2 px-8 py-3 rounded-2xl text-base font-black cursor-pointer w-full justify-center">
+                <i data-lucide="table-2" style="width:18px; height:18px;"></i>
+                <span id="swu-submit-btn-text">Reorganize &amp; Prepare Download</span>
+            </button>
+            <p id="swu-submit-hint" class="text-xs mt-3 font-medium" style="color: var(--theme-text-muted);">
+                All files are merged into one table; a <strong>FILE TITLE</strong> column identifies each file's source.
+            </p>
+            <div id="swu-progress-section" class="hidden mt-4">
+                <div class="info-card p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span id="swu-progress-label" class="text-xs font-bold" style="color: var(--theme-text-dim);">Processing...</span>
+                        <span id="swu-progress-pct" class="text-xs font-mono font-black" style="color: #10b981;">0%</span>
+                    </div>
+                    <div class="w-full rounded-full overflow-hidden progress-bar-bg" style="height: 8px;">
+                        <div id="swu-progress-bar" class="h-full rounded-full progress-bar-fill-swu transition-all duration-300" style="width: 0%;"></div>
+                    </div>
+                    <p id="swu-progress-detail" class="text-[10px] mt-2 font-medium opacity-70" style="color: var(--theme-text-muted);"></p>
+                </div>
+            </div>
+        </section>
+    </form>
+    </div>
+    </div>
 
     <!-- Danger Zone -->
     <section id="danger-zone" class="mt-12 pt-8 border-t border-inherit text-center slide-up" style="animation-delay: 0.3s;">
@@ -410,14 +525,15 @@
                 document.getElementById('progress-detail').textContent = 'Saving aggregated statistics.';
                 
                 try {
-                    await fetch('/Report/SetAggregatedSummary', {
+                    var finalizeRes = await fetch('/Report/SetAggregatedSummary', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'RequestVerificationToken': token
+                            'X-CSRF-TOKEN': token
                         },
                         body: JSON.stringify(aggregatedSummary)
                     });
+                    if (!finalizeRes.ok) throw new Error('Failed to save summary (HTTP ' + finalizeRes.status + ')');
                     window.location.href = '/Report/CleanedDataExport';
                 } catch (err) {
                     showToast('Failed to finalize summary. ' + err.message, 'error');
@@ -496,6 +612,177 @@
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // --- SWU pole raw file reorganizer ---
+        var swuDropZone = document.getElementById('swu-drop-zone');
+        var swuFileInput = document.getElementById('SwuXlsxFile');
+        var swuFileQueue = [];
+
+        swuDropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            swuDropZone.classList.add('drop-zone-active');
+        });
+        swuDropZone.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            swuDropZone.classList.remove('drop-zone-active');
+        });
+        swuDropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            swuDropZone.classList.remove('drop-zone-active');
+            handleSwuFiles(e.dataTransfer.files);
+        });
+        swuFileInput.addEventListener('change', function () { handleSwuFiles(this.files); });
+
+        function handleSwuFiles(files) {
+            var newFiles = Array.from(files).filter(function (f) { return /\.xlsx$/i.test(f.name); });
+            var rejected = Array.from(files).filter(function (f) { return !/\.xlsx$/i.test(f.name); });
+            if (rejected.length > 0) showToast(rejected.length + ' file(s) ignored. SWU upload accepts .xlsx only.', 'error');
+            var oversized = newFiles.filter(function (f) { return f.size > MAX_FILE_SIZE; });
+            if (oversized.length > 0) {
+                showToast(oversized.length + ' file(s) ignored (exceeds 500MB max limit).', 'error');
+                newFiles = newFiles.filter(function (f) { return f.size <= MAX_FILE_SIZE; });
+            }
+            if (newFiles.length > 0) {
+                swuFileQueue = swuFileQueue.concat(newFiles.map(function (f) {
+                    return { file: f, status: 'pending', elementId: 'swu-q-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5) };
+                }));
+                updateSwuQueueUI();
+            }
+        }
+
+        function updateSwuQueueUI() {
+            var list = document.getElementById('swu-file-queue-list');
+            list.innerHTML = '';
+            if (swuFileQueue.length === 0) { clearAllSwuFiles(); return; }
+            var totalSize = 0;
+            swuFileQueue.forEach(function (qItem, index) {
+                totalSize += qItem.file.size;
+                var statusText = 'Pending', statusClass = '';
+                if (qItem.status === 'uploading') { statusText = 'Processing...'; statusClass = 'text-[#10b981]'; }
+                else if (qItem.status === 'done') { statusText = 'Complete'; statusClass = 'text-[#22c55e]'; }
+                else if (qItem.status === 'error') { statusText = 'Failed'; statusClass = 'text-[#ef4444]'; }
+                list.insertAdjacentHTML('beforeend',
+                    '<div class="info-card p-3 flex items-center justify-between gap-2">' +
+                    '<div class="min-w-0"><p class="text-sm font-bold truncate">' + qItem.file.name + '</p>' +
+                    '<p class="text-xs ' + statusClass + '">' + formatFileSize(qItem.file.size) + ' • ' + statusText + '</p></div>' +
+                    (qItem.status === 'pending' ? '<button type="button" onclick="removeSwuFile(' + index + ')" class="text-red-500 text-xs font-bold">×</button>' : '') +
+                    '</div>');
+            });
+            document.getElementById('swu-queue-section').classList.remove('hidden');
+            document.getElementById('swu-stats-section').classList.remove('hidden');
+            document.getElementById('swu-submit-section').classList.remove('hidden');
+            document.getElementById('swu-stat-total-files').textContent = swuFileQueue.length;
+            document.getElementById('swu-stat-total-size').textContent = formatFileSize(totalSize);
+            document.getElementById('swu-upload-prompt').textContent = swuFileQueue.length + ' file(s) ready';
+            swuDropZone.style.borderColor = '#10b981';
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function removeSwuFile(index) { swuFileQueue.splice(index, 1); updateSwuQueueUI(); }
+        function clearAllSwuFiles() {
+            swuFileQueue = [];
+            swuFileInput.value = '';
+            document.getElementById('swu-queue-section').classList.add('hidden');
+            document.getElementById('swu-stats-section').classList.add('hidden');
+            document.getElementById('swu-submit-section').classList.add('hidden');
+            document.getElementById('swu-upload-prompt').textContent = 'Drop SWU pole .xlsx files here';
+            swuDropZone.style.borderColor = '';
+        }
+
+        document.getElementById('swuUploadForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (swuFileQueue.filter(function (q) { return q.status !== 'done'; }).length === 0) return;
+
+            var btn = document.getElementById('swu-submit-btn');
+            var token = document.querySelector('#swuUploadForm input[name="__RequestVerificationToken"]').value;
+            var batchId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, '') : ('b' + Date.now());
+            btn.disabled = true;
+            document.getElementById('swu-submit-hint').classList.add('hidden');
+            document.getElementById('swu-progress-section').classList.remove('hidden');
+
+            var aggregated = { filesProcessed: 0, totalPolesExtracted: 0, polesFromLastFile: 0, sourceFileNames: [], batchId: batchId };
+            var hasError = false;
+            var fileIndex = 0;
+
+            for (var i = 0; i < swuFileQueue.length; i++) {
+                var qItem = swuFileQueue[i];
+                if (qItem.status === 'done') continue;
+                qItem.status = 'uploading';
+                updateSwuQueueUI();
+                var isFirst = fileIndex === 0;
+                fileIndex++;
+                document.getElementById('swu-progress-label').textContent = 'File ' + fileIndex + ' of ' + swuFileQueue.length;
+                document.getElementById('swu-progress-detail').textContent = qItem.file.name;
+                try {
+                    var summary = await uploadSwuSingleFile(qItem.file, token, batchId, isFirst);
+                    qItem.status = 'done';
+                    aggregated.filesProcessed += summary.filesProcessed ?? summary.FilesProcessed ?? 1;
+                    aggregated.totalPolesExtracted += summary.totalPolesExtracted ?? summary.TotalPolesExtracted
+                        ?? summary.polesFromLastFile ?? summary.PolesFromLastFile ?? 0;
+                    aggregated.polesFromLastFile = summary.polesFromLastFile ?? summary.PolesFromLastFile ?? 0;
+                    var names = summary.sourceFileNames ?? summary.SourceFileNames;
+                    if (names && names.length)
+                        aggregated.sourceFileNames = aggregated.sourceFileNames.concat(names);
+                    else if (qItem.file.name) aggregated.sourceFileNames.push(qItem.file.name);
+                    updateSwuQueueUI();
+                } catch (err) {
+                    qItem.status = 'error';
+                    hasError = true;
+                    showToast('Failed: ' + qItem.file.name + ' — ' + err.message, 'error');
+                    updateSwuQueueUI();
+                    break;
+                }
+            }
+
+            if (!hasError) {
+                try {
+                    var finalizeRes = await fetch('/Report/SetSwuAggregatedSummary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+                        body: JSON.stringify(aggregated)
+                    });
+                    if (!finalizeRes.ok) throw new Error('Failed to save summary (HTTP ' + finalizeRes.status + ')');
+                    window.location.href = '/Report/SwuReorganizedExport?batchId=' + encodeURIComponent(batchId);
+                } catch (err) {
+                    showToast('Failed to finalize: ' + err.message, 'error');
+                    btn.disabled = false;
+                    document.getElementById('swu-submit-hint').classList.remove('hidden');
+                    document.getElementById('swu-progress-section').classList.add('hidden');
+                }
+            } else {
+                btn.disabled = false;
+                document.getElementById('swu-submit-hint').classList.remove('hidden');
+                document.getElementById('swu-progress-section').classList.add('hidden');
+            }
+        });
+
+        function uploadSwuSingleFile(file, token, batchId, isFirstInBatch) {
+            return new Promise(function (resolve, reject) {
+                var formData = new FormData();
+                formData.append('xlsxFile', file);
+                formData.append('batchId', batchId);
+                formData.append('isFirstInBatch', isFirstInBatch ? 'true' : 'false');
+                formData.append('__RequestVerificationToken', token);
+                var xhr = new XMLHttpRequest();
+                xhr.addEventListener('load', function () {
+                    if (xhr.status >= 200 && xhr.status < 400) {
+                        try { resolve(JSON.parse(xhr.responseText)); }
+                        catch (e) { reject(new Error('Invalid server response')); }
+                    } else {
+                        try {
+                            var err = JSON.parse(xhr.responseText);
+                            reject(new Error(err.error || 'Server error ' + xhr.status));
+                        } catch (e) { reject(new Error('Upload failed (' + xhr.status + ')')); }
+                    }
+                });
+                xhr.addEventListener('error', function () { reject(new Error('Network error.')); });
+                xhr.open('POST', '/Report/UploadSwuRawDataApi');
+                xhr.send(formData);
+            });
         }
 
         if (window.lucide) lucide.createIcons();

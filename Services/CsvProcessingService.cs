@@ -42,6 +42,7 @@ public class CsvProcessingService : ICsvProcessingService
         var statuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var subStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var skillsets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var customerTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var orderCreateDates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var appointmentDateCol = Col("AppointmentDateColumn");
@@ -62,6 +63,7 @@ public class CsvProcessingService : ICsvProcessingService
 
         await csv.ReadAsync();
         csv.ReadHeader();
+        var customerTypeCol = FindCoordColumn(csv.HeaderRecord, null, "customertype", "customer_type");
 
         var rowCount = 0;
         while (await csv.ReadAsync())
@@ -82,6 +84,8 @@ public class CsvProcessingService : ICsvProcessingService
             AddIfNotEmpty(statuses, csv.GetField(statusCol));
             AddIfNotEmpty(subStatuses, csv.GetField(subStatusCol));
             AddIfNotEmpty(skillsets, csv.GetField(skillsetCol));
+            if (customerTypeCol is not null)
+                AddIfNotEmpty(customerTypes, csv.GetField(customerTypeCol));
             AddIfNotEmpty(orderCreateDates, csv.GetField(orderCreateDateCol));
         }
 
@@ -93,6 +97,7 @@ public class CsvProcessingService : ICsvProcessingService
             AvailableStatuses = statuses.OrderBy(x => x).ToList(),
             AvailableSubStatuses = subStatuses.OrderBy(x => x).ToList(),
             AvailableSkillsets = skillsets.OrderBy(x => x).ToList(),
+            AvailableCustomerTypes = customerTypes.OrderBy(x => x).ToList(),
             AvailableOrderCreateDates = orderCreateDates.OrderByDescending(x => x).ToList()
         };
     }
@@ -198,6 +203,7 @@ public class CsvProcessingService : ICsvProcessingService
         IReadOnlyCollection<string> selectedStatuses,
         IReadOnlyCollection<string> selectedSubStatuses,
         IReadOnlyCollection<string> selectedSkillsets,
+        IReadOnlyCollection<string> selectedCustomerTypes,
         IReadOnlyCollection<string> selectedOrderCreateDates)
     {
         var appointmentDateCol = Col("AppointmentDateColumn");
@@ -218,6 +224,7 @@ public class CsvProcessingService : ICsvProcessingService
         var statusSet = ToSet(selectedStatuses);
         var subStatusSet = ToSet(selectedSubStatuses);
         var skillsetSet = ToSet(selectedSkillsets);
+        var customerTypeSet = ToSet(selectedCustomerTypes);
         var orderCreateDateSet = ToSet(selectedOrderCreateDates);
 
         var statusDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -250,6 +257,7 @@ public class CsvProcessingService : ICsvProcessingService
         var facilityCol = FindCoordColumn(headers, _config["CsvMapping:FacilityNameColumn"], "facilityname", "facility_name", "facility", "name");
         var dpidCol    = FindCoordColumn(headers, null, "dpid");
         var delayReasonCol = FindCoordColumn(headers, null, "delayreason", "delay_reason", "delay reason");
+        var customerTypeCol = FindCoordColumn(headers, null, "customertype", "customer_type");
         var hasCoords  = latCol is not null && lngCol is not null;
         var maxDots    = int.TryParse(_config["CsvMapping:NapDotsMaxRows"], out var _md) ? _md : 12_000;
         var napDots    = new List<float[]>(capacity: Math.Min(maxDots, 4096));
@@ -273,6 +281,7 @@ public class CsvProcessingService : ICsvProcessingService
             var status = (csv.GetField(statusCol) ?? "").Trim();
             var subStatus = csv.GetField(subStatusCol) ?? "";
             var skillset = csv.GetField(skillsetCol) ?? "";
+            var customerType = customerTypeCol is not null ? (csv.GetField(customerTypeCol) ?? "") : "";
             var orderCreateDate = csv.GetField(orderCreateDateCol) ?? "";
             var appointmentId = csv.GetField(workOrderCol) ?? csv.GetField(appointmentIdCol) ?? "";
             var rawLastUpdate = csv.GetField(lastUpdateCol) ?? "";
@@ -281,6 +290,7 @@ public class CsvProcessingService : ICsvProcessingService
             if (!MatchesFilter(statusSet, status)) continue;
             if (!MatchesFilter(subStatusSet, subStatus)) continue;
             if (!MatchesFilter(skillsetSet, skillset)) continue;
+            if (!MatchesFilter(customerTypeSet, customerType)) continue;
             if (!MatchesFilter(orderCreateDateSet, orderCreateDate)) continue;
 
             totalRows++;
@@ -367,6 +377,7 @@ public class CsvProcessingService : ICsvProcessingService
                 ["Status"] = status,
                 ["SubStatus"] = subStatus,
                 ["Territory"] = territory,
+                ["CustomerType"] = customerType,
                 ["OrderCreateDate"] = orderCreateDate,
                 ["LastUpdateDate"] = rawLastUpdate,
                 ["_isDelayed"] = isDelayed ? "1" : "0",
@@ -439,6 +450,7 @@ public class CsvProcessingService : ICsvProcessingService
         IReadOnlyCollection<string> selectedStatuses,
         IReadOnlyCollection<string> selectedSubStatuses,
         IReadOnlyCollection<string> selectedSkillsets,
+        IReadOnlyCollection<string> selectedCustomerTypes,
         IReadOnlyCollection<string> selectedOrderCreateDates)
     {
         var appointmentDateCol = Col("AppointmentDateColumn");
@@ -461,6 +473,7 @@ public class CsvProcessingService : ICsvProcessingService
         var statusSet = ToSet(selectedStatuses);
         var subStatusSet = ToSet(selectedSubStatuses);
         var skillsetSet = ToSet(selectedSkillsets);
+        var customerTypeSet = ToSet(selectedCustomerTypes);
         var orderCreateDateSet = ToSet(selectedOrderCreateDates);
 
         var statusDist = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -496,6 +509,7 @@ public class CsvProcessingService : ICsvProcessingService
         var facilityCol  = FindCoordColumn(headers, _config["CsvMapping:FacilityNameColumn"], "facilityname", "facility_name", "facility", "name");
         var dpidCol2    = FindCoordColumn(headers, null, "dpid");
         var delayReasonCol2 = FindCoordColumn(headers, null, "delayreason", "delay_reason", "delay reason");
+        var customerTypeCol = FindCoordColumn(headers, null, "customertype", "customer_type");
         var hasCoords   = latCol is not null && lngCol is not null;
         var maxDots     = int.TryParse(_config["CsvMapping:NapDotsMaxRows"], out var _md2) ? _md2 : 12_000;
         var napDots     = new List<float[]>(capacity: Math.Min(maxDots, 4096));
@@ -519,6 +533,7 @@ public class CsvProcessingService : ICsvProcessingService
             var status = csv.GetField(statusCol) ?? "";
             var subStatus = csv.GetField(subStatusCol) ?? "";
             var skillset = csv.GetField(skillsetCol) ?? "";
+            var customerType = customerTypeCol is not null ? (csv.GetField(customerTypeCol) ?? "") : "";
             var orderCreateDate = csv.GetField(orderCreateDateCol) ?? "";
             var appointmentId = csv.GetField(appointmentIdCol) ?? "";
             var rawLastUpdate = csv.GetField(lastUpdateCol) ?? "";
@@ -528,6 +543,7 @@ public class CsvProcessingService : ICsvProcessingService
             if (!MatchesFilter(statusSet, status)) continue;
             if (!MatchesFilter(subStatusSet, subStatus)) continue;
             if (!MatchesFilter(skillsetSet, skillset)) continue;
+            if (!MatchesFilter(customerTypeSet, customerType)) continue;
             if (!MatchesFilter(orderCreateDateSet, orderCreateDate)) continue;
 
             totalRows++;
@@ -650,6 +666,7 @@ public class CsvProcessingService : ICsvProcessingService
                 ["Status"] = status,
                 ["SubStatus"] = subStatus,
                 ["Territory"] = territory,
+                ["CustomerType"] = customerType,
                 ["OrderCreateDate"] = orderCreateDate,
                 ["LastUpdateDate"] = rawLastUpdate,
                 ["CompletionDate"] = rawCompletion,
@@ -3417,6 +3434,7 @@ public class CsvProcessingService : ICsvProcessingService
         var statusSet = ToSet(sessionFilters.SelectedStatuses);
         var subStatusSet = ToSet(sessionFilters.SelectedSubStatuses);
         var skillsetSet = ToSet(sessionFilters.SelectedSkillsets);
+        var customerTypeSet = ToSet(sessionFilters.SelectedCustomerTypes);
         var orderCreateDateSet = ToSet(sessionFilters.SelectedOrderCreateDates);
 
         var normalizedGroupBy = NormalizeGroupBy(groupBy);
@@ -3503,6 +3521,7 @@ public class CsvProcessingService : ICsvProcessingService
             if (!MatchesFilter(statusSet, status)) continue;
             if (!MatchesFilter(subStatusSet, subStatus)) continue;
             if (!MatchesFilter(skillsetSet, skillset)) continue;
+            if (!MatchesFilter(customerTypeSet, customerType)) continue;
             if (!MatchesFilter(orderCreateDateSet, orderCreateDate)) continue;
             if (!string.IsNullOrWhiteSpace(extraFilters.OrderCreateDate)
                 && !IsNormalizedMatch(orderCreateDate, extraFilters.OrderCreateDate))

@@ -4,6 +4,7 @@ public enum ReportAssistantPageKind
 {
     Upload,
     CleanedDataExport,
+    SwuReorganizedExport,
     KpiDashboard,
     KpiFilter,
     Operational

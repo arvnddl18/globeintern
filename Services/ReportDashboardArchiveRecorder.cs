@@ -54,6 +54,7 @@ public class ReportDashboardArchiveRecorder : IReportDashboardArchiveRecorder
             pendingFilters.SelectedStatuses,
             pendingFilters.SelectedSubStatuses,
             pendingFilters.SelectedSkillsets,
+            pendingFilters.SelectedCustomerTypes,
             pendingFilters.SelectedOrderCreateDates);
 
         var statusKpi = await _csv.ComputeAllStatusComplianceKpiAsync(
@@ -66,6 +67,7 @@ public class ReportDashboardArchiveRecorder : IReportDashboardArchiveRecorder
             statusFilters.SelectedStatuses,
             statusFilters.SelectedSubStatuses,
             statusFilters.SelectedSkillsets,
+            statusFilters.SelectedCustomerTypes,
             statusFilters.SelectedOrderCreateDates);
 
         TrimKpiPreview(pendingKpi);

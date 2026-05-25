@@ -89,6 +89,7 @@ builder.Services.AddScoped<IReportSessionStore, DatabaseReportSessionStore>();
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
 builder.Services.AddScoped<ICsvProcessingService, CsvProcessingService>();
+builder.Services.AddScoped<ISwuPoleProcessingService, SwuPoleProcessingService>();
 builder.Services.AddScoped<IOperationalReportService, OperationalReportService>();
 builder.Services.AddScoped<IReportDashboardArchiveRecorder, ReportDashboardArchiveRecorder>();
 builder.Services.AddScoped<IToolsAuditService, ToolsAuditService>();

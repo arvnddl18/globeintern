@@ -14,6 +14,7 @@ public class ReportSessionData
     public List<string>? CachedAvailableStatuses { get; set; }
     public List<string>? CachedAvailableSubStatuses { get; set; }
     public List<string>? CachedAvailableSkillsets { get; set; }
+    public List<string>? CachedAvailableCustomerTypes { get; set; }
     public List<string>? CachedAvailableOrderCreateDates { get; set; }
 
     public string DateFilterMode { get; set; } = "all";
@@ -25,6 +26,7 @@ public class ReportSessionData
     public List<string> SelectedStatuses { get; set; } = [];
     public List<string> SelectedSubStatuses { get; set; } = [];
     public List<string> SelectedSkillsets { get; set; } = [];
+    public List<string> SelectedCustomerTypes { get; set; } = [];
     public List<string> SelectedOrderCreateDates { get; set; } = [];
 
     /// <summary>Per-tab saved filter snapshots for dashboard tab switching.</summary>
@@ -37,6 +39,7 @@ public class ReportSessionData
     public List<string> PendingSelectedStatuses { get; set; } = [];
     public List<string> PendingSelectedSubStatuses { get; set; } = [];
     public List<string> PendingSelectedSkillsets { get; set; } = [];
+    public List<string> PendingSelectedCustomerTypes { get; set; } = [];
     public List<string> PendingSelectedOrderCreateDates { get; set; } = [];
 
     public bool HasStatusFilters { get; set; }
@@ -48,6 +51,7 @@ public class ReportSessionData
     public List<string> StatusSelectedStatuses { get; set; } = [];
     public List<string> StatusSelectedSubStatuses { get; set; } = [];
     public List<string> StatusSelectedSkillsets { get; set; } = [];
+    public List<string> StatusSelectedCustomerTypes { get; set; } = [];
     public List<string> StatusSelectedOrderCreateDates { get; set; } = [];
 
     // Operational dashboard report state (10-minute traffic analysis).
