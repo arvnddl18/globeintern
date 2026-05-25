@@ -598,6 +598,58 @@ public class ReportController : Controller
         return View(model);
     }
 
+    [HttpPost("OperationalDashboard/UploadAging")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UploadOperationAging(IFormFile? csvFile)
+    {
+        if (csvFile is null || csvFile.Length == 0)
+        {
+            TempData["Error"] = "Please choose a CSV or XLSX file.";
+            return RedirectToAction(nameof(OperationalDashboard));
+        }
+
+        try
+        {
+            await using var uploadStream = csvFile.OpenReadStream();
+            var token = await _sessionStore.CreateSessionFromCsvAsync(uploadStream, csvFile.FileName, HttpContext.RequestAborted);
+            if (!_sessionStore.TryGetCsvPath(token, out var csvPath))
+            {
+                TempData["Error"] = "Could not store the uploaded file.";
+                return RedirectToAction(nameof(OperationalDashboard));
+            }
+
+            var detectedKind = await _csvService.DetectCsvSourceKindAsync(
+                csvPath,
+                csvFile.FileName,
+                HttpContext.RequestAborted);
+            await _sessionStore.SetCsvSourceKindAsync(token, detectedKind, HttpContext.RequestAborted);
+
+            var session = await _sessionStore.LoadAsync(token, HttpContext.RequestAborted) ?? new ReportSessionData { CreatedUtc = DateTime.UtcNow };
+            session.OperationalReportKind = OperationalReportKind.OperationAging;
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrWhiteSpace(userId) && Guid.TryParse(userId, out var parsedUserId))
+            {
+                var upload = await _db.ReportUploads.FirstOrDefaultAsync(
+                    item => item.Token == token && item.UserId == parsedUserId,
+                    HttpContext.RequestAborted);
+                if (upload is not null)
+                {
+                    upload.SessionJson = JsonSerializer.Serialize(session, ReportSessionJson.Options);
+                    await _db.SaveChangesAsync(HttpContext.RequestAborted);
+                }
+            }
+
+            return RedirectToAction(nameof(OperationalDashboard), new { token });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing operation aging upload");
+            TempData["Error"] = $"Error processing upload: {ex.Message}";
+            return RedirectToAction(nameof(OperationalDashboard));
+        }
+    }
+
     [HttpPost("OperationalDashboard/Upload")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UploadOperational(IFormFile? csvFile)
@@ -1611,7 +1663,7 @@ public class ReportController : Controller
     }
 
     /// <summary>
-    /// CSV token for Operation Aging: explicit <paramref name="requestedToken"/> if valid for user and materialized; else latest upload with CSV on disk.
+    /// CSV token for Operation Aging: explicit <paramref name="requestedToken"/> if valid for user and materialized; else latest upload with Operation Aging kind.
     /// </summary>
     private async Task<string?> ResolveAgingReportTokenAsync(
         Guid userId,
@@ -1625,17 +1677,7 @@ public class ReportController : Controller
             && _sessionStore.TryGetCsvPath(requestedToken, out _))
             return requestedToken;
 
-        var latestUpload = await _db.ReportUploads
-            .AsNoTracking()
-            .Where(u => u.UserId == userId)
-            .OrderByDescending(u => u.UploadedUtc)
-            .Select(u => u.Token)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (latestUpload is not null && _sessionStore.TryGetCsvPath(latestUpload, out _))
-            return latestUpload;
-
-        return null;
+        return await GetLatestOperationalTokenByKindAsync(userId, OperationalReportKind.OperationAging, cancellationToken);
     }
 
     private async Task<string?> GetLatestOperationalTokenByKindAsync(

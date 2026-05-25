@@ -113,6 +113,40 @@
     .progress-bar-fill {
         background: linear-gradient(90deg, var(--theme-accent), #a5b4fc);
     }
+
+    #swu-file-queue-list, #file-queue-list {
+        max-height: 240px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    #file-queue-list::-webkit-scrollbar {
+        width: 4px;
+    }
+    #file-queue-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    #file-queue-list::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
+    #file-queue-list::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.4);
+    }
+
+    #swu-file-queue-list::-webkit-scrollbar {
+        width: 4px;
+    }
+    #swu-file-queue-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    #swu-file-queue-list::-webkit-scrollbar-thumb {
+        background: rgba(16, 185, 129, 0.25);
+        border-radius: 10px;
+    }
+    #swu-file-queue-list::-webkit-scrollbar-thumb:hover {
+        background: rgba(16, 185, 129, 0.45);
+    }
 </style>
 
 <div class="upload-container">

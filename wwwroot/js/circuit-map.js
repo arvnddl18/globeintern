@@ -697,73 +697,119 @@
         return document.documentElement.getAttribute('data-theme') !== 'light';
     }
 
+    var mapState = {
+        blocks: [],
+        markers: [],
+        hiddenBlocks: {},
+        searchQuery: ''
+    };
+
     function clearLayers() {
         if (pinsLayer) pinsLayer.clearLayers();
     }
 
-    function drawPins(points, meta, pinColor) {
-        var fill = pinColor || COLORS.pin;
-        points.forEach(function (p) {
-            var desc = buildPinDescription(meta, p);
-            var marker = L.circleMarker([p.lat, p.lng], {
-                radius: 7,
-                fillColor: fill,
-                color: '#ffffff',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.95
-            });
-
-            marker.bindTooltip(desc.text, {
-                direction: 'top',
-                offset: [0, -8],
-                opacity: 0.95,
-                sticky: true,
-                className: 'circuit-pin-tooltip'
-            });
-            marker.bindPopup(desc.html, { maxWidth: 380, minWidth: 220 });
-            pinsLayer.addLayer(marker);
+    function updateMapFilters() {
+        if (!pinsLayer) return;
+        pinsLayer.clearLayers();
+        
+        var visibleCount = 0;
+        mapState.markers.forEach(function(m) {
+            if (mapState.hiddenBlocks[m.blockIndex]) return;
+            
+            pinsLayer.addLayer(m.layer);
+            visibleCount++;
         });
-    }
 
-    function renderPoints(data) {
-        renderBlocks([{
-            points: data.points,
-            meta: data.meta,
-            color: COLORS.pin
-        }]);
+        var countEl = document.getElementById('circuit-map-total-count');
+        if (countEl) countEl.innerText = visibleCount + ' pin' + (visibleCount === 1 ? '' : 's');
     }
 
     function renderBlocks(blocks) {
         clearLayers();
-        var allBounds = [];
+        mapState.blocks = blocks;
+        mapState.markers = [];
+        mapState.hiddenBlocks = {};
+        
+        var searchInput = document.getElementById('circuit-map-search-input');
+        mapState.searchQuery = searchInput ? searchInput.value : '';
 
-        blocks.forEach(function (block) {
-            drawPins(block.points, block.meta, block.color);
+        var allBounds = [];
+        var legendHtml = '';
+        var totalPins = 0;
+
+        blocks.forEach(function (block, idx) {
+            var fill = block.color || COLORS.pin;
+            totalPins += block.points.length;
+
             block.points.forEach(function (p) {
+                var desc = buildPinDescription(block.meta, p);
+                var marker = L.circleMarker([p.lat, p.lng], {
+                    radius: 7,
+                    fillColor: fill,
+                    color: '#ffffff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.95
+                });
+                marker.bindTooltip(desc.text, {
+                    direction: 'top',
+                    offset: [0, -8],
+                    opacity: 0.95,
+                    sticky: true,
+                    className: 'circuit-pin-tooltip'
+                });
+                marker.bindPopup(desc.html, { maxWidth: 380, minWidth: 220 });
+
+                mapState.markers.push({
+                    layer: marker,
+                    point: p,
+                    blockIndex: idx,
+                    blockLabel: block.label
+                });
+
                 allBounds.push(L.latLng(p.lat, p.lng));
             });
+
+            legendHtml += '<label class="circuit-map-legend-item">' +
+                '<input type="checkbox" class="circuit-map-legend-cb" data-block-idx="' + idx + '" checked />' +
+                '<span class="circuit-map-legend-dot" style="background:' + escapeHtml(fill) + '"></span>' +
+                '<span class="circuit-map-legend-label" title="' + escapeHtml(block.label) + '">' + escapeHtml(block.label) + '</span>' +
+                '<span class="circuit-map-legend-count">' + block.points.length + '</span>' +
+                '</label>';
         });
+
+        var panel = document.getElementById('circuit-map-panel');
+        if (panel) panel.classList.add('visible');
+        
+        var searchPanel = document.getElementById('circuit-map-search-panel');
+        if (searchPanel) searchPanel.classList.add('visible');
+
+        var legendContent = document.getElementById('circuit-map-legend-content');
+        if (legendContent) {
+            legendContent.innerHTML = legendHtml;
+            var cbs = legendContent.querySelectorAll('.circuit-map-legend-cb');
+            cbs.forEach(function(cb) {
+                cb.addEventListener('change', function(e) {
+                    var bIdx = parseInt(e.target.getAttribute('data-block-idx'), 10);
+                    if (e.target.checked) {
+                        delete mapState.hiddenBlocks[bIdx];
+                    } else {
+                        mapState.hiddenBlocks[bIdx] = true;
+                    }
+                    updateMapFilters();
+                });
+            });
+        }
+
+        updateMapFilters();
 
         if (allBounds.length) {
             map.fitBounds(L.latLngBounds(allBounds), { padding: [40, 40], maxZoom: 16 });
         }
     }
 
-    function buildBlocksLegendHtml(blocks) {
-        if (!blocks || blocks.length <= 1) return '';
-        return '<div class="circuit-map-legend">' + blocks.map(function (b) {
-            return '<div class="circuit-map-legend-item">' +
-                '<span class="circuit-map-legend-dot" style="background:' + escapeHtml(b.color) + '"></span>' +
-                '<span>' + escapeHtml(b.label) + ' (' + b.points.length + ')</span></div>';
-        }).join('') + '</div>';
-    }
-
     function setStatus(html, visible) {
-        var el = document.getElementById('circuit-map-status');
-        if (!el) return;
-        el.innerHTML = html;
-        el.classList.toggle('visible', !!visible);
+        // Kept for backward compatibility, but logic has moved to the panel
     }
 
     function showError(msg) {
@@ -860,22 +906,6 @@
                 if (totalPins === 0) {
                     throw new Error('No valid coordinates found in the spreadsheet.');
                 }
-                var metaLine = '';
-                if (blocks.length === 1 && (blocks[0].meta.swuCode || blocks[0].meta.location)) {
-                    metaLine = '<br>' + escapeHtml(blocks[0].meta.swuCode || '');
-                    if (blocks[0].meta.location) {
-                        metaLine += (blocks[0].meta.swuCode ? ' · ' : '') + escapeHtml(blocks[0].meta.location);
-                    }
-                }
-
-                setStatus(
-                    '<strong>' + escapeHtml(file.name) + '</strong>' + metaLine + '<br>' +
-                    totalPins + ' pin' + (totalPins === 1 ? '' : 's') + ' plotted' +
-                    (blocks.length > 1 ? ' across ' + blocks.length + ' tables' : '') + '. ' +
-                    'Hover or click a pin for PN and details.' +
-                    buildBlocksLegendHtml(blocks),
-                    true
-                );
             } catch (err) {
                 showError(err.message || 'Failed to parse the spreadsheet.');
             }
@@ -896,10 +926,62 @@
         });
     }
 
+    function bindSearch() {
+        var input = document.getElementById('circuit-map-search-input');
+        var btn = document.getElementById('circuit-map-search-btn');
+        if (!input) return;
+        
+        function executeSearch() {
+            var q = input.value.trim().toLowerCase();
+            if (!q) return;
+            
+            var found = null;
+            for (var i = 0; i < mapState.markers.length; i++) {
+                var m = mapState.markers[i];
+                if (mapState.hiddenBlocks[m.blockIndex]) continue; // Skip hidden blocks
+                
+                var pnMatch = (m.point.pn || '').toLowerCase().indexOf(q) !== -1;
+                var titleMatch = (m.blockLabel || '').toLowerCase().indexOf(q) !== -1;
+                if (!titleMatch && m.point.fileTitle) {
+                    titleMatch = m.point.fileTitle.toLowerCase().indexOf(q) !== -1;
+                }
+                
+                if (pnMatch || titleMatch) {
+                    found = m;
+                    // Prioritize exact PN match
+                    if ((m.point.pn || '').toLowerCase() === q) {
+                        break;
+                    }
+                }
+            }
+            
+            if (found) {
+                map.flyTo([found.point.lat, found.point.lng], 18, { animate: true, duration: 1.5 });
+                // Add a small delay to ensure the map has panned enough before opening the popup
+                setTimeout(function() {
+                    found.layer.openPopup();
+                }, 300);
+            } else {
+                showError("No visible pin found matching: " + q);
+            }
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                executeSearch();
+            }
+        });
+        
+        if (btn) {
+            btn.addEventListener('click', executeSearch);
+        }
+    }
+
     function init() {
         initMap();
         bindUpload();
-        setStatus('Upload an SWU coordinate .xlsx file to plot pins. Hover or click a pin to see PN and details.', true);
+        bindSearch();
     }
 
     global.CircuitMap = {

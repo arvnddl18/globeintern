@@ -1903,7 +1903,7 @@
     .circuit-map-wrap {
         position: relative;
         flex: 1;
-        min-height: 520px;
+        min-height: 720px;
         border-radius: 12px;
         overflow: hidden;
         border: 1px solid var(--theme-surface-border, #2a2a4a);
@@ -1942,53 +1942,186 @@
         color: #4f46e5;
     }
 
-    .circuit-map-status {
+    .circuit-map-panel {
         position: absolute;
         top: 12px;
         left: 12px;
         z-index: 1000;
-        max-width: 360px;
-        padding: 8px 12px;
-        border-radius: 10px;
-        font-size: 0.75rem;
-        color: var(--theme-text-muted, #8a8ab0);
-        background: rgba(22, 22, 42, 0.92);
-        border: 1px solid var(--theme-surface-border, #2a2a4a);
-        backdrop-filter: blur(8px);
-        display: none;
-    }
-    .circuit-map-status.visible { display: block; }
-    :root[data-theme="light"] .circuit-map-status {
-        background: rgba(255, 255, 255, 0.95);
-        border-color: #d8deea;
-        color: #556084;
-    }
-
-    .circuit-map-legend {
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        width: 320px;
+        max-height: calc(100% - 24px);
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        background: rgba(22, 22, 42, 0.95);
+        border: 1px solid var(--theme-surface-border, #2a2a4a);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+        color: #f0f0f8;
+        display: none; /* hidden until data is loaded */
     }
-    :root[data-theme="light"] .circuit-map-legend {
-        border-top-color: #e2e8f0;
+    .circuit-map-panel.visible { display: flex; }
+    :root[data-theme="light"] .circuit-map-panel {
+        background: #ffffff;
+        border-color: #d8deea;
+        color: #1f2937;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.15);
     }
-    .circuit-map-legend-item {
+
+    .circuit-map-search-panel {
+        position: absolute;
+        top: 12px;
+        left: 344px; /* 12px (left) + 320px (panel width) + 12px (gap) */
+        z-index: 1000;
+        width: 380px;
+        height: 48px;
+        display: none; /* hidden until data is loaded */
+        align-items: center;
+        background: rgba(18, 18, 34, 0.85);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-radius: 24px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .circuit-map-search-panel.visible { display: flex; }
+    .circuit-map-search-panel:focus-within {
+        border-color: rgba(99, 102, 241, 0.65);
+        box-shadow: 0 8px 32px rgba(99, 102, 241, 0.25), 0 0 0 2px rgba(99, 102, 241, 0.15);
+        background: rgba(18, 18, 34, 0.95);
+    }
+    :root[data-theme="light"] .circuit-map-search-panel {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: rgba(203, 213, 225, 0.8);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+    :root[data-theme="light"] .circuit-map-search-panel:focus-within {
+        border-color: #6366f1;
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15), 0 0 0 3px rgba(99, 102, 241, 0.1);
+        background: #ffffff;
+    }
+
+    .circuit-map-search-panel input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: #e0e7ff;
+        padding: 0 20px;
+        height: 100%;
+        font-size: 0.85rem;
+        font-weight: 500;
+        outline: none;
+    }
+    .circuit-map-search-panel input::placeholder { color: #8a8ab0; font-weight: 400; }
+    :root[data-theme="light"] .circuit-map-search-panel input {
+        color: #1e293b;
+    }
+    :root[data-theme="light"] .circuit-map-search-panel input::placeholder { color: #94a3b8; }
+
+    .circuit-map-search-btn {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        border: none;
+        color: white;
+        height: 38px;
+        width: 44px;
+        margin: 5px;
+        border-radius: 20px;
         display: flex;
         align-items: center;
-        gap: 6px;
-        font-size: 0.7rem;
-        font-weight: 600;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
     }
+    .circuit-map-search-btn:hover { 
+        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
+        transform: translateY(-1px);
+    }
+    .circuit-map-search-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+    }
+    .circuit-map-search-btn i {
+        width: 18px;
+        height: 18px;
+        stroke-width: 2.5;
+    }
+
+    .circuit-map-legend-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 14px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+    }
+    .circuit-map-legend-scroll::-webkit-scrollbar { width: 5px; }
+    .circuit-map-legend-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 4px; }
+    
+    .circuit-map-legend-header {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #8a8ab0;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    :root[data-theme="light"] .circuit-map-legend-header { color: #64748b; }
+
+    .circuit-map-legend-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 6px 0;
+        cursor: pointer;
+        user-select: none;
+    }
+    .circuit-map-legend-item:hover .circuit-map-legend-label { color: #e0e7ff; }
+    :root[data-theme="light"] .circuit-map-legend-item:hover .circuit-map-legend-label { color: #000; }
+
+    .circuit-map-legend-cb {
+        margin-top: 2px;
+        width: 14px;
+        height: 14px;
+        accent-color: #6366f1;
+        cursor: pointer;
+    }
+
     .circuit-map-legend-dot {
+        margin-top: 4px;
         width: 10px;
         height: 10px;
         border-radius: 50%;
         border: 2px solid #fff;
         flex-shrink: 0;
         box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+    }
+
+    .circuit-map-legend-label {
+        flex: 1;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.3;
+        color: #c8c8e0;
+        transition: color 0.15s;
+    }
+    :root[data-theme="light"] .circuit-map-legend-label { color: #334155; }
+
+    .circuit-map-legend-count {
+        font-size: 0.65rem;
+        color: #8a8ab0;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 2px 6px;
+        border-radius: 10px;
+        margin-left: 4px;
+        font-weight: 700;
+    }
+    :root[data-theme="light"] .circuit-map-legend-count {
+        color: #64748b;
+        background: #f1f5f9;
     }
 
     .circuit-pin-popup {
@@ -2112,10 +2245,24 @@
             <i data-lucide="menu" style="width:14px;height:14px;"></i> Sections
         </button>
         <div id="panel-map" class="dash-panel is-active" data-dash-panel="map">
-            <div class="circuit-map-page" style="margin: 0; min-height: 520px; border-radius: 12px;">
+            <div class="circuit-map-page" style="margin: 0; min-height: 720px; border-radius: 12px;">
                 <div class="circuit-map-wrap">
                     <div id="circuit-map"></div>
-                    <div id="circuit-map-status" class="circuit-map-status"></div>
+                    <div id="circuit-map-panel" class="circuit-map-panel">
+                        <div class="circuit-map-legend-scroll">
+                            <div class="circuit-map-legend-header">
+                                <span>Classifications</span>
+                                <span id="circuit-map-total-count">0 pins</span>
+                            </div>
+                            <div id="circuit-map-legend-content"></div>
+                        </div>
+                    </div>
+                    <div id="circuit-map-search-panel" class="circuit-map-search-panel">
+                        <input type="text" id="circuit-map-search-input" placeholder="Search PN no. or File title..." />
+                        <button id="circuit-map-search-btn" class="circuit-map-search-btn" aria-label="Search">
+                            <i data-lucide="search"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -141,16 +141,332 @@
         justify-content: center;
         color: var(--op-badge-color);
     }
+    /* â”€â”€ Dashboard shell: enterprise fixed sidebar + content â”€â”€ */
+    .dash-layout-root {
+        --dash-sidebar-width: 16.5rem;
+    }
+    .dash-layout-root.dash-sidebar-collapsed {
+        --dash-sidebar-width: 0rem;
+    }
+    .dash-layout-root.dash-sidebar-collapsed .dash-sidebar {
+        transform: translateX(-100%);
+        opacity: 0;
+        pointer-events: none;
+    }
+    .dash-app {
+        display: grid;
+        grid-template-columns: var(--dash-sidebar-width) minmax(0, 1fr);
+        align-items: stretch;
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+        overflow: hidden;
+    }
+    .dash-layout-root.dash-sidebar-collapsed .dash-app {
+        grid-template-columns: 0 minmax(0, 1fr);
+    }
+    .dash-sidebar {
+        position: sticky;
+        top: 0;
+        left: 0;
+        width: var(--dash-sidebar-width);
+        height: calc(100vh - var(--dash-nav-height));
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid rgba(99, 102, 241, 0.22);
+        background: linear-gradient(180deg, rgba(22, 22, 42, 0.92) 0%, rgba(12, 12, 26, 0.96) 100%);
+        box-shadow: 6px 0 18px rgba(0, 0, 0, 0.18);
+        overflow: hidden;
+        z-index: 50;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    :root[data-theme="light"] .dash-sidebar {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(246, 248, 252, 0.98) 100%);
+        border-color: rgba(99, 102, 241, 0.18);
+        box-shadow: 4px 0 14px rgba(15, 23, 42, 0.08);
+    }
+    :root[data-theme="light"] .dash-sidebar-brand h2 { color: var(--dash-text-primary); }
+    :root[data-theme="light"] .dash-sidebar-brand p { color: var(--dash-text-muted); }
+    :root[data-theme="light"] .dash-nav-item { color: var(--dash-text-secondary); }
+    :root[data-theme="light"] .dash-nav-item:hover { color: var(--dash-text-primary); background: rgba(99, 102, 241, 0.08); }
+    :root[data-theme="light"] .dash-nav-item.is-active {
+        color: #111827;
+        background: rgba(99, 102, 241, 0.14);
+        border-color: rgba(99, 102, 241, 0.28);
+    }
+    :root[data-theme="light"] .dash-page-header h1 {
+        color: var(--dash-text-primary) !important;
+    }
+    :root[data-theme="light"] .dash-page-header p,
+    :root[data-theme="light"] .dash-page-header span {
+        color: var(--dash-text-secondary) !important;
+    }
+    .dash-sidebar-brand {
+        padding: 1rem 1rem 0.9rem;
+        border-bottom: 1px solid var(--dash-card-border);
+    }
+    .dash-sidebar-brand p {
+        margin: 0;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #6a6a8e;
+    }
+    .dash-sidebar-brand h2 {
+        margin: 0.25rem 0 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #c8c8e0;
+    }
+    .dash-sidebar-nav {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+    .dash-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+        margin-bottom: 0.2rem;
+        border: 1px solid transparent;
+        border-radius: 0.6rem;
+        background: transparent;
+        color: #8a8ab0;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .dash-nav-item:hover {
+        background: rgba(99, 102, 241, 0.08);
+        color: #c8c8e0;
+        border-color: rgba(99, 102, 241, 0.15);
+    }
+    .dash-nav-item.is-active {
+        background: rgba(99, 102, 241, 0.18);
+        color: #e0e7ff;
+        border-color: rgba(99, 102, 241, 0.35);
+        box-shadow: inset 2px 0 0 #818cf8;
+    }
+    .dash-nav-item i {
+        flex-shrink: 0;
+        width: 15px;
+        height: 15px;
+        opacity: 0.85;
+    }
+    .dash-nav-item.is-active i { opacity: 1; color: #a5b4fc; }
+    .dash-sidebar-foot {
+        padding: 0.65rem 1rem;
+        border-top: 1px solid var(--dash-card-border);
+        font-size: 0.65rem;
+        color: #5a5a7e;
+    }
+    .dash-main {
+        width: 100%;
+        max-width: 100%;
+        height: calc(100vh - var(--dash-nav-height));
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-width: 0;
+        padding: 1.5rem 2rem 2rem;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 1;
+    }
+    .dash-page-header {
+        padding-right: 0;
+        max-width: 100%;
+    }
+    .dash-panel {
+        display: none;
+        max-width: 100%;
+        min-width: 0;
+        animation: dashPanelIn 0.28s ease-out;
+    }
+    .dash-panel.is-active {
+        display: block;
+    }
+    .dash-panel section,
+    .dash-panel > div,
+    .dash-main .rounded-xl {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    #report-history-section {
+        overflow: hidden;
+    }
+    #report-history-groups,
+    #report-history-groups .grid {
+        min-width: 0;
+        max-width: 100%;
+    }
+    #report-magic-link {
+        min-width: 0 !important;
+        max-width: 100%;
+        width: 100%;
+    }
+    #kpi-count-report,
+    #slot-adherence-report,
+    #heatmap-analysis-report,
+    #recurring-tickets-report {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+    .filter-scroll {
+        max-width: 100%;
+    }
+    .dash-sidebar-collapse-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        margin-left: auto;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        background: rgba(99, 102, 241, 0.1);
+        color: #a5b4fc;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .dash-sidebar-collapse-btn:hover {
+        background: rgba(99, 102, 241, 0.2);
+    }
+    .dash-layout-root.dash-sidebar-collapsed .dash-sidebar-collapse-btn {
+        transform: rotate(180deg);
+    }
+    .dash-sidebar-expand-btn {
+        display: none;
+        position: fixed;
+        left: 0.85rem;
+        top: calc(var(--dash-nav-height) + 0.85rem);
+        z-index: 75;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.65rem;
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        background: rgba(22, 22, 42, 0.95);
+        color: #a5b4fc;
+        cursor: pointer;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .dash-sidebar-expand-btn:hover {
+        background: rgba(99, 102, 241, 0.2);
+    }
+    .dash-layout-root.dash-sidebar-collapsed .dash-sidebar-expand-btn {
+        display: inline-flex;
+    }
+    @@keyframes dashPanelIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .dash-mobile-toggle {
+        display: none;
+        margin-bottom: 1rem;
+    }
+    .dash-sidebar-backdrop {
+        display: none;
+    }
+    @@media (max-width: 1023px) {
+        .dash-mobile-toggle { display: inline-flex; }
+        .dash-app {
+            display: block;
+            height: 100%;
+        }
+        .dash-sidebar {
+            position: fixed;
+            top: var(--dash-nav-height);
+            left: 0;
+            bottom: 0;
+            height: calc(100vh - var(--dash-nav-height));
+            width: min(17rem, 88vw);
+            border-radius: 0;
+            border-right: 1px solid rgba(99, 102, 241, 0.22);
+            transform: translateX(-105%);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            z-index: 80;
+        }
+        .dash-sidebar.is-open { transform: translateX(0); }
+        .dash-sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: var(--dash-nav-height) 0 0 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(2px);
+            z-index: 75;
+        }
+        .dash-sidebar-backdrop.is-open { display: block; }
+        .dash-main {
+            margin-left: 0;
+            width: 100%;
+            max-width: 100%;
+            height: calc(100vh - var(--dash-nav-height));
+            padding: 1rem 1rem 1.5rem;
+        }
+    }
 </style>
 
-<header class="text-center mb-10 slide-up">
-    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3" style="color: var(--op-text);">
-        Operational Dashboard
-    </h1>
-    <p class="text-base sm:text-lg max-w-lg mx-auto" style="color: var(--op-text-muted);">
-        Real-time operational metrics and field activity overview
-    </p>
-</header>
+<div class="dash-app" id="dash-app">
+    <button type="button" id="dash-sidebar-expand" class="dash-sidebar-expand-btn" aria-label="Expand sidebar" title="Expand sidebar">
+        <i data-lucide="chevrons-right" style="width:16px;height:16px;"></i>
+    </button>
+    <div class="dash-sidebar-backdrop" id="dash-sidebar-backdrop" aria-hidden="true"></div>
+    <aside class="dash-sidebar" id="dash-sidebar" aria-label="Dashboard sections">
+        <div class="dash-sidebar-brand" style="display:flex;align-items:flex-start;gap:0.5rem;">
+            <div style="flex:1;min-width:0;">
+                <p>Navigation</p>
+                <h2>Operational sections</h2>
+            </div>
+            <button type="button" id="dash-sidebar-collapse" class="dash-sidebar-collapse-btn flex-shrink-0" title="Collapse sidebar" aria-label="Collapse sidebar">
+                <i data-lucide="chevrons-left" style="width:14px;height:14px;"></i>
+            </button>
+        </div>
+        <nav class="dash-sidebar-nav" id="dash-sidebar-nav">
+            <button type="button" class="dash-nav-item is-active" data-dash-panel="operational" aria-current="page">
+                <i data-lucide="activity"></i><span>Operational Dashboard</span>
+            </button>
+            <button type="button" class="dash-nav-item" data-dash-panel="traffic">
+                <i data-lucide="radio-tower"></i><span>Traffic Analysis Reports</span>
+            </button>
+        </nav>
+        <div class="dash-sidebar-foot">SlotAd Globe &middot; Operational</div>
+    </aside>
+    <div class="dash-main">
+        <header class="dash-page-header mb-8 slide-up">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="text-center md:text-left">
+                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-2" style="color: #f0f0f8;">
+                        Operational Dashboard
+                    </h1>
+                    <p class="text-base sm:text-lg" style="color: #7a7a9e;">
+                        Real-time operational metrics and field activity overview
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <form asp-controller="Report" asp-action="UploadOperationAging" method="post" enctype="multipart/form-data" id="aging-upload-form">
+                        @Html.AntiForgeryToken()
+                        <input type="file" name="csvFile" id="aging-file-input" accept=".csv,.xlsx" class="hidden" />
+                        <button type="button" id="aging-upload-btn" class="op-action-btn" style="background: #6366f1; color: #ffffff; border-color: #6366f1; padding: 10px 16px;">
+                            <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload Aging Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </header>
+        <button type="button" id="dash-mobile-toggle" class="dash-mobile-toggle inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+                style="color: #c8c8e0; background: rgba(99,102,241,0.12); border: 1px solid #2a2a4a;">
+            <i data-lucide="menu" style="width:14px;height:14px;"></i> Sections
+        </button>
+        <div id="panel-operational" class="dash-panel is-active" data-dash-panel="operational">
 
 @if (TempData["Error"] is string errorMsg)
 {
@@ -173,10 +489,13 @@ else
     <div class="op-card fade-in mb-6">
         <h2 class="text-lg font-semibold mb-2" style="color: var(--op-text);">Operation Aging</h2>
         <p class="text-sm" style="color: var(--op-text-muted);">
-            No active report with CSV data. Upload a file from the KPI flow or ensure your latest upload still has data on disk to view Operation Aging.
+            No active Operation Aging report with CSV data. Upload an Operation Aging report using the button in the upper right to view Operation Aging.
         </p>
     </div>
 }
+
+        </div>
+        <div id="panel-traffic" class="dash-panel" data-dash-panel="traffic">
 
 <div class="op-card fade-in mb-6">
     <div class="flex flex-wrap items-start justify-between gap-3 mb-5">
@@ -418,6 +737,11 @@ else
     </div>
 </div>
 
+        </div>
+    </div>
+</div>
+</div>
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
@@ -434,6 +758,19 @@ else
                     }
                 });
             }
+            var agingUploadButton = document.getElementById('aging-upload-btn');
+            var agingFileInput = document.getElementById('aging-file-input');
+            var agingUploadForm = document.getElementById('aging-upload-form');
+
+            if (agingUploadButton && agingFileInput && agingUploadForm) {
+                agingUploadButton.addEventListener('click', function () { agingFileInput.click(); });
+                agingFileInput.addEventListener('change', function () {
+                    if (agingFileInput.files && agingFileInput.files.length > 0) {
+                        agingUploadForm.submit();
+                    }
+                });
+            }
+
             bindModal('open-alarm-filter', 'alarm-filter-modal');
             bindModal('open-performance-filter', 'performance-filter-modal');
 
@@ -596,6 +933,57 @@ else
                 }
             }
         })();
+
+            // Sidebar toggle logic (copied from Dashboard layout)
+            const sidebar = document.getElementById('dash-sidebar');
+            const backdrop = document.getElementById('dash-sidebar-backdrop');
+            const collapseBtn = document.getElementById('dash-sidebar-collapse');
+            const expandBtn = document.getElementById('dash-sidebar-expand');
+            const mobileToggle = document.getElementById('dash-mobile-toggle');
+            const rootLayout = document.querySelector('.dash-layout-root');
+
+            function toggleMobile() {
+                if(sidebar) sidebar.classList.toggle('is-open');
+                if(backdrop) backdrop.classList.toggle('is-open');
+                if(sidebar) document.body.style.overflow = sidebar.classList.contains('is-open') ? 'hidden' : '';
+            }
+
+            function collapseDesktop() {
+                if(rootLayout) rootLayout.classList.add('dash-sidebar-collapsed');
+                if(sidebar) sidebar.style.transform = 'translateX(-105%)';
+            }
+
+            function expandDesktop() {
+                if(rootLayout) rootLayout.classList.remove('dash-sidebar-collapsed');
+                if(sidebar) sidebar.style.transform = 'translateX(0)';
+            }
+
+            if (mobileToggle) mobileToggle.addEventListener('click', toggleMobile);
+            if (backdrop) backdrop.addEventListener('click', toggleMobile);
+            if (collapseBtn) collapseBtn.addEventListener('click', collapseDesktop);
+            if (expandBtn) expandBtn.addEventListener('click', expandDesktop);
+
+            // Panel switching logic
+            var navButtons = document.querySelectorAll('#dash-sidebar-nav .dash-nav-item');
+            navButtons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var targetPanel = btn.getAttribute('data-dash-panel');
+                    // Deactivate all nav items and panels
+                    navButtons.forEach(function(b) { b.classList.remove('is-active'); b.removeAttribute('aria-current'); });
+                    document.querySelectorAll('.dash-panel').forEach(function(p) { p.classList.remove('is-active'); });
+                    // Activate clicked nav item and target panel
+                    btn.classList.add('is-active');
+                    btn.setAttribute('aria-current', 'page');
+                    var panel = document.getElementById('panel-' + targetPanel);
+                    if (panel) panel.classList.add('is-active');
+                    // Close mobile sidebar
+                    if (window.innerWidth < 1024) {
+                        if(sidebar) sidebar.classList.remove('is-open');
+                        if(backdrop) backdrop.classList.remove('is-open');
+                        document.body.style.overflow = '';
+                    }
+                });
+            });
     </script>
     @if (Model.OperationAging is not null)
     {
@@ -891,7 +1279,35 @@ else
                     bindDetailAjax();
                 });
 
-            })();
+            // Sidebar toggle logic (copied from Dashboard layout)
+            const sidebar = document.getElementById('dash-sidebar');
+            const backdrop = document.getElementById('dash-sidebar-backdrop');
+            const collapseBtn = document.getElementById('dash-sidebar-collapse');
+            const expandBtn = document.getElementById('dash-sidebar-expand');
+            const mobileToggle = document.getElementById('dash-mobile-toggle');
+            const rootLayout = document.querySelector('.dash-layout-root');
+
+            function toggleMobile() {
+                if(sidebar) sidebar.classList.toggle('is-open');
+                if(backdrop) backdrop.classList.toggle('is-open');
+                if(sidebar) document.body.style.overflow = sidebar.classList.contains('is-open') ? 'hidden' : '';
+            }
+
+            function collapseDesktop() {
+                if(rootLayout) rootLayout.classList.add('dash-sidebar-collapsed');
+                if(sidebar) sidebar.style.transform = 'translateX(-105%)';
+            }
+
+            function expandDesktop() {
+                if(rootLayout) rootLayout.classList.remove('dash-sidebar-collapsed');
+                if(sidebar) sidebar.style.transform = 'translateX(0)';
+            }
+
+            if (mobileToggle) mobileToggle.addEventListener('click', toggleMobile);
+            if (backdrop) backdrop.addEventListener('click', toggleMobile);
+            if (collapseBtn) collapseBtn.addEventListener('click', collapseDesktop);
+            if (expandBtn) expandBtn.addEventListener('click', expandDesktop);
+        })();
         </script>
     }
 }
