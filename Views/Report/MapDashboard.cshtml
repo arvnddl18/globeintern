@@ -2217,34 +2217,40 @@
             <button type="button" class="dash-nav-item is-active" data-dash-panel="map" aria-current="page">
                 <i data-lucide="map"></i><span>Circuit Map</span>
             </button>
+            <button type="button" class="dash-nav-item" data-dash-panel="route-map">
+                <i data-lucide="route"></i><span>Route Pole to Pole</span>
+            </button>
+            <button type="button" class="dash-nav-item" data-dash-panel="dlpc-map">
+                <i data-lucide="map-pin"></i><span>DLPC Map</span>
+            </button>
         </nav>
         <div class="dash-sidebar-foot">SlotAd Globe · Map</div>
     </aside>
     <div class="dash-main">
-        <header class="dash-page-header mb-8 slide-up">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="text-center md:text-left">
-                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-2" style="color: #f0f0f8;">
-                        Circuit Map
-                    </h1>
-                    <p class="text-base sm:text-lg" style="color: #7a7a9e;">
-                        Interactive visualization of SWU and circuits
-                    </p>
-                </div>
-                <div>
-                    <label for="circuit-map-file-input" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                           style="background: rgba(99, 102, 241, 0.12); color: #a5b4fc; border: 1px solid #2a2a4a;" title="Upload SWU coordinate file (.xlsx)">
-                        <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload XLSX
-                    </label>
-                    <input type="file" id="circuit-map-file-input" accept=".xlsx" class="hidden" />
-                </div>
-            </div>
-        </header>
         <button type="button" id="dash-mobile-toggle" class="dash-mobile-toggle inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
                 style="color: #c8c8e0; background: rgba(99,102,241,0.12); border: 1px solid #2a2a4a;">
             <i data-lucide="menu" style="width:14px;height:14px;"></i> Sections
         </button>
         <div id="panel-map" class="dash-panel is-active" data-dash-panel="map">
+            <header class="dash-page-header mb-8 slide-up">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="text-center md:text-left">
+                        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-2" style="color: #f0f0f8;">
+                            Circuit Map
+                        </h1>
+                        <p class="text-base sm:text-lg" style="color: #7a7a9e;">
+                            Interactive visualization of SWU and circuits
+                        </p>
+                    </div>
+                    <div>
+                        <label for="circuit-map-file-input" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                               style="background: rgba(99, 102, 241, 0.12); color: #a5b4fc; border: 1px solid #2a2a4a;" title="Upload SWU coordinate file (.xlsx)">
+                            <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload XLSX
+                        </label>
+                        <input type="file" id="circuit-map-file-input" accept=".xlsx" class="hidden" />
+                    </div>
+                </div>
+            </header>
             <div class="circuit-map-page" style="margin: 0; min-height: 720px; border-radius: 12px;">
                 <div class="circuit-map-wrap">
                     <div id="circuit-map"></div>
@@ -2266,6 +2272,84 @@
                 </div>
             </div>
         </div>
+
+        <div id="panel-route-map" class="dash-panel" data-dash-panel="route-map">
+            <header class="dash-page-header mb-8 slide-up">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="text-center md:text-left">
+                        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-2" style="color: #f0f0f8;">
+                            Route Pole to Pole Cleanup
+                        </h1>
+                        <p class="text-base sm:text-lg" style="color: #7a7a9e;">
+                            Interactive visualization of routes and marked pins
+                        </p>
+                    </div>
+                    <div>
+                        <label for="route-map-file-input" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                               style="background: rgba(99, 102, 241, 0.12); color: #a5b4fc; border: 1px solid #2a2a4a;" title="Upload Route file (.xlsx)">
+                            <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload XLSX
+                        </label>
+                        <input type="file" id="route-map-file-input" accept=".xlsx" class="hidden" />
+                    </div>
+                </div>
+            </header>
+            <div class="circuit-map-page" style="margin: 0; min-height: 720px; border-radius: 12px;">
+                <div class="circuit-map-wrap">
+                    <div id="route-map" style="position: absolute; inset: 0; background: #0d0d1a;"></div>
+                    <div id="route-map-panel" class="circuit-map-panel">
+                        <div class="circuit-map-legend-scroll">
+                            <div class="circuit-map-legend-header">
+                                <span>Phases</span>
+                                <span id="route-map-total-count">0 pins</span>
+                            </div>
+                            <div id="route-map-legend-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="panel-dlpc-map" class="dash-panel" data-dash-panel="dlpc-map">
+            <header class="dash-page-header mb-8 slide-up">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="text-center md:text-left">
+                        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-2" style="color: #f0f0f8;">
+                            DLPC Map
+                        </h1>
+                        <p class="text-base sm:text-lg" style="color: #7a7a9e;">
+                            Interactive visualization of DLPC map and coordinates
+                        </p>
+                    </div>
+                    <div>
+                        <label for="dlpc-map-file-input" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                               style="background: rgba(99, 102, 241, 0.12); color: #a5b4fc; border: 1px solid #2a2a4a;" title="Upload DLPC coordinate file (.xlsx)">
+                            <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload XLSX
+                        </label>
+                        <input type="file" id="dlpc-map-file-input" accept=".xlsx" class="hidden" />
+                    </div>
+                </div>
+            </header>
+            <div class="circuit-map-page" style="margin: 0; min-height: 720px; border-radius: 12px;">
+                <div class="circuit-map-wrap">
+                    <div id="dlpc-map" style="position: absolute; inset: 0; background: #0d0d1a;"></div>
+                    <div id="dlpc-map-panel" class="circuit-map-panel">
+                        <div class="circuit-map-legend-scroll">
+                            <div class="circuit-map-legend-header">
+                                <span>Classifications</span>
+                                <span id="dlpc-map-total-count">0 pins</span>
+                            </div>
+                            <div id="dlpc-map-legend-content"></div>
+                        </div>
+                    </div>
+                    <div id="dlpc-map-search-panel" class="circuit-map-search-panel">
+                        <input type="text" id="dlpc-map-search-input" placeholder="Search PN no. or File title..." />
+                        <button id="dlpc-map-search-btn" class="circuit-map-search-btn" aria-label="Search">
+                            <i data-lucide="search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -2273,10 +2357,17 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="~/js/circuit-map.js" asp-append-version="true"></script>
+    <script src="~/js/dlpc-map.js" asp-append-version="true"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             if (window.CircuitMap && typeof window.CircuitMap.init === 'function') {
                 window.CircuitMap.init();
+            }
+            if (window.RouteMap && typeof window.RouteMap.init === 'function') {
+                window.RouteMap.init();
+            }
+            if (window.DlpcMap && typeof window.DlpcMap.init === 'function') {
+                window.DlpcMap.init();
             }
             if (window.lucide && typeof window.lucide.createIcons === 'function') {
                 window.lucide.createIcons();
@@ -2310,6 +2401,40 @@
             if (backdrop) backdrop.addEventListener('click', toggleMobile);
             if (collapseBtn) collapseBtn.addEventListener('click', collapseDesktop);
             if (expandBtn) expandBtn.addEventListener('click', expandDesktop);
+            
+            // Tab switching logic
+            const navItems = document.querySelectorAll('.dash-nav-item');
+            const panels = document.querySelectorAll('.dash-panel');
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    // Remove active from all
+                    navItems.forEach(nav => {
+                        nav.classList.remove('is-active');
+                        nav.removeAttribute('aria-current');
+                    });
+                    panels.forEach(panel => panel.classList.remove('is-active'));
+                    
+                    // Add active to clicked
+                    item.classList.add('is-active');
+                    item.setAttribute('aria-current', 'page');
+                    const targetId = item.getAttribute('data-dash-panel');
+                    const targetPanel = document.getElementById('panel-' + targetId);
+                    if (targetPanel) {
+                        targetPanel.classList.add('is-active');
+                        
+                        // Fix leaflet map sizing issue when rendering in a hidden div
+                        if (targetId === 'map' && window.CircuitMap && typeof window.CircuitMap.invalidateSize === 'function') {
+                            window.CircuitMap.invalidateSize();
+                        } else if (targetId === 'route-map' && window.RouteMap && typeof window.RouteMap.invalidateSize === 'function') {
+                            window.RouteMap.invalidateSize();
+                        } else if (targetId === 'dlpc-map' && window.DlpcMap && typeof window.DlpcMap.invalidateSize === 'function') {
+                            window.DlpcMap.invalidateSize();
+                        }
+                    }
+                });
+            });
         });
     </script>
+    <script src="~/js/route-pole-to-pole.js" asp-append-version="true"></script>
 }

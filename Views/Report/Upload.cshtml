@@ -178,7 +178,7 @@
         </div>
     }
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
     <div class="upload-panel slide-up" style="animation-delay: 0.05s;">
         <p class="upload-panel-title">KPI appointment raw data</p>
     <form asp-action="UploadRawDataCleaner" asp-controller="Report" method="post" enctype="multipart/form-data" id="uploadForm">
@@ -342,6 +342,78 @@
                         <div id="swu-progress-bar" class="h-full rounded-full progress-bar-fill-swu transition-all duration-300" style="width: 0%;"></div>
                     </div>
                     <p id="swu-progress-detail" class="text-[10px] mt-2 font-medium opacity-70" style="color: var(--theme-text-muted);"></p>
+                </div>
+            </div>
+        </section>
+    </form>
+    </div>
+
+    <div class="upload-panel slide-up" style="animation-delay: 0.15s;">
+        <p class="upload-panel-title">GT DP,Nap Utilization raw data</p>
+    <form id="gtDpUploadForm">
+        @Html.AntiForgeryToken()
+
+        <section>
+            <div id="gt-drop-zone" class="drop-zone p-8 sm:p-10 text-center"
+                 onclick="document.getElementById('GtXlsxFile').click()"
+                 style="border-color: rgba(59, 130, 246, 0.35);">
+                <input type="file" accept=".xlsx" class="hidden" id="GtXlsxFile" multiple />
+
+                <div class="mx-auto w-16 h-16 rounded-3xl flex items-center justify-center mb-4"
+                     style="background: rgba(59, 130, 246, 0.12);">
+                    <i data-lucide="file-bar-chart" style="width:32px; height:32px; color: #3b82f6;"></i>
+                </div>
+
+                <h3 id="gt-upload-prompt" class="text-lg font-bold mb-2" style="color: var(--theme-text);">
+                    Drop GT DP,Nap .xlsx here
+                </h3>
+                <p class="text-sm mb-3" style="color: var(--theme-text-muted);">or click to browse</p>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase"
+                     style="background: var(--theme-nav-pill); color: var(--theme-text-muted);">
+                    <span>MAX 500MB • .XLSX</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="gt-queue-section" class="hidden mt-4">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h4 class="text-xs font-bold uppercase tracking-widest" style="color: var(--theme-text-muted);">Queue</h4>
+                <button type="button" onclick="clearAllGtFiles()" class="text-xs font-bold text-red-500">Clear All</button>
+            </div>
+            <div id="gt-file-queue-list" class="space-y-2"></div>
+        </section>
+
+        <section id="gt-stats-section" class="hidden mt-4 grid grid-cols-2 gap-3">
+            <div class="info-card p-3">
+                <p class="text-[10px] font-bold uppercase tracking-wider mb-1" style="color: var(--theme-text-muted);">Files</p>
+                <p id="gt-stat-total-files" class="text-base font-black font-mono">0</p>
+            </div>
+            <div class="info-card p-3">
+                <p class="text-[10px] font-bold uppercase tracking-wider mb-1" style="color: var(--theme-text-muted);">Size</p>
+                <p id="gt-stat-total-size" class="text-base font-black font-mono">0 KB</p>
+            </div>
+        </section>
+
+        <section id="gt-submit-section" class="hidden mt-6 text-center">
+            <button type="submit" id="gt-submit-btn"
+                    class="inline-flex items-center gap-2 px-8 py-3 rounded-2xl text-base font-black cursor-pointer w-full justify-center"
+                    style="background: #3b82f6; color: white; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.25);">
+                <i data-lucide="download" style="width:18px; height:18px;"></i>
+                <span id="gt-submit-btn-text">Extract &amp; Download ZIP</span>
+            </button>
+            <p id="gt-submit-hint" class="text-xs mt-3 font-medium" style="color: var(--theme-text-muted);">
+                Extracts SOUTH MINDANAO 1 data with S_Total=8, grouped by CFS Cluster.
+            </p>
+            <div id="gt-progress-section" class="hidden mt-4">
+                <div class="info-card p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span id="gt-progress-label" class="text-xs font-bold" style="color: var(--theme-text-dim);">Processing...</span>
+                        <span id="gt-progress-pct" class="text-xs font-mono font-black" style="color: #3b82f6;">0%</span>
+                    </div>
+                    <div class="w-full rounded-full overflow-hidden progress-bar-bg" style="height: 8px;">
+                        <div id="gt-progress-bar" class="h-full rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg, #3b82f6, #93c5fd);"></div>
+                    </div>
+                    <p id="gt-progress-detail" class="text-[10px] mt-2 font-medium opacity-70" style="color: var(--theme-text-muted);"></p>
                 </div>
             </div>
         </section>
@@ -815,6 +887,161 @@
                 });
                 xhr.addEventListener('error', function () { reject(new Error('Network error.')); });
                 xhr.open('POST', '/Report/UploadSwuRawDataApi');
+                xhr.send(formData);
+            });
+        }
+
+        // --- GT DP,Nap raw file reorganizer ---
+        var gtDropZone = document.getElementById('gt-drop-zone');
+        var gtFileInput = document.getElementById('GtXlsxFile');
+        var gtFileQueue = [];
+
+        gtDropZone.addEventListener('dragover', function (e) {
+            e.preventDefault(); e.stopPropagation(); gtDropZone.classList.add('drop-zone-active');
+        });
+        gtDropZone.addEventListener('dragleave', function (e) {
+            e.preventDefault(); e.stopPropagation(); gtDropZone.classList.remove('drop-zone-active');
+        });
+        gtDropZone.addEventListener('drop', function (e) {
+            e.preventDefault(); e.stopPropagation(); gtDropZone.classList.remove('drop-zone-active');
+            handleGtFiles(e.dataTransfer.files);
+        });
+        gtFileInput.addEventListener('change', function () { handleGtFiles(this.files); });
+
+        function handleGtFiles(files) {
+            var newFiles = Array.from(files).filter(function (f) { return /\.xlsx$/i.test(f.name); });
+            var rejected = Array.from(files).filter(function (f) { return !/\.xlsx$/i.test(f.name); });
+            if (rejected.length > 0) showToast(rejected.length + ' file(s) ignored. Accepts .xlsx only.', 'error');
+            var oversized = newFiles.filter(function (f) { return f.size > MAX_FILE_SIZE; });
+            if (oversized.length > 0) {
+                showToast(oversized.length + ' file(s) ignored (exceeds 500MB max limit).', 'error');
+                newFiles = newFiles.filter(function (f) { return f.size <= MAX_FILE_SIZE; });
+            }
+            if (newFiles.length > 0) {
+                gtFileQueue = gtFileQueue.concat(newFiles.map(function (f) {
+                    return { file: f, status: 'pending', elementId: 'gt-q-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5) };
+                }));
+                updateGtQueueUI();
+            }
+        }
+
+        function updateGtQueueUI() {
+            var list = document.getElementById('gt-file-queue-list');
+            list.innerHTML = '';
+            if (gtFileQueue.length === 0) { clearAllGtFiles(); return; }
+            var totalSize = 0;
+            gtFileQueue.forEach(function (qItem, index) {
+                totalSize += qItem.file.size;
+                var statusText = 'Pending', statusClass = '';
+                if (qItem.status === 'uploading') { statusText = 'Processing...'; statusClass = 'text-[#3b82f6]'; }
+                else if (qItem.status === 'done') { statusText = 'Complete'; statusClass = 'text-[#22c55e]'; }
+                else if (qItem.status === 'error') { statusText = 'Failed'; statusClass = 'text-[#ef4444]'; }
+                list.insertAdjacentHTML('beforeend',
+                    '<div class="info-card p-3 flex items-center justify-between gap-2">' +
+                    '<div class="min-w-0"><p class="text-sm font-bold truncate">' + qItem.file.name + '</p>' +
+                    '<p class="text-xs ' + statusClass + '">' + formatFileSize(qItem.file.size) + ' • ' + statusText + '</p></div>' +
+                    (qItem.status === 'pending' ? '<button type="button" onclick="removeGtFile(' + index + ')" class="text-red-500 text-xs font-bold">×</button>' : '') +
+                    '</div>');
+            });
+            document.getElementById('gt-queue-section').classList.remove('hidden');
+            document.getElementById('gt-stats-section').classList.remove('hidden');
+            document.getElementById('gt-submit-section').classList.remove('hidden');
+            document.getElementById('gt-stat-total-files').textContent = gtFileQueue.length;
+            document.getElementById('gt-stat-total-size').textContent = formatFileSize(totalSize);
+            document.getElementById('gt-upload-prompt').textContent = gtFileQueue.length + ' file(s) ready';
+            gtDropZone.style.borderColor = '#3b82f6';
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function removeGtFile(index) { gtFileQueue.splice(index, 1); updateGtQueueUI(); }
+        function clearAllGtFiles() {
+            gtFileQueue = [];
+            gtFileInput.value = '';
+            document.getElementById('gt-queue-section').classList.add('hidden');
+            document.getElementById('gt-stats-section').classList.add('hidden');
+            document.getElementById('gt-submit-section').classList.add('hidden');
+            document.getElementById('gt-upload-prompt').textContent = 'Drop GT DP,Nap .xlsx here';
+            gtDropZone.style.borderColor = '';
+        }
+
+        document.getElementById('gtDpUploadForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (gtFileQueue.filter(function (q) { return q.status !== 'done'; }).length === 0) return;
+
+            var btn = document.getElementById('gt-submit-btn');
+            var token = document.querySelector('#gtDpUploadForm input[name="__RequestVerificationToken"]').value;
+            btn.disabled = true;
+            document.getElementById('gt-submit-hint').classList.add('hidden');
+            document.getElementById('gt-progress-section').classList.remove('hidden');
+
+            var hasError = false;
+            var batchId = null;
+
+            for (var i = 0; i < gtFileQueue.length; i++) {
+                var qItem = gtFileQueue[i];
+                if (qItem.status === 'done') continue;
+                qItem.status = 'uploading';
+                updateGtQueueUI();
+                document.getElementById('gt-progress-label').textContent = 'Processing File ' + (i+1);
+                document.getElementById('gt-progress-detail').textContent = qItem.file.name;
+                
+                try {
+                    var res = await uploadGtSingleFile(qItem.file, token);
+                    qItem.status = 'done';
+                    batchId = res.batchId; // take batchId from the last successfully processed file
+                    updateGtQueueUI();
+                } catch (err) {
+                    qItem.status = 'error';
+                    hasError = true;
+                    showToast('Failed: ' + qItem.file.name + ' — ' + err.message, 'error');
+                    updateGtQueueUI();
+                    break;
+                }
+            }
+
+            if (!hasError && batchId) {
+                window.location.href = '/Report/DownloadGtDpNapUtilizationZip?batchId=' + encodeURIComponent(batchId);
+                // reset form after successful download init
+                setTimeout(() => {
+                    clearAllGtFiles();
+                    btn.disabled = false;
+                    document.getElementById('gt-submit-hint').classList.remove('hidden');
+                    document.getElementById('gt-progress-section').classList.add('hidden');
+                }, 2000);
+            } else {
+                btn.disabled = false;
+                document.getElementById('gt-submit-hint').classList.remove('hidden');
+                document.getElementById('gt-progress-section').classList.add('hidden');
+            }
+        });
+
+        function uploadGtSingleFile(file, token) {
+            return new Promise(function (resolve, reject) {
+                var formData = new FormData();
+                formData.append('xlsxFile', file);
+                formData.append('__RequestVerificationToken', token);
+                var xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', function (ev) {
+                    if (!ev.lengthComputable) return;
+                    var pct = Math.round((ev.loaded / ev.total) * 100);
+                    document.getElementById('gt-progress-bar').style.width = pct + '%';
+                    document.getElementById('gt-progress-pct').textContent = pct + '%';
+                });
+                
+                xhr.addEventListener('load', function () {
+                    if (xhr.status >= 200 && xhr.status < 400) {
+                        try { resolve(JSON.parse(xhr.responseText)); }
+                        catch (e) { reject(new Error('Invalid server response')); }
+                    } else {
+                        try {
+                            var err = JSON.parse(xhr.responseText);
+                            reject(new Error(err.error || 'Server error ' + xhr.status));
+                        } catch (e) { reject(new Error('Upload failed (' + xhr.status + ')')); }
+                    }
+                });
+                xhr.addEventListener('error', function () { reject(new Error('Network error.')); });
+                xhr.open('POST', '/Report/UploadGtDpNapUtilizationApi');
                 xhr.send(formData);
             });
         }

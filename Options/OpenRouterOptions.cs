@@ -6,7 +6,7 @@ public class OpenRouterOptions
 
     public string BaseUrl { get; set; } = "https://openrouter.ai/api/v1/";
     public string ApiKey { get; set; } = "";
-    public string Model { get; set; } = "nvidia/nemotron-3-super-120b-a12b:free";
+    public string Model { get; set; } = "poolside/laguna-xs.2:free";
     public int RequestTimeoutSeconds { get; set; } = 120;
     public int MaxMessages { get; set; } = 24;
     public int MaxUserMessageLength { get; set; } = 4000;

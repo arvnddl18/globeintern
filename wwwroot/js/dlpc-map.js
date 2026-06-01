@@ -34,12 +34,10 @@
         return String(cell.v).trim();
     }
 
-    /** Dense grid: column 0 = A, 1 = B, … so header indices match every data row. */
     function sheetToDenseRows(ws) {
         if (!ws) return [];
         var range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
-        
-        // Safety: Recalculate max row/col to handle stale !ref properties from ClosedXML appends
+
         for (var key in ws) {
             if (key.charAt(0) === '!') continue;
             var cell = XLSX.utils.decode_cell(key);
@@ -169,7 +167,6 @@
         return null;
     }
 
-    /** Every ITEM + LATLONG/LAT+LNG header row (reorganized exports repeat headers per table). */
     function findAllHeaderRows(rows) {
         var headers = [];
         for (var i = 0; i < rows.length; i++) {
@@ -264,9 +261,8 @@
     }
 
     function buildPinDescription(meta, point, blockIdx, pointIdx) {
-        // Unified-table format stores fileTitle directly on the point
         var fileTitle = point.fileTitle || meta.swuCode || '';
-        var metaLoc   = point.fileTitle ? '' : (meta.location || ''); // skip redundant meta loc in new format
+        var metaLoc   = point.fileTitle ? '' : (meta.location || '');
         var area      = String(point.location || '').trim();
         var remarks   = formatOuRemarksForTitle(point.ouRemarks);
         var pn        = formatPnDisplay(point.pn) || '\u2014';
@@ -275,7 +271,6 @@
             ? point.lat.toFixed(7) + ', ' + point.lng.toFixed(7)
             : '';
 
-        // ---- plain text (used for tooltip) ----
         var textLines = [];
         if (fileTitle) textLines.push(fileTitle);
         if (metaLoc)   textLines.push(metaLoc);
@@ -289,7 +284,6 @@
         if (latLng)    textLines.push(latLng);
         if (remarks)   textLines.push('OU REMARKS: ' + remarks);
 
-        // ---- rich HTML (used for click-popup) ----
         var html = '<div class="circuit-pin-popup">';
         if (fileTitle) {
             html += '<div class="circuit-pin-line circuit-pin-swu" style="border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:4px;margin-bottom:4px">' +
@@ -326,11 +320,6 @@
         return { html: html, text: textLines.join('\n') };
     }
 
-    /** @deprecated Use buildPinDescription */
-    function buildPinTitle(meta, point) {
-        return buildPinDescription(meta, point).text;
-    }
-
     function escapeHtml(s) {
         return String(s)
             .replace(/&/g, '&amp;')
@@ -350,6 +339,14 @@
             return parseLatLngColumns(latS, lngS);
         }
         return null;
+    }
+
+    function isRowEmpty(row) {
+        if (!row || !row.length) return true;
+        for (var i = 0; i < row.length; i++) {
+            if (String(row[i] || '').trim() !== '') return false;
+        }
+        return true;
     }
 
     function parseSwuSheet(rows, endRow) {
@@ -391,7 +388,6 @@
             }
 
             if (normCol(itemRaw) === 'ITEM') continue;
-
             if (buildHeaderFromRow(row, r)) continue;
 
             if (ouRaw) {
@@ -469,15 +465,6 @@
         return { points: points, meta: meta };
     }
 
-    function isRowEmpty(row) {
-        if (!row || !row.length) return true;
-        for (var i = 0; i < row.length; i++) {
-            if (String(row[i] || '').trim() !== '') return false;
-        }
-        return true;
-    }
-
-    /** Split sheet rows into blocks separated by fully empty rows (reorganized multi-table export). */
     function splitRowsIntoBlocks(rows) {
         var blocks = [];
         var current = [];
@@ -558,23 +545,10 @@
         return slices.length ? slices : [blockRows];
     }
 
-    // ---------------------------------------------------------------------------
-    // NEW: Unified single-table parser (FILE TITLE column format)
-    // ---------------------------------------------------------------------------
-
-    /** Return the column index of the FILE TITLE column, or -1. */
     function findFileTitleIdx(cols) {
         return findColIndex(cols, ['FILE TITLE', 'FILETITLE', 'FILE_TITLE'], true);
     }
 
-    /**
-     * Parse the new unified-table format produced by SwuPoleProcessingService.
-     * The sheet has one header row: FILE TITLE | ITEM | POLE NO. | LATLONG | LOCATION
-     * Rows are grouped by the FILE TITLE value; each unique value becomes a block
-     * with its own pin color.
-     *
-     * Returns null if the sheet does not have a FILE TITLE column (legacy file).
-     */
     function parseUnifiedSwuTable(rows) {
         var headerRowIdx  = -1;
         var fileTitleIdx  = -1;
@@ -583,7 +557,6 @@
         var latLongIdx    = -1;
         var locationIdx   = -1;
 
-        // Find the header row that contains both FILE TITLE and a coordinate column
         for (var i = 0; i < rows.length; i++) {
             var cols = rows[i].map(normCol);
             var fti  = findFileTitleIdx(cols);
@@ -602,11 +575,10 @@
             break;
         }
 
-        if (headerRowIdx === -1) return null; // not unified format
+        if (headerRowIdx === -1) return null;
 
-        // Group data rows by FILE TITLE
-        var groups     = {}; // fileTitle -> []
-        var groupOrder = []; // insertion-order of unique titles
+        var groups     = {};
+        var groupOrder = [];
 
         for (var r = headerRowIdx + 1; r < rows.length; r++) {
             var row = rows[r];
@@ -617,7 +589,7 @@
 
             var latRaw = latLongIdx >= 0 ? (row[latLongIdx] || '').trim() : '';
             var coords = parseLatLong(latRaw);
-            if (!coords) continue; // skip rows without valid coordinates
+            if (!coords) continue;
 
             if (!groups[fileTitle]) {
                 groups[fileTitle] = [];
@@ -654,20 +626,10 @@
         });
     }
 
-    // ---------------------------------------------------------------------------
-
-    /**
-     * Parse one or more SWU tables from a sheet.
-     * Tries the new unified FILE TITLE format first; falls back to the
-     * legacy blank-row-separated multi-table format.
-     * @returns {Array<{points: Array, meta: object, label: string, color: string}>}
-     */
     function parseSwuWorkbookMulti(rows) {
-        // ---- Try new unified single-table format first ----
         var unified = parseUnifiedSwuTable(rows);
         if (unified && unified.length > 0) return unified;
 
-        // ---- Fall back: legacy blank-row-separated blocks ----
         var parsedBlocks = [];
 
         var rowBlocks = splitRowsIntoBlocks(rows);
@@ -684,7 +646,7 @@
                         color : PIN_COLORS[parsedBlocks.length % PIN_COLORS.length]
                     });
                 } catch (err) {
-                    console.warn('SWU block ' + (blockIndex + 1) + '.' + (sliceIndex + 1) + ' skipped:', err.message);
+                    console.warn('DLPC block ' + (blockIndex + 1) + '.' + (sliceIndex + 1) + ' skipped:', err.message);
                 }
             });
         });
@@ -720,16 +682,15 @@
     function updateMapFilters() {
         if (!pinsLayer) return;
         pinsLayer.clearLayers();
-        
+
         var visibleCount = 0;
         mapState.markers.forEach(function(m) {
             if (mapState.hiddenBlocks[m.blockIndex]) return;
-            
             pinsLayer.addLayer(m.layer);
             visibleCount++;
         });
 
-        var countEl = document.getElementById('circuit-map-total-count');
+        var countEl = document.getElementById('dlpc-map-total-count');
         if (countEl) countEl.innerText = visibleCount + ' pin' + (visibleCount === 1 ? '' : 's');
     }
 
@@ -738,8 +699,8 @@
         mapState.blocks = blocks;
         mapState.markers = [];
         mapState.hiddenBlocks = {};
-        
-        var searchInput = document.getElementById('circuit-map-search-input');
+
+        var searchInput = document.getElementById('dlpc-map-search-input');
         mapState.searchQuery = searchInput ? searchInput.value : '';
 
         var allBounds = [];
@@ -787,13 +748,13 @@
                 '</label>';
         });
 
-        var panel = document.getElementById('circuit-map-panel');
+        var panel = document.getElementById('dlpc-map-panel');
         if (panel) panel.classList.add('visible');
-        
-        var searchPanel = document.getElementById('circuit-map-search-panel');
+
+        var searchPanel = document.getElementById('dlpc-map-search-panel');
         if (searchPanel) searchPanel.classList.add('visible');
 
-        var legendContent = document.getElementById('circuit-map-legend-content');
+        var legendContent = document.getElementById('dlpc-map-legend-content');
         if (legendContent) {
             legendContent.innerHTML = legendHtml;
             var cbs = legendContent.querySelectorAll('.circuit-map-legend-cb');
@@ -817,10 +778,6 @@
         }
     }
 
-    function setStatus(html, visible) {
-        // Kept for backward compatibility, but logic has moved to the panel
-    }
-
     function showError(msg) {
         if (typeof showToast === 'function') {
             showToast(msg, 'error');
@@ -832,9 +789,9 @@
     function applyTiles() {
         if (!map) return;
         var dark = isDarkTheme();
-        var darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
+        var darkTiles  = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
         var lightTiles = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
-        var darkLabels = 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png';
+        var darkLabels  = 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png';
         var lightLabels = 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
 
         if (tileLayer) map.removeLayer(tileLayer);
@@ -855,7 +812,7 @@
     }
 
     function initMap() {
-        var mapEl = document.getElementById('circuit-map');
+        var mapEl = document.getElementById('dlpc-map');
         if (!mapEl || map) return;
 
         map = L.map(mapEl, {
@@ -892,7 +849,7 @@
                                     var p = mapState.blocks[bIdx].points[pIdx];
                                     p.location = data.display_name;
                                     try {
-                                        localStorage.setItem('circuitMapBlocks', JSON.stringify(mapState.blocks));
+                                        localStorage.setItem('dlpcMapBlocks', JSON.stringify(mapState.blocks));
                                     } catch(err) {}
                                     saveToServer(mapState.blocks);
                                     if (e.popup && e.popup._source) {
@@ -953,9 +910,9 @@
 
                 renderBlocks(blocks);
                 try {
-                    localStorage.setItem('circuitMapBlocks', JSON.stringify(blocks));
+                    localStorage.setItem('dlpcMapBlocks', JSON.stringify(blocks));
                 } catch (e) {
-                    console.warn('Failed to save circuit map blocks to localStorage:', e);
+                    console.warn('Failed to save DLPC map blocks to localStorage:', e);
                 }
                 saveToServer(blocks);
 
@@ -974,7 +931,7 @@
     }
 
     function bindUpload() {
-        var input = document.getElementById('circuit-map-file-input');
+        var input = document.getElementById('dlpc-map-file-input');
         if (!input) return;
         input.addEventListener('change', function (e) {
             var file = e.target.files && e.target.files[0];
@@ -984,42 +941,40 @@
     }
 
     function bindSearch() {
-        var input = document.getElementById('circuit-map-search-input');
-        var btn = document.getElementById('circuit-map-search-btn');
+        var input = document.getElementById('dlpc-map-search-input');
+        var btn = document.getElementById('dlpc-map-search-btn');
         if (!input) return;
-        
+
         function executeSearch() {
             var q = input.value.trim().toLowerCase();
             if (!q) return;
-            
+
             var found = null;
             for (var i = 0; i < mapState.markers.length; i++) {
                 var m = mapState.markers[i];
-                if (mapState.hiddenBlocks[m.blockIndex]) continue; // Skip hidden blocks
-                
+                if (mapState.hiddenBlocks[m.blockIndex]) continue;
+
                 var pnMatch = (m.point.pn || '').toLowerCase().indexOf(q) !== -1;
                 var titleMatch = (m.blockLabel || '').toLowerCase().indexOf(q) !== -1;
                 if (!titleMatch && m.point.fileTitle) {
                     titleMatch = m.point.fileTitle.toLowerCase().indexOf(q) !== -1;
                 }
-                
+
                 if (pnMatch || titleMatch) {
                     found = m;
-                    // Prioritize exact PN match
                     if ((m.point.pn || '').toLowerCase() === q) {
                         break;
                     }
                 }
             }
-            
+
             if (found) {
                 map.flyTo([found.point.lat, found.point.lng], 18, { animate: true, duration: 1.5 });
-                // Add a small delay to ensure the map has panned enough before opening the popup
                 setTimeout(function() {
                     found.layer.openPopup();
                 }, 300);
             } else {
-                showError("No visible pin found matching: " + q);
+                showError('No visible pin found matching: ' + q);
             }
         }
 
@@ -1029,14 +984,14 @@
                 executeSearch();
             }
         });
-        
+
         if (btn) {
             btn.addEventListener('click', executeSearch);
         }
     }
 
     function saveToServer(blocks) {
-        fetch('/Report/SaveCircuitMapData', {
+        fetch('/Report/SaveDlpcMapData', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1044,10 +999,10 @@
             body: JSON.stringify(blocks)
         })
         .then(function (r) {
-            if (!r.ok) console.error('Failed to save circuit map blocks to server');
+            if (!r.ok) console.error('Failed to save DLPC map blocks to server');
         })
         .catch(function (err) {
-            console.error('Error saving circuit map blocks to server:', err);
+            console.error('Error saving DLPC map blocks to server:', err);
         });
     }
 
@@ -1056,7 +1011,7 @@
         bindUpload();
         bindSearch();
 
-        fetch('/Report/GetCircuitMapData')
+        fetch('/Report/GetDlpcMapData')
             .then(function (r) {
                 if (r.ok) return r.json();
                 throw new Error('Not found on server');
@@ -1067,8 +1022,8 @@
                 }
             })
             .catch(function (err) {
-                console.log("Failed to load circuit map from server, checking local storage...", err);
-                var cached = localStorage.getItem('circuitMapBlocks');
+                console.log('Failed to load DLPC map from server, checking local storage...', err);
+                var cached = localStorage.getItem('dlpcMapBlocks');
                 if (cached) {
                     try {
                         var blocks = JSON.parse(cached);
@@ -1076,21 +1031,20 @@
                             renderBlocks(blocks);
                         }
                     } catch (err2) {
-                        console.error("Failed to parse cached circuit map blocks", err2);
+                        console.error('Failed to parse cached DLPC map blocks', err2);
                     }
                 }
             });
     }
 
-    global.CircuitMap = {
+    function invalidateSize() {
+        if (map) {
+            setTimeout(function () { map.invalidateSize(); }, 200);
+        }
+    }
+
+    global.DlpcMap = {
         init: init,
-        parseSwuSheet: parseSwuSheet,
-        parseSwuWorkbookMulti: parseSwuWorkbookMulti,
-        parseUnifiedSwuTable: parseUnifiedSwuTable,
-        findAllHeaderRows: findAllHeaderRows,
-        splitRowsIntoBlocks: splitRowsIntoBlocks,
-        sheetToDenseRows: sheetToDenseRows,
-        buildPinDescription: buildPinDescription,
-        buildPinTitle: buildPinTitle
+        invalidateSize: invalidateSize
     };
 })(window);

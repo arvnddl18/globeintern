@@ -61,18 +61,145 @@
             scrollMessages();
         }
 
+        // ── Live-log processing steps (mirrors actual server pipeline) ──
+        var RA_STEPS = [
+            {
+                id: 'ctx',
+                icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+                label: 'Reading report context',
+                sub: 'Loading KPIs, filters & dataset snapshot'
+            },
+            {
+                id: 'plan',
+                icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+                label: 'Planning data query',
+                sub: 'Deciding if a CSV or recurring-ticket scan is needed'
+            },
+            {
+                id: 'query',
+                icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
+                label: 'Querying report data',
+                sub: 'Scanning CSV rows & applying active filters'
+            },
+            {
+                id: 'ai',
+                icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M22 2 12 12"/><polyline points="22 2 15 2 22 9"/></svg>',
+                label: 'Generating response',
+                sub: 'Sending context + query results to AI model'
+            }
+        ];
+
+        function makeBadge(cls, text) {
+            return '<span class="ra-log-step-badge ' + cls + '">' + text + '</span>';
+        }
+
+        function makeStepIcon(svg, spinning) {
+            var cls = spinning ? ' ra-step-icon-spin' : '';
+            return '<span class="ra-log-step-icon' + cls + '" aria-hidden="true">' + svg + '</span>';
+        }
+
         function showThinkingBubble() {
-            var div = document.createElement('div');
-            div.className = 'report-assistant-bubble assistant thinking';
-            div.setAttribute('aria-busy', 'true');
-            div.setAttribute('aria-label', 'Assistant is thinking');
-            div.innerHTML =
-                '<span class="report-assistant-thinking" aria-hidden="true">' +
-                '<span></span><span></span><span></span>' +
-                '</span>';
-            messagesEl.appendChild(div);
+            var bubble = document.createElement('div');
+            bubble.className = 'report-assistant-bubble assistant thinking';
+            bubble.setAttribute('aria-busy', 'true');
+            bubble.setAttribute('aria-label', 'Assistant is processing');
+
+            var log = document.createElement('div');
+            log.className = 'ra-log';
+
+            // Header
+            var header = document.createElement('div');
+            header.className = 'ra-log-header';
+            header.innerHTML = '<span class="ra-log-spinner" aria-hidden="true"></span>' +
+                               '<span class="ra-log-title">Working…</span>';
+            log.appendChild(header);
+
+            var stepsEl = document.createElement('div');
+            stepsEl.className = 'ra-log-steps';
+
+            var stepEls = [];
+            RA_STEPS.forEach(function (s) {
+                var el = document.createElement('div');
+                el.className = 'ra-log-step';
+                el.id = 'ra-step-' + s.id + '-' + Date.now();
+                el.innerHTML =
+                    makeStepIcon(s.icon, false) +
+                    '<span class="ra-log-step-body">' +
+                        '<span class="ra-log-step-label">' + s.label + '</span>' +
+                        '<span class="ra-log-step-sub">' + s.sub + '</span>' +
+                    '</span>' +
+                    makeBadge('ra-badge-pending', 'pending');
+                stepsEl.appendChild(el);
+                stepEls.push(el);
+            });
+
+            log.appendChild(stepsEl);
+            bubble.appendChild(log);
+            messagesEl.appendChild(bubble);
             scrollMessages();
-            return div;
+
+            // Animate steps in one-by-one
+            var DELAYS = [0, 90, 190, 300];
+            stepEls.forEach(function (el, i) {
+                setTimeout(function () {
+                    el.classList.add('ra-step-visible');
+                }, DELAYS[i] || i * 90);
+            });
+
+            // Activate each step progressively (simulate pipeline progression)
+            var ACTIVE_DELAYS = [60, 800, 2200, 4000];
+
+            function activateStep(idx) {
+                if (!bubble.parentNode) return; // already removed
+                var el = stepEls[idx];
+                // Mark previous as done
+                if (idx > 0) {
+                    var prev = stepEls[idx - 1];
+                    prev.classList.remove('ra-step-active');
+                    prev.classList.add('ra-step-done');
+                    var prevBadge = prev.querySelector('.ra-log-step-badge');
+                    if (prevBadge) { prevBadge.className = 'ra-log-step-badge ra-badge-done'; prevBadge.textContent = 'done'; }
+                    // stop spin on prev icon
+                    var prevIcon = prev.querySelector('.ra-log-step-icon');
+                    if (prevIcon) prevIcon.classList.remove('ra-step-icon-spin');
+                }
+                el.classList.add('ra-step-active');
+                // animate icon spinning while active
+                var icon = el.querySelector('.ra-log-step-icon');
+                if (icon) icon.classList.add('ra-step-icon-spin');
+                var badge = el.querySelector('.ra-log-step-badge');
+                if (badge) { badge.className = 'ra-log-step-badge ra-badge-running'; badge.textContent = 'running'; }
+            }
+
+            var activeTimers = [];
+            ACTIVE_DELAYS.forEach(function (delay, idx) {
+                var t = setTimeout(function () { activateStep(idx); }, delay);
+                activeTimers.push(t);
+            });
+
+            bubble._raTimers = activeTimers;
+            bubble._raStepEls = stepEls;
+            return bubble;
+        }
+
+        function finalizeThinkingBubble(bubble) {
+            // Mark last active step as done, clear timers
+            if (!bubble) return;
+            if (bubble._raTimers) bubble._raTimers.forEach(clearTimeout);
+            var stepEls = bubble._raStepEls || [];
+            stepEls.forEach(function (el) {
+                el.classList.remove('ra-step-active');
+                el.classList.add('ra-step-done', 'ra-step-visible');
+                var badge = el.querySelector('.ra-log-step-badge');
+                if (badge) { badge.className = 'ra-log-step-badge ra-badge-done'; badge.textContent = 'done'; }
+                var icon = el.querySelector('.ra-log-step-icon');
+                if (icon) icon.classList.remove('ra-step-icon-spin');
+            });
+            // stop header spinner
+            var spinner = bubble.querySelector('.ra-log-spinner');
+            if (spinner) spinner.style.animation = 'none';
+            var title = bubble.querySelector('.ra-log-title');
+            if (title) title.textContent = 'Done';
         }
 
         function removeThinkingBubble(el) {
@@ -182,6 +309,10 @@
                 });
 
                 var data = await res.json().catch(function () { return null; });
+
+                // Flash "all done" on the log for a moment before replacing
+                finalizeThinkingBubble(thinkingEl);
+                await new Promise(function (r) { setTimeout(r, 280); });
                 removeThinkingBubble(thinkingEl);
                 thinkingEl = null;
 
@@ -200,7 +331,9 @@
                     appendBubble('assistant', 'No reply from server.', true);
                 }
             } catch (e) {
-                removeThinkingBubble(thinkingEl);
+                finalizeThinkingBubble(thinkingEl);
+                setTimeout(function () { removeThinkingBubble(thinkingEl); }, 180);
+                thinkingEl = null;
                 appendBubble('assistant', 'Network error. Try again.', true);
             } finally {
                 isBusy = false;

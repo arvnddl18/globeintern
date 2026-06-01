@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -225,14 +225,14 @@
             margin: 0 !important;
             padding: 0 !important;
             min-height: 100vh;
-            overflow: hidden;
+            overflow-x: hidden;
         }
         html:has(.dash-layout-root),
         body:has(.dash-layout-root) {
             margin: 0;
             padding: 0;
-            overflow: hidden;
             overflow-x: hidden;
+            overflow-y: auto;
             max-width: 100%;
             scroll-padding-top: var(--dash-nav-height);
         }
@@ -256,12 +256,12 @@
         }
         .dash-layout-root .dash-layout-body {
             margin-top: var(--dash-nav-height);
-            height: calc(100vh - var(--dash-nav-height));
             min-height: calc(100vh - var(--dash-nav-height));
             width: 100%;
             max-width: 100%;
             min-width: 0;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             isolation: isolate;
         }
         :root[data-theme="light"] .dash-layout-root .dash-layout-nav {
@@ -288,7 +288,7 @@
         }
     </style>
 </head>
-<body class="h-full font-sans" style="background: var(--theme-bg); color: var(--theme-text);">
+<body class="font-sans" style="background: var(--theme-bg); color: var(--theme-text);">
     <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
 
     @{

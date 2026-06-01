@@ -362,6 +362,57 @@ public class ReportController : Controller
     [HttpPost("[action]")]
     [ValidateAntiForgeryToken]
     [DisableRequestSizeLimit]
+    public async Task<IActionResult> UploadGtDpNapUtilizationApi(
+        [FromServices] IGtDpNapUtilizationService gtDpService,
+        IFormFile? xlsxFile)
+    {
+        if (xlsxFile is null || xlsxFile.Length == 0)
+            return BadRequest(new { error = "The uploaded file is empty." });
+
+        if (!xlsxFile.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { error = "Only .xlsx files are supported." });
+
+        try
+        {
+            await using var uploadStream = xlsxFile.OpenReadStream();
+            var batchId = await gtDpService.ProcessAndZipAsync(
+                uploadStream,
+                xlsxFile.FileName,
+                HttpContext.RequestAborted);
+            return Json(new { batchId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing GT DP,Nap Utilization upload for file {FileName}", xlsxFile.FileName);
+            return BadRequest(new { error = $"Error processing file: {ex.Message}" });
+        }
+    }
+
+    [HttpGet("[action]")]
+    public IActionResult DownloadGtDpNapUtilizationZip(
+        [FromServices] IGtDpNapUtilizationService gtDpService,
+        string batchId)
+    {
+        if (string.IsNullOrWhiteSpace(batchId))
+        {
+            TempData["Error"] = "No batch ID provided.";
+            return RedirectToAction(nameof(Upload));
+        }
+
+        var zipPath = gtDpService.GetZipFilePath(batchId);
+        if (!System.IO.File.Exists(zipPath))
+        {
+            TempData["Error"] = "No processed data available or file has expired.";
+            return RedirectToAction(nameof(Upload));
+        }
+
+        var fs = new FileStream(zipPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return File(fs, "application/zip", $"ExtractedData_{batchId}.zip");
+    }
+
+    [HttpPost("[action]")]
+    [ValidateAntiForgeryToken]
+    [DisableRequestSizeLimit]
     public async Task<IActionResult> UploadKpi(IFormFile? csvFile)
     {
         if (csvFile is null || csvFile.Length == 0)
@@ -465,6 +516,159 @@ public class ReportController : Controller
 
     [HttpGet("Map")]
     public IActionResult Map() => View("MapDashboard");
+
+    [HttpPost("SaveCircuitMapData")]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> SaveCircuitMapData([FromBody] JsonElement data)
+    {
+        try
+        {
+            var reportsDir = _configuration.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports";
+            if (!Path.IsPathRooted(reportsDir))
+            {
+                reportsDir = Path.Combine(_hostEnv.ContentRootPath, reportsDir);
+            }
+            if (!Directory.Exists(reportsDir))
+            {
+                Directory.CreateDirectory(reportsDir);
+            }
+            var path = Path.Combine(reportsDir, "circuit-map.json");
+            await System.IO.File.WriteAllTextAsync(path, JsonSerializer.Serialize(data));
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving circuit map data");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("GetCircuitMapData")]
+    public async Task<IActionResult> GetCircuitMapData()
+    {
+        try
+        {
+            var reportsDir = _configuration.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports";
+            if (!Path.IsPathRooted(reportsDir))
+            {
+                reportsDir = Path.Combine(_hostEnv.ContentRootPath, reportsDir);
+            }
+            var path = Path.Combine(reportsDir, "circuit-map.json");
+            if (!System.IO.File.Exists(path))
+            {
+                return NotFound(new { message = "No saved circuit map data found." });
+            }
+            var content = await System.IO.File.ReadAllTextAsync(path);
+            return Content(content, "application/json");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting circuit map data");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("SaveRouteMapData")]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> SaveRouteMapData([FromBody] JsonElement data)
+    {
+        try
+        {
+            var reportsDir = _configuration.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports";
+            if (!Path.IsPathRooted(reportsDir))
+            {
+                reportsDir = Path.Combine(_hostEnv.ContentRootPath, reportsDir);
+            }
+            if (!Directory.Exists(reportsDir))
+            {
+                Directory.CreateDirectory(reportsDir);
+            }
+            var path = Path.Combine(reportsDir, "route-map.json");
+            await System.IO.File.WriteAllTextAsync(path, JsonSerializer.Serialize(data));
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving route map data");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("GetRouteMapData")]
+    public async Task<IActionResult> GetRouteMapData()
+    {
+        try
+        {
+            var reportsDir = _configuration.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports";
+            if (!Path.IsPathRooted(reportsDir))
+            {
+                reportsDir = Path.Combine(_hostEnv.ContentRootPath, reportsDir);
+            }
+            var path = Path.Combine(reportsDir, "route-map.json");
+            if (!System.IO.File.Exists(path))
+            {
+                return NotFound(new { message = "No saved route map data found." });
+            }
+            var content = await System.IO.File.ReadAllTextAsync(path);
+            return Content(content, "application/json");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting route map data");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("SaveDlpcMapData")]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> SaveDlpcMapData([FromBody] JsonElement data)
+    {
+        try
+        {
+            var reportsDir = _configuration.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports";
+            if (!Path.IsPathRooted(reportsDir))
+            {
+                reportsDir = Path.Combine(_hostEnv.ContentRootPath, reportsDir);
+            }
+            if (!Directory.Exists(reportsDir))
+            {
+                Directory.CreateDirectory(reportsDir);
+            }
+            var path = Path.Combine(reportsDir, "dlpc-map.json");
+            await System.IO.File.WriteAllTextAsync(path, JsonSerializer.Serialize(data));
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving DLPC map data");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("GetDlpcMapData")]
+    public async Task<IActionResult> GetDlpcMapData()
+    {
+        try
+        {
+            var reportsDir = _configuration.GetValue<string>("ReportSessions:ReportsDirectory") ?? "App_Data/reports";
+            if (!Path.IsPathRooted(reportsDir))
+            {
+                reportsDir = Path.Combine(_hostEnv.ContentRootPath, reportsDir);
+            }
+            var path = Path.Combine(reportsDir, "dlpc-map.json");
+            if (!System.IO.File.Exists(path))
+            {
+                return NotFound(new { message = "No saved DLPC map data found." });
+            }
+            var content = await System.IO.File.ReadAllTextAsync(path);
+            return Content(content, "application/json");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting DLPC map data");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
 
     [HttpGet("OperationalDashboard")]
     public async Task<IActionResult> OperationalDashboard(

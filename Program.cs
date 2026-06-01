@@ -12,6 +12,7 @@ using SlotAd_Globe.Options;
 using SlotAd_Globe.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("secrets.json", optional: true, reloadOnChange: true);
 
 var dataDir = Path.Combine(builder.Environment.ContentRootPath, "Data");
 Directory.CreateDirectory(dataDir);
@@ -90,6 +91,7 @@ builder.Services.AddControllersWithViews()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
 builder.Services.AddScoped<ICsvProcessingService, CsvProcessingService>();
 builder.Services.AddScoped<ISwuPoleProcessingService, SwuPoleProcessingService>();
+builder.Services.AddScoped<IGtDpNapUtilizationService, GtDpNapUtilizationService>();
 builder.Services.AddScoped<IOperationalReportService, OperationalReportService>();
 builder.Services.AddScoped<IReportDashboardArchiveRecorder, ReportDashboardArchiveRecorder>();
 builder.Services.AddScoped<IToolsAuditService, ToolsAuditService>();
