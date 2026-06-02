@@ -28,7 +28,7 @@ public sealed class GtDpNapUtilizationService : IGtDpNapUtilizationService
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             var groupedData = new Dictionary<string, List<Dictionary<string, string>>>(StringComparer.OrdinalIgnoreCase);
-            var requiredCols = new[] { "DP", "DP/NAP LAT", "DP/NAP LONG", "S_SP", "S_Total", "CFS Area", "CFS Cluster", "DP Location" };
+            var requiredCols = new[] { "DP", "DP/NAP LAT", "DP/NAP LONG", "S_SP", "S_Total", "CFS Area", "CFS Cluster", "DP Location", "Tech" };
 
             using (var reader = ExcelReaderFactory.CreateReader(xlsxStream))
             {
@@ -59,9 +59,15 @@ public sealed class GtDpNapUtilizationService : IGtDpNapUtilizationService
 
                     var cfsArea = reader.GetValue(headers["CFS Area"])?.ToString()?.Trim() ?? "";
                     var sTotalRaw = reader.GetValue(headers["S_Total"])?.ToString()?.Trim() ?? "";
+                    var tech = reader.GetValue(headers["Tech"])?.ToString()?.Trim() ?? "";
 
-                    if (cfsArea.Equals("SOUTH MINDANAO 1", StringComparison.OrdinalIgnoreCase) && 
-                        (sTotalRaw == "8" || sTotalRaw == "8.0" || sTotalRaw == "8.00"))
+                    bool isGPON = tech.Equals("GPON", StringComparison.OrdinalIgnoreCase);
+                    bool isSouthMindanao = cfsArea.Equals("SOUTH MINDANAO 1", StringComparison.OrdinalIgnoreCase);
+                    
+                    bool is8 = sTotalRaw == "8" || sTotalRaw == "8.0" || sTotalRaw == "8.00";
+                    bool is16 = sTotalRaw == "16" || sTotalRaw == "16.0" || sTotalRaw == "16.00";
+
+                    if (isSouthMindanao && isGPON && (is8 || is16))
                     {
                         var cfsCluster = reader.GetValue(headers["CFS Cluster"])?.ToString()?.Trim();
                         if (string.IsNullOrEmpty(cfsCluster))
@@ -69,9 +75,12 @@ public sealed class GtDpNapUtilizationService : IGtDpNapUtilizationService
                             cfsCluster = "UNKNOWN_CLUSTER";
                         }
 
-                        if (!groupedData.ContainsKey(cfsCluster))
+                        var ports = is8 ? "8" : "16";
+                        var groupKey = $"{cfsCluster} - {ports} PORTS";
+
+                        if (!groupedData.ContainsKey(groupKey))
                         {
-                            groupedData[cfsCluster] = new List<Dictionary<string, string>>();
+                            groupedData[groupKey] = new List<Dictionary<string, string>>();
                         }
 
                         var rowData = new Dictionary<string, string>();
@@ -79,7 +88,7 @@ public sealed class GtDpNapUtilizationService : IGtDpNapUtilizationService
                         {
                             rowData[req] = reader.GetValue(headers[req])?.ToString()?.Trim() ?? "";
                         }
-                        groupedData[cfsCluster].Add(rowData);
+                        groupedData[groupKey].Add(rowData);
                     }
                 }
             }
@@ -105,7 +114,10 @@ public sealed class GtDpNapUtilizationService : IGtDpNapUtilizationService
                     // Write headers
                     for (int i = 0; i < requiredCols.Length; i++)
                     {
-                        outWs.Cell(1, i + 1).Value = requiredCols[i];
+                        var colName = requiredCols[i];
+                        if (colName.Equals("DP/NAP LAT", StringComparison.OrdinalIgnoreCase)) colName = "Latitude";
+                        if (colName.Equals("DP/NAP LONG", StringComparison.OrdinalIgnoreCase)) colName = "Longitude";
+                        outWs.Cell(1, i + 1).Value = colName;
                     }
 
                     // Write rows
